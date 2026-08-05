@@ -1,0 +1,162 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum EnrollmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum MessageSender {
+  USER
+  ADMIN
+  SYSTEM
+}
+
+enum ProfileCategory {
+  MOTHER
+  TEACHER
+  ADOLESCENT
+  OTHER
+}
+
+enum CourseAudience {
+  ADOLESCENT
+  PARENT_TEACHER
+}
+
+enum QuestionType {
+  OPEN
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  SCALE
+}
+
+model User {
+  id                     String           @id @default(cuid())
+  name                   String
+  email                  String           @unique
+  phone                  String?
+  dateOfBirth            DateTime?
+  profileCategory        ProfileCategory?
+  passwordHash           String
+  role                   Role             @default(USER)
+  createdAt              DateTime         @default(now())
+  messagesReadByUserAt   DateTime?
+  messagesReadByAdminAt  DateTime?
+  failedLoginAttempts    Int              @default(0)
+  lockedUntil            DateTime?
+  enrollments            Enrollment[]
+  messages               Message[]
+  questionAnswers        QuestionAnswer[]
+}
+
+model Course {
+  id                    String       @id @default(cuid())
+  slug                  String       @unique
+  title                 String
+  summary               String
+  description           String
+  price                 Int
+  published             Boolean      @default(true)
+  demoVideoUrl          String?
+  demoVideoPath         String?
+  questionnaireEnabled  Boolean      @default(false)
+  audience              CourseAudience @default(PARENT_TEACHER)
+  createdAt             DateTime     @default(now())
+  lessons               Lesson[]
+  enrollments           Enrollment[]
+  questions             Question[]
+}
+
+model Question {
+  id              String           @id @default(cuid())
+  courseId        String
+  course          Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  type            QuestionType
+  text            String
+  order           Int              @default(0)
+  scaleMin        Int?
+  scaleMax        Int?
+  scaleMinLabel   String?
+  scaleMaxLabel   String?
+  options         QuestionOption[]
+  answers         QuestionAnswer[]
+}
+
+model QuestionOption {
+  id         String   @id @default(cuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label      String
+  order      Int      @default(0)
+}
+
+model QuestionAnswer {
+  id                String   @id @default(cuid())
+  questionId        String
+  question          Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId          String
+  textValue         String?
+  scaleValue        Int?
+  selectedOptionIds String?
+  createdAt         DateTime @default(now())
+
+  @@unique([questionId, userId])
+}
+
+model Lesson {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  videoUrl  String?
+  videoPath String?
+  order     Int      @default(0)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status      EnrollmentStatus @default(PENDING)
+  receiptPath String
+  receiptNote String?
+  createdAt   DateTime         @default(now())
+  reviewedAt  DateTime?
+
+  @@unique([userId, courseId])
+}
+
+model Message {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sender    MessageSender
+  body      String
+  createdAt DateTime      @default(now())
+}
+
+model Settings {
+  id           String @id @default("main")
+  availability String @default("من الاثنين إلى الجمعة، من 9 صباحًا إلى 5 مساءً.")
+}

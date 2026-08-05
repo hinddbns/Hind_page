@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fbf6f0;
+  --foreground: #2b2320;
+
+  --color-cream: #fbf6f0;
+  --color-cream-dark: #f2e9de;
+  --color-ink: #2b2320;
+  --color-ink-soft: #5a4f47;
+  --color-primary: #b5654a;
+  --color-primary-dark: #8f4d37;
+  --color-primary-light: #e7cabb;
+  --color-secondary: #4f6f76;
+  --color-secondary-dark: #3b555b;
+  --color-secondary-light: #dde8e7;
+  --color-accent: #c9a15a;
+  --color-success: #4d7c5f;
+  --color-danger: #b3423a;
+  --color-app-tint: #eef4f3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-cream: var(--color-cream);
+  --color-cream-dark: var(--color-cream-dark);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-light: var(--color-primary-light);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-dark: var(--color-secondary-dark);
+  --color-secondary-light: var(--color-secondary-light);
+  --color-accent: var(--color-accent);
+  --color-success: var(--color-success);
+  --color-danger: var(--color-danger);
+  --color-app-tint: var(--color-app-tint);
+  --font-sans: var(--font-tajawal);
+  --font-serif: var(--font-tajawal);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-tajawal), Tahoma, sans-serif;
+}
+
+h1, h2, h3, .font-serif {
+  font-family: var(--font-tajawal), Tahoma, sans-serif;
+}
+
+@keyframes shell-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-shell-arrive {
+  animation: shell-arrive 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-shell-arrive {
+    animation: none;
+  }
 }
