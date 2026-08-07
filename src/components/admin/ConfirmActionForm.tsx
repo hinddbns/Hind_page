@@ -56,7 +56,7 @@ export default function ConfirmActionForm({
         className={className}
       />
       {state.error && (
-        <p className="mt-2 max-w-xs rounded-lg bg-danger/10 px-3 py-1.5 text-xs text-danger">
+        <p role="alert" className="mt-2 max-w-xs rounded-lg bg-danger/10 px-3 py-1.5 text-xs text-danger">
           {state.error}
         </p>
       )}

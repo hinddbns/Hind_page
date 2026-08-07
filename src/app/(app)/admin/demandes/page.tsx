@@ -4,6 +4,7 @@ import { formatPrice } from "@/lib/format";
 import { getT } from "@/i18n/server";
 import { reviewEnrollment } from "../actions";
 import ConfirmActionForm from "@/components/admin/ConfirmActionForm";
+import ReceiptPreviewButton from "@/components/admin/ReceiptPreviewButton";
 
 export default async function AdminDemandesPage({
   searchParams,
@@ -82,14 +83,7 @@ export default async function AdminDemandesPage({
               <span className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary-dark">
                 {e.course.audience === "ADOLESCENT" ? t.admin.audienceAdolescent : t.admin.audienceParentTeacher}
               </span>
-              <a
-                href={`/api/receipts/${e.id}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:border-primary hover:text-primary"
-              >
-                {t.admin.seeReceipt}
-              </a>
+              <ReceiptPreviewButton enrollmentId={e.id} />
 
               <span
                 className={`rounded-full border px-3 py-1 text-xs font-medium ${

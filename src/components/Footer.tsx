@@ -30,7 +30,7 @@ export default function Footer() {
           </div>
           <SocialLinks variant={variant} />
         </div>
-        <p className="mt-6 text-center text-xs text-ink-soft/70 md:text-left">
+        <p className="mt-6 text-center text-xs text-ink-soft/70 md:text-start">
           © {new Date().getFullYear()} {site.name}. {t.footer.droitsReserves}
         </p>
       </div>

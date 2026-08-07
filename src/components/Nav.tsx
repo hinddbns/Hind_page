@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
@@ -11,6 +12,7 @@ import UnreadBadge from "./UnreadBadge";
 export default function Nav() {
   const { data: session, status } = useSession();
   const { t } = useLocale();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   return (
@@ -29,8 +31,8 @@ export default function Nav() {
 
         <nav className="hidden items-center gap-8 text-sm font-medium text-ink-soft md:flex">
           <Link href="/#a-propos" className="hover:text-primary">{t.nav.apropos}</Link>
-          <Link href="/ados" className="hover:text-primary">{t.nav.espaceAdos}</Link>
-          <Link href="/parents-enseignants" className="hover:text-primary">{t.nav.espaceParents}</Link>
+          <Link href="/ados" className={`hover:text-primary ${pathname === "/ados" ? "text-primary" : ""}`}>{t.nav.espaceAdos}</Link>
+          <Link href="/parents-enseignants" className={`hover:text-primary ${pathname === "/parents-enseignants" ? "text-primary" : ""}`}>{t.nav.espaceParents}</Link>
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -75,7 +77,13 @@ export default function Nav() {
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
-          <button className="text-ink" onClick={() => setOpen((o) => !o)} aria-label="Menu">
+          <button
+            className="rounded-lg p-2.5 text-ink"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={t.nav.menuToggle}
+            aria-expanded={open}
+            aria-controls="mobile-nav-menu"
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />
             </svg>
@@ -84,11 +92,11 @@ export default function Nav() {
       </div>
 
       {open && (
-        <div className="border-t border-primary-light/40 bg-cream px-6 py-4 md:hidden">
+        <div id="mobile-nav-menu" className="border-t border-primary-light/40 bg-cream px-6 py-4 md:hidden">
           <div className="flex flex-col gap-4 text-sm font-medium text-ink-soft">
             <Link href="/#a-propos" onClick={() => setOpen(false)}>{t.nav.apropos}</Link>
-            <Link href="/ados" onClick={() => setOpen(false)}>{t.nav.espaceAdos}</Link>
-            <Link href="/parents-enseignants" onClick={() => setOpen(false)}>{t.nav.espaceParents}</Link>
+            <Link href="/ados" onClick={() => setOpen(false)} className={pathname === "/ados" ? "text-primary" : ""}>{t.nav.espaceAdos}</Link>
+            <Link href="/parents-enseignants" onClick={() => setOpen(false)} className={pathname === "/parents-enseignants" ? "text-primary" : ""}>{t.nav.espaceParents}</Link>
             <hr className="border-primary-light/40" />
             {session ? (
               <>
@@ -103,7 +111,7 @@ export default function Nav() {
                   {session.user.role === "ADMIN" && <UnreadBadge />}
                 </Link>
                 <Link href="/profil" onClick={() => setOpen(false)}>{t.nav.monProfil}</Link>
-                <button className="text-left" onClick={() => signOut({ callbackUrl: "/" })}>
+                <button className="text-start" onClick={() => signOut({ callbackUrl: "/" })}>
                   {t.nav.seDeconnecter}
                 </button>
               </>

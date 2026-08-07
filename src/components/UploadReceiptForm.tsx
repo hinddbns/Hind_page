@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
+import CopyButton from "@/components/CopyButton";
 
 type ExistingRequest = {
   id: string;
@@ -92,7 +93,7 @@ export default function UploadReceiptForm({
 
   if (done === "sent") {
     return (
-      <div className="flex items-start gap-3 rounded-xl bg-success/10 px-5 py-4 text-sm text-success">
+      <div role="status" className="flex items-start gap-3 rounded-xl bg-success/10 px-5 py-4 text-sm text-success">
         <span aria-hidden className="mt-0.5">✓</span>
         <span>{t.receipt.sentTitle}</span>
       </div>
@@ -100,7 +101,7 @@ export default function UploadReceiptForm({
   }
   if (done === "updated") {
     return (
-      <div className="flex items-start gap-3 rounded-xl bg-success/10 px-5 py-4 text-sm text-success">
+      <div role="status" className="flex items-start gap-3 rounded-xl bg-success/10 px-5 py-4 text-sm text-success">
         <span aria-hidden className="mt-0.5">✓</span>
         <span>{t.receipt.updatedNotice}</span>
       </div>
@@ -108,7 +109,7 @@ export default function UploadReceiptForm({
   }
   if (done === "withdrawn") {
     return (
-      <div className="rounded-xl bg-accent/10 px-5 py-4 text-sm text-ink">
+      <div role="status" className="rounded-xl bg-accent/10 px-5 py-4 text-sm text-ink">
         {t.receipt.withdrawnNotice}
       </div>
     );
@@ -128,7 +129,7 @@ export default function UploadReceiptForm({
         )}
 
         {error && (
-          <p className="mt-3 rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>
+          <p role="alert" className="mt-3 rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>
         )}
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -163,15 +164,27 @@ export default function UploadReceiptForm({
         </p>
       )}
 
-      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-ink-soft">
+      <dl className="mt-3 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
         <dt className="font-medium text-ink">{t.receipt.bank}</dt>
-        <dd>{site.bankDetails.bank}</dd>
+        <dd className="flex items-center gap-1.5">
+          {site.bankDetails.bank}
+          <CopyButton value={site.bankDetails.bank} fieldLabel={t.receipt.bank} />
+        </dd>
         <dt className="font-medium text-ink">{t.receipt.holder}</dt>
-        <dd>{site.bankDetails.holder}</dd>
+        <dd className="flex items-center gap-1.5">
+          {site.bankDetails.holder}
+          <CopyButton value={site.bankDetails.holder} fieldLabel={t.receipt.holder} />
+        </dd>
         <dt className="font-medium text-ink">{t.receipt.rib}</dt>
-        <dd>{site.bankDetails.rib}</dd>
+        <dd className="flex items-center gap-1.5">
+          {site.bankDetails.rib}
+          <CopyButton value={site.bankDetails.rib} fieldLabel={t.receipt.rib} />
+        </dd>
         <dt className="font-medium text-ink">{t.receipt.iban}</dt>
-        <dd>{site.bankDetails.iban}</dd>
+        <dd className="flex items-center gap-1.5">
+          {site.bankDetails.iban}
+          <CopyButton value={site.bankDetails.iban} fieldLabel={t.receipt.iban} />
+        </dd>
       </dl>
 
       {isEditing && (
@@ -212,7 +225,7 @@ export default function UploadReceiptForm({
         </div>
 
         {error && (
-          <p className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>
+          <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>
         )}
 
         <div className="flex flex-wrap items-center gap-3">

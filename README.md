@@ -5,6 +5,10 @@ publics distincts : les **adolescents** eux-mêmes, et les **mères / enseignant
 accompagnent. Interface **entièrement en arabe (RTL)**. Le nom de la marque et son logo
 s'affichent partout dans l'app (`src/lib/site.ts`, `public/logo.jpg`).
 
+> **Pour Claude Code / tout futur contributeur** : voir [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
+> pour la documentation complète et à jour du projet (architecture, pages, composants, design
+> system, roadmap, conventions) — à lire avant toute modification.
+
 ## Deux espaces ("workspaces")
 
 Le site distingue deux publics avec leur propre landing page, palette d'accent, et catalogue de

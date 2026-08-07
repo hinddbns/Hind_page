@@ -105,7 +105,7 @@ export default function QuestionnaireForm({
           {q.type === "OPEN" ? (
             <label htmlFor={`question-${q.id}`} className="font-medium text-ink">{q.text}</label>
           ) : (
-            <p className="font-medium text-ink">{q.text}</p>
+            <p id={`question-${q.id}-label`} className="font-medium text-ink">{q.text}</p>
           )}
 
           {q.type === "OPEN" && (
@@ -119,7 +119,7 @@ export default function QuestionnaireForm({
           )}
 
           {q.type === "SINGLE_CHOICE" && (
-            <div className="mt-3 flex flex-col gap-2">
+            <div role="group" aria-labelledby={`question-${q.id}-label`} className="mt-3 flex flex-col gap-2">
               {q.options.map((o) => (
                 <label key={o.id} className="flex items-center gap-2 text-sm text-ink-soft">
                   <input
@@ -136,7 +136,7 @@ export default function QuestionnaireForm({
           )}
 
           {q.type === "MULTIPLE_CHOICE" && (
-            <div className="mt-3 flex flex-col gap-2">
+            <div role="group" aria-labelledby={`question-${q.id}-label`} className="mt-3 flex flex-col gap-2">
               {q.options.map((o) => (
                 <label key={o.id} className="flex items-center gap-2 text-sm text-ink-soft">
                   <input
@@ -152,12 +152,13 @@ export default function QuestionnaireForm({
           )}
 
           {q.type === "SCALE" && q.scaleMin !== null && q.scaleMax !== null && (
-            <div className="mt-4">
+            <div role="group" aria-labelledby={`question-${q.id}-label`} className="mt-4">
               <div className="flex items-center justify-center gap-2">
                 {Array.from({ length: q.scaleMax - q.scaleMin + 1 }, (_, i) => q.scaleMin! + i).map((n) => (
                   <button
                     key={n}
                     type="button"
+                    aria-pressed={answers[q.id]?.scaleValue === n}
                     onClick={() => setAnswer(q.id, { scaleValue: n })}
                     className={`flex h-10 w-10 items-center justify-center rounded-full border text-sm font-medium transition ${
                       answers[q.id]?.scaleValue === n
@@ -180,7 +181,7 @@ export default function QuestionnaireForm({
         </div>
       ))}
 
-      {error && <p className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>}
+      {error && <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>}
 
       <button
         type="submit"

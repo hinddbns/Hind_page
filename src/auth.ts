@@ -10,6 +10,11 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   pages: { signIn: "/connexion" },
+  // This app is designed to run as a single, long-lived Node process on a plain
+  // host (VPS/Docker), not on a platform like Vercel that auto-trusts its own
+  // domain — without this, Auth.js rejects every request in production with
+  // an "UntrustedHost" error, breaking all authentication.
+  trustHost: true,
   providers: [
     Credentials({
       credentials: {

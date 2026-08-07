@@ -78,7 +78,7 @@ function ConnexionForm() {
         </div>
 
         {error && (
-          <p className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>
+          <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>
         )}
 
         <button

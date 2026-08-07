@@ -16,7 +16,7 @@ export default function CoachReminder({
         ? t.pourQui.enseignantsText
         : category === "ADOLESCENT"
           ? t.ados.card1Text
-          : t.about.paragraph2;
+          : t.about.messageText;
 
   return (
     <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-secondary/30 bg-secondary/5 p-5 sm:flex-row sm:items-center">

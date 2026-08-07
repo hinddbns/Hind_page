@@ -1,9 +1,12 @@
 export const site = {
   name: "هند بنياس",
-  tagline: "مدربة معتمدة في التربية والتطوير الذاتي",
+  tagline: "مدربة وعي معتمدة من مؤسسة صناع القرار الدولية",
   logo: "/logo.jpg",
   logoWidth: 922,
   logoHeight: 1152,
+  coachPhoto: "/personal.jpeg",
+  coachPhotoWidth: 1125,
+  coachPhotoHeight: 1272,
   bankDetails: {
     bank: "Attijariwafa Bank",
     holder: "Hind Benyas",

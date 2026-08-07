@@ -40,10 +40,10 @@ export default function SettingsForm({
         />
       </div>
       {state.error && (
-        <p className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{state.error}</p>
+        <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{state.error}</p>
       )}
       {state.ok && (
-        <p className="rounded-lg bg-success/10 px-4 py-2 text-sm text-success">{t.admin.saved}</p>
+        <p role="status" className="rounded-lg bg-success/10 px-4 py-2 text-sm text-success">{t.admin.saved}</p>
       )}
       <SubmitButton label={t.admin.save} pendingLabel={t.admin.saving} />
     </form>

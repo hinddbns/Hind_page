@@ -119,7 +119,7 @@ export default async function ParentsEnseignantsPage() {
         </div>
       </section>
 
-      {/* Témoignages */}
+      {/* Témoignages — placeholder quotes pending real client testimonials, see ROADMAP.md */}
       <section className="bg-cream-dark/60 py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center font-serif text-3xl text-ink">{t.testimonials.title}</h2>
@@ -134,7 +134,6 @@ export default async function ParentsEnseignantsPage() {
               </blockquote>
             ))}
           </div>
-          <p className="mt-6 text-center text-xs text-ink-soft/60">{t.testimonials.disclaimer}</p>
         </div>
       </section>
 

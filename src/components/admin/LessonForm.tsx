@@ -98,10 +98,10 @@ export default function LessonForm({
       </div>
       <div className="sm:col-span-2 flex flex-col gap-3">
         {state.error && (
-          <p className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{state.error}</p>
+          <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{state.error}</p>
         )}
         {state.ok && (
-          <p className="rounded-lg bg-success/10 px-4 py-2 text-sm text-success">
+          <p role="status" className="rounded-lg bg-success/10 px-4 py-2 text-sm text-success">
             {mode === "add" ? t.admin.lessonAdded : t.admin.lessonUpdated}
           </p>
         )}
@@ -119,7 +119,7 @@ export default function LessonForm({
 
   return (
     <div className="mt-4">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="text-sm font-medium text-primary">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="text-sm font-medium text-primary">
         {t.admin.edit}
       </button>
       {open && fields}

@@ -33,6 +33,7 @@ export default async function AdminUserDetailPage({
   const CATEGORY_LABEL: Record<string, string> = {
     MOTHER: t.auth.profileCategoryMother,
     TEACHER: t.auth.profileCategoryTeacher,
+    ADOLESCENT: t.auth.profileCategoryAdolescent,
     OTHER: t.auth.profileCategoryOther,
   };
 
@@ -73,7 +74,7 @@ export default async function AdminUserDetailPage({
             </>
           )}
           <dt className="font-medium text-ink">{t.admin.colRole}</dt>
-          <dd>{user.role}</dd>
+          <dd>{user.role === "ADMIN" ? t.profil.roleAdmin : t.profil.roleUser}</dd>
           <dt className="font-medium text-ink">{t.admin.colJoined}</dt>
           <dd>{user.createdAt.toLocaleDateString("ar-MA")}</dd>
         </dl>

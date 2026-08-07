@@ -66,7 +66,7 @@ export default async function AdminUsersPage({
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-2xl border border-primary-light/50 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-start text-sm">
           <thead className="border-b border-primary-light/50 text-ink-soft">
             <tr>
               <th className="px-5 py-3 font-medium">{t.admin.colName}</th>
@@ -83,7 +83,7 @@ export default async function AdminUsersPage({
               <tr key={u.id} className="border-b border-primary-light/20 last:border-0">
                 <td className="px-5 py-3 text-ink">{u.name}</td>
                 <td className="px-5 py-3 text-ink-soft">{u.email}</td>
-                <td className="px-5 py-3 text-ink-soft">{u.role}</td>
+                <td className="px-5 py-3 text-ink-soft">{u.role === "ADMIN" ? t.profil.roleAdmin : t.profil.roleUser}</td>
                 <td className="px-5 py-3 text-ink-soft">{categoryLabel(t, u.profileCategory)}</td>
                 <td className="px-5 py-3 text-ink-soft">{u._count.enrollments}</td>
                 <td className="px-5 py-3 text-ink-soft">

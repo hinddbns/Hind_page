@@ -26,7 +26,7 @@ export default async function ProfilPage() {
           <dt className="font-medium text-ink">{t.profil.email}</dt>
           <dd>{user.email}</dd>
           <dt className="font-medium text-ink">{t.profil.role}</dt>
-          <dd>{user.role}</dd>
+          <dd>{user.role === "ADMIN" ? t.profil.roleAdmin : t.profil.roleUser}</dd>
         </dl>
       </div>
 

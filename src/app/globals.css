@@ -71,3 +71,8 @@ h1, h2, h3, .font-serif {
     animation: none;
   }
 }
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}

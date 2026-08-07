@@ -90,6 +90,11 @@ export default async function CourseContentPage({
       <h1 className="mt-4 font-serif text-3xl text-ink">{course.title}</h1>
 
       <div className="mt-8 flex flex-col gap-6">
+        {course.lessons.length === 0 && (
+          <p className="rounded-2xl border border-primary-light/50 bg-cream-dark/40 p-8 text-center text-ink-soft">
+            {t.lessonContent.noLessonsYet}
+          </p>
+        )}
         {course.lessons.map((lesson) => (
           <div key={lesson.id} className="rounded-2xl border border-primary-light/50 bg-white p-6">
             <h2 className="font-serif text-lg text-ink">

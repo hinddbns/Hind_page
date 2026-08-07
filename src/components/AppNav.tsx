@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
@@ -11,11 +12,19 @@ import UnreadBadge from "./UnreadBadge";
 export default function AppNav() {
   const { data: session } = useSession();
   const { t } = useLocale();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const isAdmin = session?.user.role === "ADMIN";
   const homeHref = isAdmin ? "/admin" : "/tableau-de-bord";
   const isAdosWorkspace = !isAdmin && session?.user.workspace === "ADOLESCENT";
   const coursesHref = isAdosWorkspace ? "/ados" : "/parents-enseignants";
+
+  const isDashboardActive = pathname === "/tableau-de-bord" || pathname.startsWith("/tableau-de-bord/cours");
+  const isMessagesActive = pathname.startsWith("/tableau-de-bord/messages");
+  const isAdminActive = pathname.startsWith("/admin");
+  const isCoursesActive = pathname === coursesHref;
+  const isProfilActive = pathname === "/profil";
+  const linkClass = (active: boolean) => (active ? "text-primary" : "hover:text-primary");
 
   return (
     <header className="sticky top-0 z-50 border-b border-secondary/25 bg-app-tint/95 backdrop-blur">
@@ -41,21 +50,21 @@ export default function AppNav() {
         <div className="hidden items-center gap-6 text-sm font-medium text-ink-soft md:flex">
           {!isAdmin && (
             <>
-              <Link href="/tableau-de-bord" className="hover:text-primary">{t.nav.monEspace}</Link>
-              <Link href={coursesHref} className="hover:text-primary">{t.nav.cours}</Link>
-              <Link href="/tableau-de-bord/messages" className="flex items-center hover:text-primary">
+              <Link href="/tableau-de-bord" className={linkClass(isDashboardActive)}>{t.nav.monEspace}</Link>
+              <Link href={coursesHref} className={linkClass(isCoursesActive)}>{t.nav.cours}</Link>
+              <Link href="/tableau-de-bord/messages" className={`flex items-center ${linkClass(isMessagesActive)}`}>
                 {t.nav.messages}
                 <UnreadBadge />
               </Link>
             </>
           )}
           {isAdmin && (
-            <Link href="/admin" className="flex items-center hover:text-primary">
+            <Link href="/admin" className={`flex items-center ${linkClass(isAdminActive)}`}>
               {t.nav.espaceAdmin}
               <UnreadBadge />
             </Link>
           )}
-          <Link href="/profil" className="hover:text-primary">{t.nav.monProfil}</Link>
+          <Link href="/profil" className={linkClass(isProfilActive)}>{t.nav.monProfil}</Link>
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -68,7 +77,13 @@ export default function AppNav() {
         </div>
 
         <div className="flex items-center gap-2 md:hidden">
-          <button className="text-ink" onClick={() => setOpen((o) => !o)} aria-label="Menu">
+          <button
+            className="rounded-lg p-2.5 text-ink"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={t.nav.menuToggle}
+            aria-expanded={open}
+            aria-controls="mobile-app-nav-menu"
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 6h18M3 12h18M3 18h18" strokeLinecap="round" />
             </svg>
@@ -77,26 +92,26 @@ export default function AppNav() {
       </div>
 
       {open && (
-        <div className="border-t border-secondary/25 bg-app-tint px-6 py-4 md:hidden">
+        <div id="mobile-app-nav-menu" className="border-t border-secondary/25 bg-app-tint px-6 py-4 md:hidden">
           <div className="flex flex-col gap-4 text-sm font-medium text-ink-soft">
             {!isAdmin && (
               <>
-                <Link href="/tableau-de-bord" onClick={() => setOpen(false)}>{t.nav.monEspace}</Link>
-                <Link href={coursesHref} onClick={() => setOpen(false)}>{t.nav.cours}</Link>
-                <Link href="/tableau-de-bord/messages" onClick={() => setOpen(false)} className="flex items-center">
+                <Link href="/tableau-de-bord" onClick={() => setOpen(false)} className={isDashboardActive ? "text-primary" : ""}>{t.nav.monEspace}</Link>
+                <Link href={coursesHref} onClick={() => setOpen(false)} className={isCoursesActive ? "text-primary" : ""}>{t.nav.cours}</Link>
+                <Link href="/tableau-de-bord/messages" onClick={() => setOpen(false)} className={`flex items-center ${isMessagesActive ? "text-primary" : ""}`}>
                   {t.nav.messages}
                   <UnreadBadge />
                 </Link>
               </>
             )}
             {isAdmin && (
-              <Link href="/admin" onClick={() => setOpen(false)} className="flex items-center">
+              <Link href="/admin" onClick={() => setOpen(false)} className={`flex items-center ${isAdminActive ? "text-primary" : ""}`}>
                 {t.nav.espaceAdmin}
                 <UnreadBadge />
               </Link>
             )}
-            <Link href="/profil" onClick={() => setOpen(false)}>{t.nav.monProfil}</Link>
-            <button className="text-left" onClick={() => signOut({ callbackUrl: "/" })}>
+            <Link href="/profil" onClick={() => setOpen(false)} className={isProfilActive ? "text-primary" : ""}>{t.nav.monProfil}</Link>
+            <button className="text-start" onClick={() => signOut({ callbackUrl: "/" })}>
               {t.nav.seDeconnecter}
             </button>
           </div>

@@ -210,16 +210,34 @@ export async function deleteCourse(
 
     const course = await prisma.course.findUnique({
       where: { id: courseId },
-      include: { lessons: true },
+      include: { lessons: true, _count: { select: { enrollments: true } } },
     });
     if (!course) return { ok: true };
+
+    if (course._count.enrollments > 0) {
+      throw new AdminActionError(
+        "لا يمكن حذف هذه الدورة لوجود طلبات تسجيل و/أو دفعات لعملاء مرتبطة بها. استخدم «إلغاء النشر» لإخفائها عن الزوار الجدد مع الاحتفاظ بسجلات العملاء."
+      );
+    }
+
+    // Guard the actual delete with the same condition at the database level, so a
+    // brand-new enrollment created after the check above (but before this runs)
+    // can't be silently wiped out by a race — the delete only takes effect if the
+    // course still has zero enrollments at this exact moment.
+    const result = await prisma.course.deleteMany({
+      where: { id: courseId, enrollments: { none: {} } },
+    });
+    if (result.count === 0) {
+      throw new AdminActionError(
+        "لا يمكن حذف هذه الدورة لوجود طلبات تسجيل و/أو دفعات لعملاء مرتبطة بها. استخدم «إلغاء النشر» لإخفائها عن الزوار الجدد مع الاحتفاظ بسجلات العملاء."
+      );
+    }
 
     await deleteFileQuietly(DEMO_VIDEOS_DIR, path.basename(course.demoVideoPath ?? ""));
     for (const lesson of course.lessons) {
       await deleteFileQuietly(VIDEOS_DIR, lesson.videoPath);
     }
 
-    await prisma.course.delete({ where: { id: courseId } });
     revalidatePath("/admin/cours");
     revalidatePath("/cours");
     revalidatePath("/");
