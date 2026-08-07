@@ -17,12 +17,12 @@ export default function AppNav() {
   const isAdmin = session?.user.role === "ADMIN";
   const homeHref = isAdmin ? "/admin" : "/tableau-de-bord";
   const isAdosWorkspace = !isAdmin && session?.user.workspace === "ADOLESCENT";
-  const coursesHref = isAdosWorkspace ? "/ados" : "/parents-enseignants";
+  const coursesHref = "/tableau-de-bord/cours";
 
-  const isDashboardActive = pathname === "/tableau-de-bord" || pathname.startsWith("/tableau-de-bord/cours");
+  const isDashboardActive = pathname === "/tableau-de-bord";
   const isMessagesActive = pathname.startsWith("/tableau-de-bord/messages");
   const isAdminActive = pathname.startsWith("/admin");
-  const isCoursesActive = pathname === coursesHref;
+  const isCoursesActive = pathname.startsWith("/tableau-de-bord/cours");
   const isProfilActive = pathname === "/profil";
   const linkClass = (active: boolean) => (active ? "text-primary" : "hover:text-primary");
 

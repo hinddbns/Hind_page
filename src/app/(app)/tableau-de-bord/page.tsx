@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   if (session.user.role === "ADMIN") redirect("/admin");
 
   const { t } = await getT();
-  const coursesHref = session.user.workspace === "ADOLESCENT" ? "/ados" : "/parents-enseignants";
+  const coursesHref = "/tableau-de-bord/cours";
 
   const me = await prisma.user.findUnique({
     where: { id: session.user.id },

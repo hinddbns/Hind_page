@@ -200,6 +200,16 @@ const ar = {
     statusApproved: "تم تفعيل الوصول",
     statusRejected: "تم رفض الإيصال",
     myProfile: "مساحتي",
+    coursesPageTitle: "الدورات",
+    coursesPageSubtitle: "مساحتك الكاملة للدورات — تابعي ما اشتركت فيه، واكتشفي ما هو متاح لك.",
+    myCoursesTitle: "دوراتي",
+    myCoursesSubtitle: "الدورات التي طلبت الوصول إليها.",
+    availableCoursesTitle: "دورات متاحة",
+    availableCoursesSubtitle: "دورات لم تشتركي فيها بعد.",
+    noAvailableCourses: "لا توجد دورات متاحة إضافية حاليًا في مساحتك.",
+    continueCourse: "متابعة الدورة",
+    viewCourseAvailable: "عرض الدورة",
+    availableToEnrollBadge: "متاح للاشتراك",
   },
 
   receipt: {

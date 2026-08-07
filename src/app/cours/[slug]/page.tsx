@@ -22,9 +22,16 @@ export default async function CourseDetailPage({
 
   if (!course || !course.published) notFound();
 
-  const backHref = course.audience === "ADOLESCENT" ? "/ados" : "/parents-enseignants";
-
   const session = await auth();
+
+  // A logged-in visitor is already inside the authenticated shell (see cours/layout.tsx) —
+  // "back" should return them to their personal space, not out to public marketing.
+  const backHref = session?.user
+    ? "/tableau-de-bord/cours"
+    : course.audience === "ADOLESCENT"
+      ? "/ados"
+      : "/parents-enseignants";
+
   const enrollment = session?.user
     ? await prisma.enrollment.findUnique({
         where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
