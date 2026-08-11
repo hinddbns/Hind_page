@@ -11,8 +11,6 @@ import {
   UploadCloud,
   MailCheck,
   ChevronDown,
-  Target,
-  Telescope,
   CheckCircle2,
   Award,
   MessageCircle,
@@ -86,47 +84,28 @@ export default async function Home() {
           </div>
 
           <div>
-            <span className="text-xs font-medium uppercase tracking-wide text-secondary">
-              {t.about.role}
-            </span>
-            <h2 className="mt-3 font-serif text-3xl text-ink md:text-4xl">
-              {interpolate(t.about.sectionTitle, { siteName: site.name })}
-            </h2>
+            <h2 className="font-serif text-3xl text-ink md:text-4xl">{t.about.roleTitle}</h2>
 
             <blockquote className="mt-6 border-s-4 border-secondary/40 ps-4">
               <p className="text-xs font-medium uppercase tracking-wide text-secondary">{t.about.messageTitle}</p>
               <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.about.messageText}&rdquo;</p>
             </blockquote>
 
-            <div className="mt-8 grid grid-cols-3 gap-4">
+            <blockquote className="mt-6 border-s-4 border-secondary/40 ps-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-secondary">{t.about.visionTitle}</p>
+              <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.about.visionText}&rdquo;</p>
+            </blockquote>
+
+            <div className="mt-8 grid grid-cols-2 gap-4">
               {[
                 { value: t.about.stat1Value, label: t.about.stat1Label },
                 { value: t.about.stat2Value, label: t.about.stat2Label },
-                { value: t.about.stat3Value, label: t.about.stat3Label },
               ].map((stat) => (
                 <div key={stat.label} className="rounded-xl bg-secondary-light/60 px-3 py-4 text-center">
                   <p className="font-serif text-2xl text-secondary-dark">{stat.value}</p>
                   <p className="mt-1 text-xs text-ink-soft">{stat.label}</p>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Mission & Vision */}
-      <section className="bg-cream-dark/60 py-20">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="rounded-3xl border border-primary-light/50 bg-white p-8 md:p-10">
-              <Target className="h-7 w-7 text-primary" />
-              <h3 className="mt-4 font-serif text-2xl text-ink">{t.about.missionTitle}</h3>
-              <p className="mt-4 text-ink-soft">{t.about.missionText}</p>
-            </div>
-            <div className="rounded-3xl border border-secondary/30 bg-white p-8 md:p-10">
-              <Telescope className="h-7 w-7 text-secondary" />
-              <h3 className="mt-4 font-serif text-2xl text-ink">{t.about.visionTitle}</h3>
-              <p className="mt-4 text-ink-soft">{t.about.visionText}</p>
             </div>
           </div>
         </div>

@@ -5,8 +5,8 @@ export const site = {
   logoWidth: 922,
   logoHeight: 1152,
   coachPhoto: "/personal.jpeg",
-  coachPhotoWidth: 1125,
-  coachPhotoHeight: 1272,
+  coachPhotoWidth: 3900,
+  coachPhotoHeight: 5400,
   bankDetails: {
     bank: "Attijariwafa Bank",
     holder: "Hind Benyas",
