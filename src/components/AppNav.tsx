@@ -17,6 +17,7 @@ export default function AppNav() {
   const isAdmin = session?.user.role === "ADMIN";
   const homeHref = isAdmin ? "/admin" : "/tableau-de-bord";
   const isAdosWorkspace = !isAdmin && session?.user.workspace === "ADOLESCENT";
+  const isParentWorkspace = !isAdmin && session?.user.workspace === "PARENT_TEACHER";
   const coursesHref = "/tableau-de-bord/cours";
 
   const isDashboardActive = pathname === "/tableau-de-bord";
@@ -32,7 +33,9 @@ export default function AppNav() {
         className={`h-[3px] ${
           isAdosWorkspace
             ? "bg-gradient-to-l from-accent via-secondary-light to-secondary"
-            : "bg-gradient-to-l from-secondary via-secondary-light to-primary-light"
+            : isParentWorkspace
+              ? "bg-gradient-to-l from-olive via-secondary-light to-secondary"
+              : "bg-gradient-to-l from-secondary via-secondary-light to-primary-light"
         }`}
       />
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">

@@ -14,19 +14,11 @@ These aren't bugs — the app works correctly — but the content/config is stil
   `tiktok.com` homepages. Needs the owner's actual account URLs, one set per workspace.
 - **Real bank details**: `site.bankDetails` (bank name, holder, RIB, IBAN) are placeholder
   values shown on every course's payment instructions.
-- **Real coach photo**: `CoachPortrait.tsx` is a gradient-blob-with-initial placeholder. A real
-  photo has been supplied by the owner in conversation but not yet wired in (need a file path to
-  it — see the open thread in project history). Once available, replace the component call in
-  `src/app/(marketing)/page.tsx`'s "À propos" section with a plain `next/image` (the real photo
-  already has a matching arch-frame design baked in, so no extra decorative wrapper needed).
 - **Real course content & videos**: all 3 seeded courses and their lesson videos are
   placeholder/test content (`scripts/gen_test_videos.py` generates synthetic filler clips). None
   of them are `ADOLESCENT`-audience yet, so `/ados` currently shows an honest empty state.
 - **`AUTH_SECRET` and admin credentials**: must be regenerated for production, not carried over
   from `.env`/seed defaults.
-- **Review the placeholder testimonials** (`testimonials` namespace in `ar.ts`) — the dictionary
-  itself carries a disclaimer string saying these are illustrative examples, not real client
-  quotes; replace with real ones or remove the section.
 
 ## Infrastructure needed only if deploying beyond a single server
 

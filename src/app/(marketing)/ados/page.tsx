@@ -1,6 +1,17 @@
 import Link from "next/link";
-import { Sparkles, Wind, MessageCircleHeart } from "lucide-react";
+import Image from "next/image";
+import {
+  Sparkles,
+  Wind,
+  MessageCircleHeart,
+  CheckCircle2,
+  Compass,
+  ShieldCheck,
+  UploadCloud,
+  MailCheck,
+} from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import CourseCard from "@/components/CourseCard";
 
@@ -20,6 +31,15 @@ export default async function AdosPage() {
     { icon: MessageCircleHeart, title: t.ados.card3Title, text: t.ados.card3Text },
   ];
 
+  const whyPoints = [t.ados.whyPoint1, t.ados.whyPoint2];
+
+  const steps = [
+    { icon: MailCheck, title: t.commentCaMarche.step1Title, text: t.commentCaMarche.step1Text },
+    { icon: Compass, title: t.commentCaMarche.step2Title, text: t.commentCaMarche.step2Text },
+    { icon: UploadCloud, title: t.commentCaMarche.step3Title, text: t.commentCaMarche.step3Text },
+    { icon: ShieldCheck, title: t.commentCaMarche.step4Title, text: t.commentCaMarche.step4Text },
+  ];
+
   return (
     <>
       {/* Hero */}
@@ -34,7 +54,15 @@ export default async function AdosPage() {
           <h1 className="mt-6 max-w-3xl font-serif text-4xl leading-tight text-ink md:text-6xl">
             {t.ados.heroTitle}
           </h1>
-          <p className="mt-6 max-w-xl text-lg text-ink-soft">{t.ados.heroSubtitle}</p>
+          <Image
+            src={site.adosPhoto}
+            alt={t.ados.heroSubtitle}
+            width={site.adosPhotoWidth}
+            height={site.adosPhotoHeight}
+            sizes="(min-width: 768px) 640px, 100vw"
+            priority
+            className="mt-8 h-auto w-full max-w-2xl rounded-2xl shadow-lg shadow-accent/10"
+          />
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/inscription"
@@ -52,6 +80,27 @@ export default async function AdosPage() {
         </div>
       </section>
 
+      {/* رسالتي + لماذا تثق بي */}
+      <section className="mx-auto max-w-4xl px-6 py-20">
+        <blockquote className="border-s-4 border-secondary/40 ps-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-secondary">{t.about.messageTitle}</p>
+          <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.about.messageText}&rdquo;</p>
+        </blockquote>
+
+        <h2 className="mt-12 font-serif text-3xl text-ink">{t.ados.whyTitle}</h2>
+        <ul className="mt-6 flex flex-col gap-4">
+          {whyPoints.map((point) => (
+            <li
+              key={point}
+              className="flex items-start gap-3 rounded-2xl border border-accent/30 bg-white p-4 text-sm text-ink-soft"
+            >
+              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+              <span className="flex-1">{point}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       {/* Pourquoi cette espace */}
       <section className="bg-cream-dark/60 py-20">
         <div className="mx-auto max-w-6xl px-6">
@@ -62,6 +111,24 @@ export default async function AdosPage() {
                 <card.icon className="h-8 w-8 text-accent" />
                 <h3 className="mt-4 font-serif text-xl text-ink">{card.title}</h3>
                 <p className="mt-2 text-sm text-ink-soft">{card.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Comment ça marche */}
+      <section className="py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <h2 className="text-center font-serif text-3xl text-ink">{t.commentCaMarche.title}</h2>
+          <div className="mt-12 grid gap-8 md:grid-cols-4">
+            {steps.map((step) => (
+              <div key={step.title} className="text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10">
+                  <step.icon className="h-6 w-6 text-accent" />
+                </div>
+                <h3 className="mt-4 font-medium text-ink">{step.title}</h3>
+                <p className="mt-2 text-sm text-ink-soft">{step.text}</p>
               </div>
             ))}
           </div>

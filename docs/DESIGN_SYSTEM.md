@@ -39,15 +39,21 @@ the adolescent workspace.
 | `secondary-dark` | `#3b555b` | Hover/emphasis for secondary |
 | `secondary-light` | `#dde8e7` | Stat tile backgrounds |
 | `accent` | `#c9a15a` | Gold — adolescent workspace (`/ados`) identity color |
+| `olive` | `#6b7a3f` | Olive green — parents/teachers workspace identity color |
+| `olive-dark` | `#4f5c2e` | Hover state for olive |
+| `olive-light` | `#dde3c4` | Borders, light backgrounds for olive |
 | `success` | `#4d7c5f` | Approved status, success banners |
 | `danger` | `#b3423a` | Rejected status, delete buttons, error banners |
 | `app-tint` | `#eef4f3` | Logged-in app shell background (distinct from marketing `cream`) |
 
-**Workspace color convention**: the parents/teachers side of the app leans on `primary`
-(terracotta), the adolescent side (`/ados`, and the accent bar in `AppNav` for adolescent-workspace
-users) leans on `accent` (gold). `secondary` (sarcelle) is used for the personal/"about Hind"
-content regardless of workspace. When adding UI to a workspace-specific page, match this
-convention rather than introducing a new color.
+**Workspace color convention**: the parents/teachers side of the app (`/parents-enseignants`, and
+the accent bar in `AppNav` for parent-teacher-workspace users) leans on `olive`, the adolescent
+side (`/ados`, and the accent bar in `AppNav` for adolescent-workspace users) leans on `accent`
+(gold). `primary` (terracotta) remains the general/neutral CTA color used everywhere that isn't
+tied to a specific workspace — the hub page, auth flows, and the admin panel (which stays
+workspace-neutral by design). `secondary` (sarcelle) is used for the personal/"about Hind" content
+regardless of workspace. When adding UI to a workspace-specific page, match this convention rather
+than introducing a new color.
 
 ## Typography
 

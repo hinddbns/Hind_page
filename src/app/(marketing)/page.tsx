@@ -13,7 +13,7 @@ import {
   ChevronDown,
   CheckCircle2,
   Award,
-  MessageCircle,
+  Users,
   GraduationCap,
   BookOpen,
 } from "lucide-react";
@@ -40,11 +40,10 @@ export default async function Home() {
   const testimonials = [
     { quote: t.testimonials.quote1, name: t.testimonials.name1 },
     { quote: t.testimonials.quote2, name: t.testimonials.name2 },
-    { quote: t.testimonials.quote3, name: t.testimonials.name3 },
   ];
 
   const services = [
-    { icon: MessageCircle, title: t.services.item1, accent: "text-primary", border: "border-primary-light/60" },
+    { icon: Users, title: t.services.item1, accent: "text-primary", border: "border-primary-light/60" },
     { icon: GraduationCap, title: t.services.item2, accent: "text-secondary", border: "border-secondary/30" },
     { icon: BookOpen, title: t.services.item3, accent: "text-accent", border: "border-accent/30" },
   ];
@@ -120,8 +119,8 @@ export default async function Home() {
               key={credential}
               className="flex items-start gap-3 rounded-2xl border border-primary-light/40 bg-white p-4 text-sm text-ink-soft"
             >
+              <span className="flex-1">{credential}</span>
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
-              <span>{credential}</span>
             </li>
           ))}
         </ul>
@@ -129,19 +128,32 @@ export default async function Home() {
 
       {/* أعمالي */}
       <section className="bg-cream-dark/60 py-20">
-        <div className="mx-auto max-w-4xl px-6">
+        <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center font-serif text-3xl text-ink">{t.about.workTitle}</h2>
-          <ul className="mt-10 flex flex-col gap-4">
-            {t.about.work.map((item) => (
-              <li
-                key={item}
-                className="flex items-start gap-3 rounded-2xl border border-primary-light/50 bg-white p-5 text-sm text-ink-soft"
-              >
-                <Award className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-10 grid items-center gap-12 md:grid-cols-2">
+            <ul className="flex flex-col gap-4">
+              {t.about.work.map((item) => (
+                <li
+                  key={item}
+                  className="flex items-start gap-3 rounded-2xl border border-primary-light/50 bg-white p-5 text-sm text-ink-soft"
+                >
+                  <span className="flex-1">{item}</span>
+                  <Award className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                </li>
+              ))}
+            </ul>
+
+            <div className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-primary-light/50 bg-white p-4">
+              <Image
+                src={site.coachWorkPhoto}
+                alt={interpolate(t.about.workPhotoAlt, { siteName: site.name })}
+                width={site.coachWorkPhotoWidth}
+                height={site.coachWorkPhotoHeight}
+                sizes="(min-width: 768px) 384px, 100vw"
+                className="h-auto w-full rounded-2xl"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -198,12 +210,12 @@ export default async function Home() {
 
             <Link
               href="/parents-enseignants"
-              className="group flex flex-col rounded-3xl border border-primary-light/60 bg-white p-8 transition hover:border-primary hover:shadow-lg"
+              className="group flex flex-col rounded-3xl border border-olive-light/60 bg-white p-8 transition hover:border-olive hover:shadow-lg"
             >
-              <HeartHandshake className="h-9 w-9 text-primary" />
+              <HeartHandshake className="h-9 w-9 text-olive" />
               <h3 className="mt-5 font-serif text-2xl text-ink">{t.hub.parentsCardTitle}</h3>
               <p className="mt-3 flex-1 text-sm text-ink-soft">{t.hub.parentsCardText}</p>
-              <span className="mt-6 text-sm font-medium text-primary group-hover:underline">
+              <span className="mt-6 text-sm font-medium text-olive group-hover:underline">
                 {t.hub.parentsCardCta}
               </span>
             </Link>
@@ -229,11 +241,11 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Témoignages — placeholder quotes pending real client testimonials, see ROADMAP.md */}
+      {/* Témoignages */}
       <section id="temoignages" className="py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center font-serif text-3xl text-ink">{t.testimonials.title}</h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
             {testimonials.map((item) => (
               <blockquote
                 key={item.name}

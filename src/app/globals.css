@@ -15,6 +15,9 @@
   --color-secondary-dark: #3b555b;
   --color-secondary-light: #dde8e7;
   --color-accent: #c9a15a;
+  --color-olive: #6b7a3f;
+  --color-olive-dark: #4f5c2e;
+  --color-olive-light: #dde3c4;
   --color-success: #4d7c5f;
   --color-danger: #b3423a;
   --color-app-tint: #eef4f3;
@@ -34,6 +37,9 @@
   --color-secondary-dark: var(--color-secondary-dark);
   --color-secondary-light: var(--color-secondary-light);
   --color-accent: var(--color-accent);
+  --color-olive: var(--color-olive);
+  --color-olive-dark: var(--color-olive-dark);
+  --color-olive-light: var(--color-olive-light);
   --color-success: var(--color-success);
   --color-danger: var(--color-danger);
   --color-app-tint: var(--color-app-tint);
@@ -49,6 +55,11 @@ body {
 
 h1, h2, h3, .font-serif {
   font-family: var(--font-tajawal), Tahoma, sans-serif;
+}
+
+p {
+  text-align: justify;
+  text-align-last: start;
 }
 
 @keyframes shell-arrive {
