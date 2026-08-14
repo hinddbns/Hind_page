@@ -31,7 +31,13 @@ export default async function AdosPage() {
     { icon: MessageCircleHeart, title: t.ados.card3Title, text: t.ados.card3Text },
   ];
 
-  const whyPoints = [t.ados.whyPoint1, t.ados.whyPoint2];
+  const goals = [t.ados.goal1, t.ados.goal2, t.ados.goal3];
+
+  const testimonials = [
+    { quote: t.testimonialsAdos.quote1, name: t.testimonialsAdos.name1 },
+    { quote: t.testimonialsAdos.quote2, name: t.testimonialsAdos.name2 },
+    { quote: t.testimonialsAdos.quote3, name: t.testimonialsAdos.name3 },
+  ];
 
   const steps = [
     { icon: MailCheck, title: t.commentCaMarche.step1Title, text: t.commentCaMarche.step1Text },
@@ -80,22 +86,24 @@ export default async function AdosPage() {
         </div>
       </section>
 
-      {/* رسالتي + لماذا تثق بي */}
+      {/* لماذا هذا الفضاء */}
       <section className="mx-auto max-w-4xl px-6 py-20">
         <blockquote className="border-s-4 border-secondary/40 ps-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-secondary">{t.about.messageTitle}</p>
-          <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.about.messageText}&rdquo;</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-secondary">{t.ados.missionTitle}</p>
+          <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.ados.missionText}&rdquo;</p>
         </blockquote>
 
         <h2 className="mt-12 font-serif text-3xl text-ink">{t.ados.whyTitle}</h2>
-        <ul className="mt-6 flex flex-col gap-4">
-          {whyPoints.map((point) => (
+        <p className="mt-4 text-sm leading-relaxed text-ink-soft">{t.ados.whyText}</p>
+
+        <ul className="mt-8 flex flex-col gap-4">
+          {goals.map((goal) => (
             <li
-              key={point}
+              key={goal}
               className="flex items-start gap-3 rounded-2xl border border-accent/30 bg-white p-4 text-sm text-ink-soft"
             >
               <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-              <span className="flex-1">{point}</span>
+              <span className="flex-1">{goal}</span>
             </li>
           ))}
         </ul>
@@ -154,6 +162,24 @@ export default async function AdosPage() {
             {t.ados.noCoursesYet}
           </p>
         )}
+      </section>
+
+      {/* Témoignages — draft placeholder quotes pending real client testimonials, see ROADMAP.md */}
+      <section className="bg-cream-dark/60 py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <h2 className="text-center font-serif text-3xl text-ink">{t.testimonialsAdos.title}</h2>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {testimonials.map((item) => (
+              <blockquote
+                key={item.name}
+                className="rounded-2xl border border-accent/30 bg-white p-8 text-sm text-ink-soft"
+              >
+                <p>&ldquo;{item.quote}&rdquo;</p>
+                <footer className="mt-4 font-medium text-ink">{item.name}</footer>
+              </blockquote>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* CTA final */}
