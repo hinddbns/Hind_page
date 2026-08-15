@@ -15,7 +15,7 @@ import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import CourseCard from "@/components/CourseCard";
 
-export const metadata = { title: "مساحة المراهقين" };
+export const metadata = { title: "مساحة الشباب والمراهقين" };
 
 export default async function AdosPage() {
   const { t } = await getT();
@@ -36,7 +36,6 @@ export default async function AdosPage() {
   const testimonials = [
     { quote: t.testimonialsAdos.quote1, name: t.testimonialsAdos.name1 },
     { quote: t.testimonialsAdos.quote2, name: t.testimonialsAdos.name2 },
-    { quote: t.testimonialsAdos.quote3, name: t.testimonialsAdos.name3 },
   ];
 
   const steps = [
@@ -60,18 +59,24 @@ export default async function AdosPage() {
           <h1 className="mt-6 max-w-3xl font-serif text-4xl leading-tight text-ink md:text-6xl">
             {t.ados.heroTitle}
           </h1>
-          <Image
-            src={site.adosPhoto}
-            alt={t.ados.heroSubtitle}
-            width={site.adosPhotoWidth}
-            height={site.adosPhotoHeight}
-            sizes="(min-width: 768px) 640px, 100vw"
-            priority
-            className="mt-8 h-auto w-full max-w-2xl rounded-2xl shadow-lg shadow-accent/10"
-          />
+          <div className="relative mt-8 w-full max-w-2xl overflow-hidden rounded-2xl shadow-lg shadow-accent/10">
+            <Image
+              src={site.adosPhoto}
+              alt=""
+              width={site.adosPhotoWidth}
+              height={site.adosPhotoHeight}
+              sizes="(min-width: 768px) 640px, 100vw"
+              priority
+              className="h-auto w-full"
+            />
+            {/* Anchored to the photo's own empty left-hand space — physical, not logical, since the image doesn't mirror with RTL */}
+            <div className="absolute inset-y-0 left-0 flex w-3/5 items-center bg-gradient-to-r from-cream via-cream/85 to-transparent p-6">
+              <p className="text-lg font-medium leading-relaxed text-ink">{t.ados.heroSubtitle}</p>
+            </div>
+          </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/inscription"
+              href="/inscription?workspace=ADOLESCENT"
               className="rounded-full bg-accent px-7 py-3.5 text-sm font-medium text-ink shadow-lg shadow-accent/20 transition hover:opacity-90"
             >
               {t.ados.ctaPrimary}
@@ -164,11 +169,11 @@ export default async function AdosPage() {
         )}
       </section>
 
-      {/* Témoignages — draft placeholder quotes pending real client testimonials, see ROADMAP.md */}
+      {/* Témoignages */}
       <section className="bg-cream-dark/60 py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center font-serif text-3xl text-ink">{t.testimonialsAdos.title}</h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
             {testimonials.map((item) => (
               <blockquote
                 key={item.name}
@@ -187,7 +192,7 @@ export default async function AdosPage() {
         <h2 className="font-serif text-3xl text-ink md:text-4xl">{t.ados.finalCtaTitle}</h2>
         <p className="mx-auto mt-4 max-w-lg text-ink-soft">{t.ados.finalCtaSubtitle}</p>
         <Link
-          href="/inscription"
+          href="/inscription?workspace=ADOLESCENT"
           className="mt-8 inline-block rounded-full bg-accent px-8 py-4 text-sm font-medium text-ink shadow-lg shadow-accent/20 transition hover:opacity-90"
         >
           {t.ados.finalCtaButton}

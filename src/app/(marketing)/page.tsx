@@ -110,35 +110,35 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Identifiants — من هند بنياس */}
+      {/* أعمالي */}
       <section className="mx-auto max-w-4xl px-6 py-20">
-        <h2 className="text-center font-serif text-3xl text-ink">{t.about.credentialsTitle}</h2>
+        <h2 className="text-center font-serif text-3xl text-ink">{t.about.workTitle}</h2>
         <ul className="mt-10 grid gap-4 sm:grid-cols-2">
-          {t.about.credentials.map((credential) => (
+          {t.about.work.map((item) => (
             <li
-              key={credential}
-              className="flex items-start gap-3 rounded-2xl border border-primary-light/40 bg-white p-4 text-sm text-ink-soft"
+              key={item}
+              className="flex items-start gap-3 rounded-2xl border border-primary-light/50 bg-white p-4 text-sm text-ink-soft"
             >
-              <span className="flex-1">{credential}</span>
-              <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
+              <span className="flex-1">{item}</span>
+              <Award className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
             </li>
           ))}
         </ul>
       </section>
 
-      {/* أعمالي */}
+      {/* Identifiants — من هند بنياس */}
       <section className="bg-cream-dark/60 py-20">
         <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-center font-serif text-3xl text-ink">{t.about.workTitle}</h2>
+          <h2 className="text-center font-serif text-3xl text-ink">{t.about.credentialsTitle}</h2>
           <div className="mt-10 grid items-center gap-12 md:grid-cols-2">
             <ul className="flex flex-col gap-4">
-              {t.about.work.map((item) => (
+              {t.about.credentials.map((credential) => (
                 <li
-                  key={item}
-                  className="flex items-start gap-3 rounded-2xl border border-primary-light/50 bg-white p-5 text-sm text-ink-soft"
+                  key={credential}
+                  className="flex items-start gap-3 rounded-2xl border border-primary-light/40 bg-white p-4 text-sm text-ink-soft"
                 >
-                  <span className="flex-1">{item}</span>
-                  <Award className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <span className="flex-1">{credential}</span>
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
                 </li>
               ))}
             </ul>

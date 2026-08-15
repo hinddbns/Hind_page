@@ -28,8 +28,10 @@ in-app messaging channel between enrolled users and the coach.
 
 **Target audience** — explicitly split into **two workspaces**:
 1. **Adolescents** (`/ados`) — teens themselves, as direct users.
-2. **Parents & teachers** (`/parents-enseignants`) — adults who accompany teenagers, plus general
-   self-development seekers.
+2. **Mothers & female teachers** (`/parents-enseignants`) — women who accompany teenagers, plus
+   general self-development seekers. This is a deliberate scope decision, not an oversight: all
+   Arabic copy for this workspace uses feminine forms (`الأمهات والأستاذات`, not `الأساتذة`) —
+   don't reintroduce a masculine "أستاذ" form when touching this workspace's copy.
 
 Every user account belongs to exactly one workspace, derived from their `profileCategory` at
 sign-up (`ADOLESCENT` → ados workspace; `MOTHER`/`TEACHER`/`OTHER`/unset → parents/teachers
@@ -111,11 +113,11 @@ Naming conventions for why.
 
 | Route | File | Purpose | Status |
 |---|---|---|---|
-| `/` | `page.tsx` | **The hub.** Neutral, audience-agnostic landing page. Opens with a personal "hook" statement + scroll cue, then: expanded about-Hind (photo, role, message, real stats), Mission & Vision, full credentials list, track record, values, services, then a "choose your space" section linking to `/ados` and `/parents-enseignants`, then generic how-it-works/testimonials/final-CTA. | Fully built; photo is a placeholder pending the real image. |
-| `/ados` | `ados/page.tsx` | Adolescent-workspace landing page: its own hero (gold/`accent`-toned), 3 "why this space" cards, a course grid filtered to `audience: ADOLESCENT`, final CTA. No testimonials section (deliberately — no real adolescent testimonials exist yet, not faked). | Fully built; course grid is empty (honest "coming soon" state) since no adolescent courses exist yet. |
-| `/parents-enseignants` | `parents-enseignants/page.tsx` | Parents/teachers-workspace landing page: hero, "pour qui" (mothers / teachers / general self-development) cards, how-it-works, course grid filtered to `audience: PARENT_TEACHER`, testimonials, final CTA. | Fully built and populated — this is where all 3 seeded example courses currently live. |
-| `/connexion` | `connexion/page.tsx` | Login. Client component, `signIn("credentials", { redirect: false })`, then `router.push`. Shows a generic error for any failure (wrong password *or* locked-out account — deliberately not distinguished, see `ARCHITECTURE.md` § Auth). | Fully built. |
-| `/inscription` | `inscription/page.tsx` | Sign-up. Collects name/email/phone(optional)/date-of-birth(optional)/profile-category(mother, teacher, adolescent, other)/password+confirm. Client-side mismatch check before hitting `/api/inscription`, then auto-signs-in on success. | Fully built. |
+| `/` | `page.tsx` | **The hub.** Neutral, audience-agnostic landing page. Opens with a personal "hook" statement + scroll cue, then: expanded about-Hind (photo, role, message, real stats), Mission & Vision, full credentials list, track record, values, services, then a "choose your space" section linking to `/ados` and `/parents-enseignants`, then generic how-it-works/testimonials/final-CTA. | Fully built. |
+| `/ados` | `ados/page.tsx` | Adolescent-workspace landing page (gold/`accent`-toned): hero photo, mission statement + "why this space" story + 3 goals, 3 "why this space" cards, how-it-works, a course grid filtered to `audience: ADOLESCENT`, 2 real testimonials, final CTA. | Fully built; course grid is empty (honest "coming soon" state) since no adolescent courses exist yet. |
+| `/parents-enseignants` | `parents-enseignants/page.tsx` | Parents/teachers-workspace landing page (olive-toned): hero photo, mission statement + "why this space" story + 3 goals, "pour qui" (mothers / teachers / general self-development) cards, how-it-works, course grid filtered to `audience: PARENT_TEACHER`, 3 real testimonials, final CTA. | Fully built and populated — this is where all 3 seeded example courses currently live. |
+| `/connexion` | `connexion/page.tsx` | Login. Client component, `signIn("credentials", { redirect: false })`, then `router.push`. Shows a generic error for any failure (wrong password *or* locked-out account — deliberately not distinguished, see `ARCHITECTURE.md` § Auth). Reads an optional `?workspace=ADOLESCENT\|PARENT_TEACHER` search param (via `src/lib/authTheme.ts`) to show a gold/olive space badge and a "welcome back to your space" subtitle instead of the generic one — purely cosmetic continuity, doesn't affect auth logic. | Fully built. |
+| `/inscription` | `inscription/page.tsx` | Sign-up. Collects name/email/phone(optional)/date-of-birth(optional)/profile-category(mother, teacher, adolescent, other)/password+confirm. Client-side mismatch check before hitting `/api/inscription`, then auto-signs-in on success. Same `?workspace=` param as `/connexion`: for `ADOLESCENT` it pre-selects the "مراهق(ة)" category (still changeable) and applies the gold theme; for `PARENT_TEACHER` it applies the olive theme without pre-selecting a category (ambiguous between mother/teacher/other). Every entry point on `/ados` and `/parents-enseignants` (hero CTA, final CTA, `Nav`, `Footer`) links here with the matching `workspace` value already set; links from the neutral hub stay bare. | Fully built. |
 
 ### Shared (`cours/`, not in a route group)
 
@@ -162,8 +164,8 @@ All in `src/components/` unless noted. Every prop type is inlined at the compone
 
 | Component | Does | Used in | Key props |
 |---|---|---|---|
-| `Nav.tsx` | Public top nav: logo, "من نحن"/"مساحة المراهقين"/"مساحة الأمهات والأساتذة" links, connexion/inscription buttons, mobile hamburger menu. Client component (`useSession` to decide auth-state links). | `(marketing)/layout.tsx` | none |
-| `Footer.tsx` | Public footer: logo, workspace links, `SocialLinks`. Picks the `parents` vs `ados` social variant based on `usePathname()` (`/ados` → ados set, everything else → parents set). Client component. | `(marketing)/layout.tsx`, `cours/layout.tsx` (logged-out branch) | none |
+| `Nav.tsx` | Public top nav: logo, "من نحن"/"مساحة الشباب والمراهقين"/"مساحة الأمهات والأستاذات" links, connexion/inscription buttons, mobile hamburger menu. Client component (`useSession` to decide auth-state links). Its connexion/inscription hrefs append `?workspace=ADOLESCENT`/`PARENT_TEACHER` when `usePathname()` is `/ados`/`/parents-enseignants`, so those buttons carry the space's identity into the auth pages (see `src/lib/authTheme.ts`). | `(marketing)/layout.tsx` | none |
+| `Footer.tsx` | Public footer: logo, workspace links, `SocialLinks`. Picks the `parents` vs `ados` social variant based on `usePathname()` (`/ados` → ados set, everything else → parents set). Its own connexion link is workspace-aware the same way `Nav.tsx`'s are. Client component. | `(marketing)/layout.tsx`, `cours/layout.tsx` (logged-out branch) | none |
 | `AppNav.tsx` | Logged-in top nav: logo, workspace-aware "courses" link (`/ados` or `/parents-enseignants` depending on `session.user.workspace`), messages (with `UnreadBadge`), profile, sign-out. Top accent bar switches color for adolescent-workspace users. Client component. | `(app)/layout.tsx`, `cours/layout.tsx` (logged-in branch) | none |
 | `AppFooter.tsx` | Logged-in footer: logo, `SocialLinks` with variant chosen server-side from `session.user.workspace`. Server component. | `(app)/layout.tsx`, `cours/layout.tsx` (logged-in branch) | none |
 

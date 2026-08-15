@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
+import { authQueryString } from "@/lib/authTheme";
 import UnreadBadge from "./UnreadBadge";
 
 export default function Nav() {
@@ -14,6 +15,8 @@ export default function Nav() {
   const { t } = useLocale();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const authWorkspace = pathname === "/ados" ? "ADOLESCENT" : pathname === "/parents-enseignants" ? "PARENT_TEACHER" : null;
+  const authQuery = authQueryString(authWorkspace);
 
   return (
     <header className="sticky top-0 z-50 border-b border-primary-light/40 bg-cream/90 backdrop-blur">
@@ -63,11 +66,11 @@ export default function Nav() {
             </>
           ) : (
             <>
-              <Link href="/connexion" className="text-sm font-medium text-ink-soft hover:text-primary">
+              <Link href={`/connexion${authQuery}`} className="text-sm font-medium text-ink-soft hover:text-primary">
                 {t.nav.connexion}
               </Link>
               <Link
-                href="/inscription"
+                href={`/inscription${authQuery}`}
                 className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-cream transition hover:bg-primary-dark"
               >
                 {t.nav.creerCompte}
@@ -117,8 +120,8 @@ export default function Nav() {
               </>
             ) : (
               <>
-                <Link href="/connexion" onClick={() => setOpen(false)}>{t.nav.connexion}</Link>
-                <Link href="/inscription" onClick={() => setOpen(false)}>{t.nav.creerCompte}</Link>
+                <Link href={`/connexion${authQuery}`} onClick={() => setOpen(false)}>{t.nav.connexion}</Link>
+                <Link href={`/inscription${authQuery}`} onClick={() => setOpen(false)}>{t.nav.creerCompte}</Link>
               </>
             )}
           </div>

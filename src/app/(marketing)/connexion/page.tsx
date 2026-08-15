@@ -7,13 +7,23 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { site } from "@/lib/site";
+import { getAuthTheme, parseAuthWorkspace, authQueryString } from "@/lib/authTheme";
 import PasswordInput from "@/components/PasswordInput";
 
 function ConnexionForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
+  const workspace = parseAuthWorkspace(params.get("workspace"));
+  const theme = getAuthTheme(workspace);
   const { t } = useLocale();
+
+  const subtitle =
+    workspace === "ADOLESCENT"
+      ? t.auth.loginSubtitleAdos
+      : workspace === "PARENT_TEACHER"
+        ? t.auth.loginSubtitleParents
+        : t.auth.loginSubtitle;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,8 +61,15 @@ function ConnexionForm() {
         height={site.logoHeight}
         className="mx-auto h-24 w-auto rounded-2xl"
       />
+      {workspace && (
+        <span
+          className={`mx-auto mt-4 w-fit rounded-full border bg-white/60 px-4 py-1.5 text-xs font-medium tracking-wide ${theme.badgeClass}`}
+        >
+          {workspace === "ADOLESCENT" ? t.hub.adosCardTitle : t.hub.parentsCardTitle}
+        </span>
+      )}
       <h1 className="mt-6 font-serif text-3xl text-ink">{t.auth.loginTitle}</h1>
-      <p className="mt-2 text-sm text-ink-soft">{t.auth.loginSubtitle}</p>
+      <p className="mt-2 text-sm text-ink-soft">{subtitle}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
         <div>
@@ -84,7 +101,7 @@ function ConnexionForm() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-cream transition hover:bg-primary-dark disabled:opacity-60"
+          className={`mt-2 rounded-full px-5 py-3 text-sm font-medium transition disabled:opacity-60 ${theme.buttonClass}`}
         >
           {loading ? t.auth.loggingIn : t.auth.login}
         </button>
@@ -92,7 +109,7 @@ function ConnexionForm() {
 
       <p className="mt-6 text-center text-sm text-ink-soft">
         {t.auth.noAccount}{" "}
-        <Link href="/inscription" className="font-medium text-primary hover:underline">
+        <Link href={`/inscription${authQueryString(workspace)}`} className={`font-medium ${theme.linkClass}`}>
           {t.auth.createAccount}
         </Link>
       </p>

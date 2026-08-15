@@ -107,8 +107,8 @@ uploads/                  PRIVATE, gitignored: uploads/receipts, uploads/videos 
 
 Three parallel "shells", all under the Next.js **App Router**:
 
-1. **`(marketing)`** — public. Rendered via `Nav` (top bar with logo + `من نحن` / `مساحة
-   المراهقين` / `مساحة الأمهات والأساتذة` links) and `Footer`.
+1. **`(marketing)`** — public. Rendered via `Nav` (top bar with logo + `من نحن` / `مساحة الشباب
+   والمراهقين` / `مساحة الأمهات والأستاذات` links) and `Footer`.
 2. **`(app)`** — authenticated. Rendered via `AppNav` (workspace-tinted accent bar) and
    `AppFooter`. The layout itself calls `auth()` and `redirect()`s to `/connexion` if there's no
    session — this is a **second, redundant layer of protection** on top of `proxy.ts`

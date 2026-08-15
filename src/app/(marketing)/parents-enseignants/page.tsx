@@ -14,7 +14,7 @@ import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import CourseCard from "@/components/CourseCard";
 
-export const metadata = { title: "مساحة الأمهات والأساتذة" };
+export const metadata = { title: "مساحة الأمهات والأستاذات" };
 
 export default async function ParentsEnseignantsPage() {
   const { t } = await getT();
@@ -64,7 +64,7 @@ export default async function ParentsEnseignantsPage() {
           />
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
-              href="/inscription"
+              href="/inscription?workspace=PARENT_TEACHER"
               className="rounded-full bg-olive px-7 py-3.5 text-sm font-medium text-cream shadow-lg shadow-olive/20 transition hover:bg-olive-dark"
             >
               {t.hero.ctaPrimary}
@@ -183,7 +183,7 @@ export default async function ParentsEnseignantsPage() {
         <h2 className="font-serif text-3xl text-ink md:text-4xl">{t.finalCta.title}</h2>
         <p className="mx-auto mt-4 max-w-lg text-ink-soft">{t.finalCta.subtitle}</p>
         <Link
-          href="/inscription"
+          href="/inscription?workspace=PARENT_TEACHER"
           className="mt-8 inline-block rounded-full bg-olive px-8 py-4 text-sm font-medium text-cream shadow-lg shadow-olive/20 transition hover:bg-olive-dark"
         >
           {t.finalCta.button}

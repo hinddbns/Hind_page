@@ -5,12 +5,14 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
+import { authQueryString } from "@/lib/authTheme";
 import SocialLinks from "./SocialLinks";
 
 export default function Footer() {
   const { t } = useLocale();
   const pathname = usePathname();
   const variant = pathname?.startsWith("/ados") ? "ados" : "parents";
+  const authWorkspace = pathname === "/ados" ? "ADOLESCENT" : pathname === "/parents-enseignants" ? "PARENT_TEACHER" : null;
 
   return (
     <footer className="mt-auto border-t border-primary-light/40 bg-cream-dark">
@@ -26,7 +28,7 @@ export default function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-6">
             <Link href="/ados" className="hover:text-primary">{t.nav.espaceAdos}</Link>
             <Link href="/parents-enseignants" className="hover:text-primary">{t.nav.espaceParents}</Link>
-            <Link href="/connexion" className="hover:text-primary">{t.nav.connexion}</Link>
+            <Link href={`/connexion${authQueryString(authWorkspace)}`} className="hover:text-primary">{t.nav.connexion}</Link>
           </div>
           <SocialLinks variant={variant} />
         </div>

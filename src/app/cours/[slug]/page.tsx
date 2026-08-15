@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { getT } from "@/i18n/server";
+import { getAuthTheme, authQueryString } from "@/lib/authTheme";
 import UploadReceiptForm from "@/components/UploadReceiptForm";
 
 export default async function CourseDetailPage({
@@ -37,6 +38,9 @@ export default async function CourseDetailPage({
         where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
       })
     : null;
+
+  const authTheme = getAuthTheme(course.audience);
+  const authQuery = authQueryString(course.audience);
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
@@ -90,14 +94,14 @@ export default async function CourseDetailPage({
             <p className="text-ink-soft">{t.receipt.loginPrompt}</p>
             <div className="mt-4 flex justify-center gap-3">
               <Link
-                href="/connexion"
-                className="rounded-full border border-primary px-5 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-cream"
+                href={`/connexion${authQuery}`}
+                className={`rounded-full border px-5 py-2 text-sm font-medium transition ${authTheme.outlineButtonClass}`}
               >
                 {t.nav.connexion}
               </Link>
               <Link
-                href="/inscription"
-                className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-cream hover:bg-primary-dark"
+                href={`/inscription${authQuery}`}
+                className={`rounded-full px-5 py-2 text-sm font-medium transition ${authTheme.buttonClass}`}
               >
                 {t.nav.creerCompte}
               </Link>

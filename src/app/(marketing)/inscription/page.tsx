@@ -1,25 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { site } from "@/lib/site";
+import { getAuthTheme, parseAuthWorkspace, authQueryString } from "@/lib/authTheme";
 import PasswordInput from "@/components/PasswordInput";
 
 type ProfileCategory = "MOTHER" | "TEACHER" | "ADOLESCENT" | "OTHER" | "";
 
-export default function InscriptionPage() {
+function InscriptionForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const workspace = parseAuthWorkspace(params.get("workspace"));
+  const theme = getAuthTheme(workspace);
   const { t } = useLocale();
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
     dateOfBirth: "",
-    profileCategory: "" as ProfileCategory,
+    profileCategory: (workspace === "ADOLESCENT" ? "ADOLESCENT" : "") as ProfileCategory,
     password: "",
   });
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -90,6 +94,13 @@ export default function InscriptionPage() {
     { value: "OTHER", label: t.auth.profileCategoryOther },
   ];
 
+  const subtitle =
+    workspace === "ADOLESCENT"
+      ? t.auth.signupSubtitleAdos
+      : workspace === "PARENT_TEACHER"
+        ? t.auth.signupSubtitleParents
+        : t.auth.signupSubtitle;
+
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-6 py-16">
       <Image
@@ -99,8 +110,15 @@ export default function InscriptionPage() {
         height={site.logoHeight}
         className="mx-auto h-24 w-auto rounded-2xl"
       />
+      {workspace && (
+        <span
+          className={`mx-auto mt-4 w-fit rounded-full border bg-white/60 px-4 py-1.5 text-xs font-medium tracking-wide ${theme.badgeClass}`}
+        >
+          {workspace === "ADOLESCENT" ? t.hub.adosCardTitle : t.hub.parentsCardTitle}
+        </span>
+      )}
       <h1 className="mt-6 font-serif text-3xl text-ink">{t.auth.signupTitle}</h1>
-      <p className="mt-2 text-sm text-ink-soft">{t.auth.signupSubtitle}</p>
+      <p className="mt-2 text-sm text-ink-soft">{subtitle}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
         <div>
@@ -154,9 +172,7 @@ export default function InscriptionPage() {
                 type="button"
                 onClick={() => update("profileCategory", form.profileCategory === c.value ? "" : c.value)}
                 className={`min-w-[45%] flex-1 rounded-full border px-3 py-2 text-sm font-medium transition ${
-                  form.profileCategory === c.value
-                    ? "border-primary bg-primary text-cream"
-                    : "border-primary-light text-ink-soft hover:border-primary hover:text-primary"
+                  form.profileCategory === c.value ? theme.toggleActiveClass : theme.toggleInactiveClass
                 }`}
               >
                 {c.label}
@@ -195,7 +211,7 @@ export default function InscriptionPage() {
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-cream transition hover:bg-primary-dark disabled:opacity-60"
+          className={`mt-2 rounded-full px-5 py-3 text-sm font-medium transition disabled:opacity-60 ${theme.buttonClass}`}
         >
           {loading ? t.auth.creating : t.auth.createMyAccount}
         </button>
@@ -203,10 +219,18 @@ export default function InscriptionPage() {
 
       <p className="mt-6 text-center text-sm text-ink-soft">
         {t.auth.alreadyRegistered}{" "}
-        <Link href="/connexion" className="font-medium text-primary hover:underline">
+        <Link href={`/connexion${authQueryString(workspace)}`} className={`font-medium ${theme.linkClass}`}>
           {t.auth.signIn}
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function InscriptionPage() {
+  return (
+    <Suspense fallback={null}>
+      <InscriptionForm />
+    </Suspense>
   );
 }

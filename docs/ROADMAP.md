@@ -19,13 +19,10 @@ These aren't bugs — the app works correctly — but the content/config is stil
   of them are `ADOLESCENT`-audience yet, so `/ados` currently shows an honest empty state.
 - **`AUTH_SECRET` and admin credentials**: must be regenerated for production, not carried over
   from `.env`/seed defaults.
-- **`/ados` testimonials and personal story are drafted placeholders, not real content**: the
-  owner explicitly asked for these to be drafted so the page wouldn't ship empty, with real
-  content to follow. `testimonialsAdos` (`ar.ts`) has 3 invented quotes (سارة/يوسف/لينة) that need
-  replacing with real teen client testimonials, and `ados.whyText` (the "لماذا هذا الفضاء؟"
-  first-person story) was written to match the style/structure of the real teacher story on
-  `/parents-enseignants` but isn't Hind's actual words — replace with her real note to teens when
-  available.
+- **`/ados` hero photo (`public/ados.png`) shows a teenage girl; the workspace copy was updated to
+  "الشباب والمراهقين" (youth and teens) and a new hero photo of a confident young man was
+  requested** — once supplied, replace `site.adosPhoto` the same way `ados.png` replaced the
+  original placeholder.
 
 ## Infrastructure needed only if deploying beyond a single server
 
