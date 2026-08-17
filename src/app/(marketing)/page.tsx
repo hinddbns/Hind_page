@@ -55,16 +55,52 @@ export default async function Home() {
         <div className="absolute -end-32 -top-32 h-96 w-96 rounded-full bg-primary-light/40 blur-3xl" />
         <div className="absolute -start-24 top-40 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
 
-        <div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 py-24 text-center">
-          <h1 className="font-serif text-3xl leading-snug text-ink md:text-5xl">{t.hub.hookQuote}</h1>
-          <p className="mt-6 max-w-xl text-lg text-ink-soft">{t.hub.hookText}</p>
-          <Link
-            href="#choisir-espace"
-            className="mt-8 inline-block rounded-full bg-primary px-7 py-3.5 text-sm font-medium text-cream shadow-lg shadow-primary/20 transition hover:bg-primary-dark"
-          >
-            {t.hub.hookCta}
-          </Link>
-          <ChevronDown className="mt-10 h-6 w-6 animate-bounce text-ink-soft/50" aria-hidden />
+        <div className="relative mx-auto max-w-6xl px-6 py-24">
+          <div className="grid items-center gap-12 md:grid-cols-2">
+            <div className="relative mx-auto aspect-[3/4] w-full max-w-md overflow-hidden rounded-3xl shadow-xl shadow-primary/10">
+              <Image
+                src={site.heroPhoto}
+                alt={site.name}
+                fill
+                sizes="(min-width: 768px) 448px, 100vw"
+                priority
+                className="object-cover object-top"
+              />
+            </div>
+
+            <div className="text-center md:text-start">
+              <p className="text-sm font-medium text-secondary">{site.name} · {site.tagline}</p>
+              <h1 className="mt-3 font-serif text-3xl leading-snug text-ink md:text-5xl">{t.hub.hookQuote}</h1>
+              <p className="mt-6 text-lg text-ink-soft">{t.hub.hookText}</p>
+              <p className="mt-3 text-sm text-ink-soft/80">{t.hub.hookWhat}</p>
+
+              <div className="mt-8 flex flex-col items-center gap-4">
+                <Link
+                  href="#choisir-espace"
+                  className="inline-block rounded-full bg-primary px-7 py-3.5 text-sm font-medium text-cream shadow-lg shadow-primary/20 transition hover:bg-primary-dark"
+                >
+                  {t.hub.hookCta}
+                </Link>
+
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Link
+                    href="/ados"
+                    className="rounded-full border border-accent px-5 py-2 text-xs font-medium text-accent transition hover:bg-accent hover:text-cream"
+                  >
+                    {t.hub.adosCardCta}
+                  </Link>
+                  <Link
+                    href="/parents-enseignants"
+                    className="rounded-full border border-olive px-5 py-2 text-xs font-medium text-olive transition hover:bg-olive hover:text-cream"
+                  >
+                    {t.hub.parentsCardCta}
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ChevronDown className="mx-auto mt-14 h-6 w-6 animate-bounce text-ink-soft/50" aria-hidden />
         </div>
       </section>
 
