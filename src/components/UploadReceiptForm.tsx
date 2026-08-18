@@ -5,6 +5,7 @@ import { useState } from "react";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
 import CopyButton from "@/components/CopyButton";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 type ExistingRequest = {
   id: string;
@@ -26,6 +27,7 @@ export default function UploadReceiptForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [done, setDone] = useState<"sent" | "updated" | "withdrawn" | null>(null);
 
   const isRejected = existing?.status === "REJECTED";
@@ -74,7 +76,6 @@ export default function UploadReceiptForm({
 
   async function handleWithdraw() {
     if (!existing) return;
-    if (!window.confirm(t.receipt.confirmWithdraw)) return;
 
     setWithdrawing(true);
     setError(null);
@@ -143,13 +144,24 @@ export default function UploadReceiptForm({
           </a>
           <button
             type="button"
-            onClick={handleWithdraw}
+            onClick={() => setWithdrawDialogOpen(true)}
             disabled={withdrawing}
             className="rounded-full border border-danger/30 px-5 py-2.5 text-sm font-medium text-danger transition hover:bg-danger/10 disabled:opacity-60"
           >
             {withdrawing ? t.receipt.withdrawing : t.receipt.withdraw}
           </button>
         </div>
+
+        <ConfirmDialog
+          open={withdrawDialogOpen}
+          message={t.receipt.confirmWithdraw}
+          danger
+          onCancel={() => setWithdrawDialogOpen(false)}
+          onConfirm={() => {
+            setWithdrawDialogOpen(false);
+            handleWithdraw();
+          }}
+        />
       </div>
     );
   }
@@ -240,7 +252,7 @@ export default function UploadReceiptForm({
           {isEditing && (
             <button
               type="button"
-              onClick={handleWithdraw}
+              onClick={() => setWithdrawDialogOpen(true)}
               disabled={loading || withdrawing}
               className="rounded-full border border-danger/30 px-5 py-2.5 text-sm font-medium text-danger transition hover:bg-danger/10 disabled:opacity-60"
             >
@@ -249,6 +261,19 @@ export default function UploadReceiptForm({
           )}
         </div>
       </form>
+
+      {isEditing && (
+        <ConfirmDialog
+          open={withdrawDialogOpen}
+          message={t.receipt.confirmWithdraw}
+          danger
+          onCancel={() => setWithdrawDialogOpen(false)}
+          onConfirm={() => {
+            setWithdrawDialogOpen(false);
+            handleWithdraw();
+          }}
+        />
+      )}
     </div>
   );
 }

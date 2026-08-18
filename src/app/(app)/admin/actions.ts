@@ -86,6 +86,27 @@ export async function reviewEnrollment(
   });
 }
 
+export async function reviewEnrollmentsBulk(
+  status: "APPROVED" | "REJECTED",
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  return runAction(async () => {
+    await requireAdmin();
+    const ids = formData.getAll("ids").map(String).filter(Boolean);
+    if (ids.length === 0) {
+      throw new AdminActionError("لم يتم تحديد أي طلب.");
+    }
+    await prisma.enrollment.updateMany({
+      where: { id: { in: ids } },
+      data: { status, reviewedAt: new Date() },
+    });
+    revalidatePath("/admin/demandes");
+    revalidatePath("/admin");
+    return { ok: true };
+  });
+}
+
 export async function createCourse(_prev: ActionState, formData: FormData): Promise<ActionState> {
   return runAction(async () => {
     await requireAdmin();

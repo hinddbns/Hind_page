@@ -1,8 +1,9 @@
 import Link from "next/link";
-import type { ProfileCategory } from "@prisma/client";
+import type { Prisma, ProfileCategory } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries/ar";
+import AdminSearchForm from "@/components/admin/AdminSearchForm";
 
 function categoryLabel(t: Dictionary, category: ProfileCategory | null) {
   switch (category) {
@@ -22,19 +23,25 @@ function categoryLabel(t: Dictionary, category: ProfileCategory | null) {
 export default async function AdminUsersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ workspace?: string }>;
+  searchParams: Promise<{ workspace?: string; q?: string }>;
 }) {
   const { t } = await getT();
-  const { workspace: workspaceParam } = await searchParams;
+  const { workspace: workspaceParam, q } = await searchParams;
   const activeWorkspace = workspaceParam === "ADOLESCENT" || workspaceParam === "PARENT_TEACHER" ? workspaceParam : undefined;
+  const searchQuery = q?.trim();
+
+  const conditions: Prisma.UserWhereInput[] = [];
+  if (activeWorkspace === "ADOLESCENT") {
+    conditions.push({ profileCategory: "ADOLESCENT" });
+  } else if (activeWorkspace === "PARENT_TEACHER") {
+    conditions.push({ OR: [{ profileCategory: null }, { profileCategory: { in: ["MOTHER", "TEACHER", "OTHER"] } }] });
+  }
+  if (searchQuery) {
+    conditions.push({ OR: [{ name: { contains: searchQuery } }, { email: { contains: searchQuery } }] });
+  }
 
   const users = await prisma.user.findMany({
-    where:
-      activeWorkspace === "ADOLESCENT"
-        ? { profileCategory: "ADOLESCENT" }
-        : activeWorkspace === "PARENT_TEACHER"
-          ? { OR: [{ profileCategory: null }, { profileCategory: { in: ["MOTHER", "TEACHER", "OTHER"] } }] }
-          : undefined,
+    where: conditions.length > 0 ? { AND: conditions } : undefined,
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { enrollments: true } } },
   });
@@ -65,42 +72,45 @@ export default async function AdminUsersPage({
         ))}
       </div>
 
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-primary-light/50 bg-white">
-        <table className="w-full text-start text-sm">
-          <thead className="border-b border-primary-light/50 text-ink-soft">
-            <tr>
-              <th className="px-5 py-3 font-medium">{t.admin.colName}</th>
-              <th className="px-5 py-3 font-medium">{t.admin.colEmail}</th>
-              <th className="px-5 py-3 font-medium">{t.admin.colRole}</th>
-              <th className="px-5 py-3 font-medium">{t.admin.colCategory}</th>
-              <th className="px-5 py-3 font-medium">{t.admin.colRequests}</th>
-              <th className="px-5 py-3 font-medium">{t.admin.colJoined}</th>
-              <th className="px-5 py-3 font-medium">{t.admin.colActions}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-b border-primary-light/20 last:border-0">
-                <td className="px-5 py-3 text-ink">{u.name}</td>
-                <td className="px-5 py-3 text-ink-soft">{u.email}</td>
-                <td className="px-5 py-3 text-ink-soft">{u.role === "ADMIN" ? t.profil.roleAdmin : t.profil.roleUser}</td>
-                <td className="px-5 py-3 text-ink-soft">{categoryLabel(t, u.profileCategory)}</td>
-                <td className="px-5 py-3 text-ink-soft">{u._count.enrollments}</td>
-                <td className="px-5 py-3 text-ink-soft">
-                  {u.createdAt.toLocaleDateString("ar-MA")}
-                </td>
-                <td className="px-5 py-3">
-                  <Link
-                    href={`/admin/utilisateurs/${u.id}`}
-                    className="rounded-full border border-ink/15 px-3 py-1.5 text-xs font-medium text-ink hover:border-primary hover:text-primary"
-                  >
-                    {t.admin.view}
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <AdminSearchForm
+        placeholder={t.admin.searchUsersPlaceholder}
+        searchLabel={t.admin.search}
+        defaultValue={searchQuery}
+        hiddenParams={{ workspace: activeWorkspace }}
+      />
+
+      <div className="mt-6 flex flex-col gap-4">
+        {users.length === 0 && searchQuery && (
+          <p className="text-sm text-ink-soft">{t.admin.noSearchResults}</p>
+        )}
+        {users.map((u) => (
+          <div
+            key={u.id}
+            className="flex flex-col gap-3 rounded-2xl border border-primary-light/50 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="min-w-0">
+              <p className="font-medium text-ink">{u.name}</p>
+              <p className="text-sm text-ink-soft">{u.email}</p>
+              <p className="mt-1 text-xs text-ink-soft/70">
+                {categoryLabel(t, u.profileCategory)} · {u._count.enrollments} {t.admin.requestsCount} ·{" "}
+                {u.createdAt.toLocaleDateString("ar-MA")}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {u.role === "ADMIN" && (
+                <span className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary-dark">
+                  {t.profil.roleAdmin}
+                </span>
+              )}
+              <Link
+                href={`/admin/utilisateurs/${u.id}`}
+                className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:border-primary hover:text-primary"
+              >
+                {t.admin.view}
+              </Link>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

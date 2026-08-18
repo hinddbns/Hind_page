@@ -5,18 +5,23 @@ import { getT } from "@/i18n/server";
 import { createCourse, deleteCourse, toggleCoursePublished } from "../actions";
 import CourseForm from "@/components/admin/CourseForm";
 import ConfirmActionForm from "@/components/admin/ConfirmActionForm";
+import AdminSearchForm from "@/components/admin/AdminSearchForm";
 
 export default async function AdminCoursPage({
   searchParams,
 }: {
-  searchParams: Promise<{ audience?: string }>;
+  searchParams: Promise<{ audience?: string; q?: string }>;
 }) {
   const { t } = await getT();
-  const { audience: audienceParam } = await searchParams;
+  const { audience: audienceParam, q } = await searchParams;
   const activeAudience = audienceParam === "ADOLESCENT" || audienceParam === "PARENT_TEACHER" ? audienceParam : undefined;
+  const searchQuery = q?.trim();
 
   const courses = await prisma.course.findMany({
-    where: activeAudience ? { audience: activeAudience } : undefined,
+    where: {
+      ...(activeAudience ? { audience: activeAudience } : {}),
+      ...(searchQuery ? { title: { contains: searchQuery } } : {}),
+    },
     orderBy: { createdAt: "desc" },
     include: { _count: { select: { lessons: true, enrollments: true } } },
   });
@@ -51,15 +56,26 @@ export default async function AdminCoursPage({
         ))}
       </div>
 
+      <AdminSearchForm
+        placeholder={t.admin.searchCoursesPlaceholder}
+        searchLabel={t.admin.search}
+        defaultValue={searchQuery}
+        hiddenParams={{ audience: activeAudience }}
+      />
+
       <div className="mt-4 flex flex-col gap-4">
+        {courses.length === 0 && searchQuery && (
+          <p className="text-sm text-ink-soft">{t.admin.noSearchResults}</p>
+        )}
         {courses.map((course) => (
           <div
             key={course.id}
             className="flex flex-col gap-3 rounded-2xl border border-primary-light/50 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
           >
-            <div>
+            <div className="min-w-0">
               <p className="font-medium text-ink">{course.title}</p>
-              <p className="text-sm text-ink-soft">
+              <p className="mt-1 line-clamp-1 text-sm text-ink-soft">{course.summary}</p>
+              <p className="mt-1 text-sm text-ink-soft">
                 {formatPrice(course.price)} · {course._count.lessons} {t.courses.lessonsCount} ·{" "}
                 {course._count.enrollments} {t.admin.requestsCount}
               </p>

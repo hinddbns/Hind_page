@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/i18n/server";
+import AdminSearchForm from "@/components/admin/AdminSearchForm";
 
-export default async function AdminMessagesInboxPage() {
+export default async function AdminMessagesInboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const { t } = await getT();
+  const { q } = await searchParams;
+  const searchQuery = q?.trim().toLowerCase();
 
   const allMessages = await prisma.message.findMany({
     orderBy: { createdAt: "desc" },
@@ -11,12 +18,12 @@ export default async function AdminMessagesInboxPage() {
   });
 
   const seen = new Set<string>();
-  const conversations = [];
+  const allConversations = [];
   const unreadByUser = new Map<string, boolean>();
   for (const m of allMessages) {
     if (!seen.has(m.userId)) {
       seen.add(m.userId);
-      conversations.push(m);
+      allConversations.push(m);
     }
     if (
       m.sender === "USER" &&
@@ -26,12 +33,28 @@ export default async function AdminMessagesInboxPage() {
     }
   }
 
+  const conversations = searchQuery
+    ? allConversations.filter(
+        (m) =>
+          m.user.name.toLowerCase().includes(searchQuery) ||
+          m.user.email.toLowerCase().includes(searchQuery)
+      )
+    : allConversations;
+
   return (
     <div>
       <h1 className="font-serif text-3xl text-ink">{t.messages.adminInboxTitle}</h1>
 
+      <AdminSearchForm
+        placeholder={t.admin.searchMessagesPlaceholder}
+        searchLabel={t.admin.search}
+        defaultValue={q}
+      />
+
       {conversations.length === 0 ? (
-        <p className="mt-6 text-sm text-ink-soft">{t.messages.adminInboxEmpty}</p>
+        <p className="mt-6 text-sm text-ink-soft">
+          {searchQuery ? t.admin.noSearchResults : t.messages.adminInboxEmpty}
+        </p>
       ) : (
         <div className="mt-6 flex flex-col gap-3">
           {conversations.map((m) => {
