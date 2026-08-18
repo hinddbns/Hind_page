@@ -107,14 +107,14 @@ export default async function Home() {
       {/* À propos de la coach */}
       <section id="a-propos" className="mx-auto max-w-6xl px-6 py-20">
         <div className="grid items-center gap-12 md:grid-cols-2">
-          <div className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-primary-light/50 bg-white p-4">
+          <div className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl shadow-xl shadow-primary/10">
             <Image
               src={site.coachPhoto}
               alt={interpolate(t.about.photoAlt, { siteName: site.name })}
               width={site.coachPhotoWidth}
               height={site.coachPhotoHeight}
               sizes="(min-width: 768px) 384px, 100vw"
-              className="h-auto w-full rounded-2xl"
+              className="h-auto w-full"
             />
           </div>
 
@@ -179,14 +179,14 @@ export default async function Home() {
               ))}
             </ul>
 
-            <div className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-primary-light/50 bg-white p-4">
+            <div className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl shadow-xl shadow-primary/10">
               <Image
                 src={site.coachWorkPhoto}
                 alt={interpolate(t.about.workPhotoAlt, { siteName: site.name })}
                 width={site.coachWorkPhotoWidth}
                 height={site.coachWorkPhotoHeight}
                 sizes="(min-width: 768px) 384px, 100vw"
-                className="h-auto w-full rounded-2xl"
+                className="h-auto w-full"
               />
             </div>
           </div>
