@@ -345,8 +345,6 @@ const ar = {
     demandesTitle: "طلبات الوصول",
     demandesSubtitle: "تحقق من إيصال التحويل ثم وافق على الطلب أو ارفضه.",
     seeReceipt: "عرض الإيصال",
-    openReceiptInNewTab: "فتح في نافذة جديدة",
-    closeReceiptPreview: "إغلاق المعاينة",
     approve: "موافقة",
     reject: "رفض",
     requestedOn: "تاريخ الطلب",
