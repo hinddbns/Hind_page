@@ -54,13 +54,14 @@ export default function CourseForm({
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
+        aria-controls={`${uid}-fields`}
         className="w-full text-start font-serif text-lg text-ink"
       >
         {mode === "create" ? t.admin.addCourse : t.admin.editCourseTitle}
       </button>
 
       {open && (
-        <form ref={formRef} action={formAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+        <form ref={formRef} id={`${uid}-fields`} action={formAction} className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor={`${uid}-title`} className="mb-1 block text-sm font-medium text-ink">{t.admin.titleLabel}</label>
             <input

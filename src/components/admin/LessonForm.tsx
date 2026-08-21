@@ -42,7 +42,7 @@ export default function LessonForm({
   }, [state.ok, mode]);
 
   const fields = (
-    <form ref={formRef} action={formAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+    <form ref={formRef} id={`${uid}-fields`} action={formAction} className="mt-4 grid gap-3 sm:grid-cols-2">
       <div>
         <label htmlFor={`${uid}-title`} className="mb-1 block text-sm font-medium text-ink">{t.admin.lessonTitleLabel}</label>
         <input
@@ -119,7 +119,13 @@ export default function LessonForm({
 
   return (
     <div className="mt-4">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="text-sm font-medium text-primary">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls={`${uid}-fields`}
+        className="text-sm font-medium text-primary"
+      >
         {t.admin.edit}
       </button>
       {open && fields}
