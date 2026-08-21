@@ -19,6 +19,7 @@ export default function AdminSidebarNav({
           <Link
             key={item.href}
             href={item.href}
+            aria-current={active ? "page" : undefined}
             className={`flex items-center whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium transition ${
               active ? "bg-primary text-cream" : "text-ink-soft hover:bg-primary-light/30 hover:text-ink"
             }`}

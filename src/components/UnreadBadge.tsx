@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useLocale } from "@/i18n/LocaleProvider";
+import { interpolate } from "@/i18n/config";
 
 export default function UnreadBadge() {
   const { data: session } = useSession();
+  const { t } = useLocale();
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -30,7 +33,8 @@ export default function UnreadBadge() {
 
   return (
     <span className="ms-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-xs font-semibold text-cream">
-      {count > 9 ? "9+" : count}
+      <span aria-hidden="true">{count > 9 ? "9+" : count}</span>
+      <span className="sr-only">{interpolate(t.common.unreadMessagesCount, { n: String(count) })}</span>
     </span>
   );
 }

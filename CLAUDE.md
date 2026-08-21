@@ -48,15 +48,20 @@ license for unrequested rewrites, new abstractions, or wandering into unrelated 
 app — see "Reusable component philosophy" and "Extract after real duplication appears, not
 preemptively" below. Polish what you touched; don't go looking for a bigger project.
 
-**Honest gaps against this bar, as of the last full audit** (don't assume these are fixed unless
-you've verified it yourself): the admin panel has no free-text search anywhere (only workspace
-filter tabs on courses/users/requests), no bulk actions (every approve/reject/delete is one row
-at a time), and its tables (`admin/utilisateurs`) are horizontally-scrollable rather than
-reflowing to a card layout on mobile. There is no toast/undo pattern for destructive actions
-beyond the `window.confirm` gate and — for enrollment review specifically — the fact that
-approve/reject can be flipped back and forth freely. None of this is broken; it's below the bar
-this section sets, and worth closing opportunistically when you're already working nearby rather
-than as a standalone rewrite no one asked for.
+**Honest gaps against this bar, as of the last full audit (2026-08-21)** (don't assume these are
+fixed unless you've verified it yourself): free-text search (`AdminSearchForm`), bulk approve/
+reject (`BulkEnrollmentList`), and a card layout that reflows on mobile are now in place across
+`admin/cours`, `admin/utilisateurs`, and `admin/demandes` — this was a real gap in an earlier
+audit but has since been closed. What's still genuinely missing: there is no toast/undo pattern
+for destructive actions beyond the `window.confirm` gate, and — for enrollment review
+specifically — approve/reject can still be flipped back and forth freely with no history of who
+changed what or when. Also, `site.bankDetails`, `site.social`, and `site.whatsappNumber` in
+`src/lib/site.ts` are still fake-but-realistic-looking placeholder values (a made-up RIB/IBAN, a
+placeholder WhatsApp number, generic social homepage URLs) shown live on the authenticated
+enrollment/receipt page and in the app footer — not just the marketing pages. Don't invent real
+values for these; get them from the site owner. None of this is broken; it's below the bar this
+section sets, and worth closing opportunistically when you're already working nearby rather than
+as a standalone rewrite no one asked for.
 
 ## Project vision
 
@@ -147,12 +152,11 @@ when you're working nearby:
   don't invent a new status-color scheme per feature.
 - **Confirmation for destructive actions**: non-negotiable, via `ConfirmActionForm`'s
   `confirmMessage` — see "UX principles" above for why.
-- **Gaps to close opportunistically, not as a standalone rewrite**: no free-text search on any
-  admin list, no bulk actions (multi-select + batch approve/delete), `admin/utilisateurs`'s
-  table doesn't reflow to cards on narrow screens, and there's no explicit undo affordance beyond
-  re-toggling a status. If you're already touching one of these pages for an unrelated task and
-  it's a small addition, close the gap; don't hold an unrelated task hostage to fixing all of them
-  at once.
+- **Gaps to close opportunistically, not as a standalone rewrite**: search, bulk actions, and
+  mobile card layouts are done (see the "Honest gaps" note above) — what's left is that there's
+  still no explicit undo affordance beyond re-toggling a status. If you're already touching one
+  of these pages for an unrelated task and it's a small addition, close the gap; don't hold an
+  unrelated task hostage to fixing all of them at once.
 
 ## User dashboard philosophy
 
@@ -294,11 +298,15 @@ with the user rather than a normal implementation detail.
 ## Current priorities
 
 The app is **functionally complete, content-incomplete** (see `docs/ROADMAP.md`). In order:
-1. Real coach photo (a real photo was provided in conversation but a file path was still
-   pending as of the last documentation pass — check whether it's since been supplied before
-   assuming the placeholder is still needed).
-2. Real social media URLs (currently generic homepage placeholders for both workspaces).
-3. Real bank transfer details.
+1. ~~Real coach photo~~ — done (verified 2026-08-21: `public/personal.webp`, `public/me.png`,
+   `public/coach-work.jpg`, `public/maman.png`, `public/ados.jpeg` all exist as real files, not
+   placeholder stubs).
+2. Real social media URLs — still generic homepage placeholders for both workspaces
+   (`site.social` in `src/lib/site.ts`), shown in `AppFooter` (authenticated app) too, not just
+   the marketing pages.
+3. Real bank transfer details — still a fake-but-realistic-looking placeholder RIB/IBAN
+   (`site.bankDetails` in `src/lib/site.ts`), shown live on the enrollment/receipt-upload page
+   real users see. Do not invent a real value for this — get it from the site owner.
 4. Real course content for `/ados` (currently zero courses assigned to that audience).
 5. Real or removed testimonials (currently explicitly-labeled placeholder quotes).
 

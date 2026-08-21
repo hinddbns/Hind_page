@@ -69,7 +69,7 @@ export default function ChatPanel({
         {loaded && messages.length === 0 && (
           <p className="text-center text-sm text-ink-soft">{t.messages.empty}</p>
         )}
-        <div className="flex flex-col gap-3">
+        <div role="log" aria-live="polite" className="flex flex-col gap-3">
           {messages.map((m) => {
             const isMine = isAdmin ? m.sender === "ADMIN" : m.sender === "USER";
             const isSystem = m.sender === "SYSTEM";
@@ -97,6 +97,7 @@ export default function ChatPanel({
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={placeholder ?? t.messages.placeholder}
+          aria-label={placeholder ?? t.messages.placeholder}
           className="flex-1 rounded-full border border-primary-light bg-white px-4 py-2 text-sm outline-none focus:border-primary"
         />
         <button

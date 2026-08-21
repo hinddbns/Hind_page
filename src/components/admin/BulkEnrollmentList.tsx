@@ -74,7 +74,7 @@ export default function BulkEnrollmentList({
                 <p className="mt-1 text-xs italic text-ink-soft">« {e.receiptNote} »</p>
               )}
               <p className="mt-1 text-xs text-ink-soft/70">
-                {t.admin.requestedOn} {e.createdAt.toLocaleDateString("ar")}
+                {t.admin.requestedOn} {e.createdAt.toLocaleDateString("ar-MA")}
               </p>
             </div>
           </div>

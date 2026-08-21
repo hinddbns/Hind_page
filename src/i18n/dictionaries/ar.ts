@@ -554,6 +554,8 @@ const ar = {
     hidePassword: "إخفاء كلمة المرور",
     copyFieldLabel: "نسخ {field}",
     copied: "تم النسخ",
+    unreadMessagesCount: "{n} رسائل غير مقروءة",
+    loading: "جارٍ التحميل...",
   },
 };
 
