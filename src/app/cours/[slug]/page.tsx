@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PlayCircle } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
@@ -55,15 +54,13 @@ export default async function CourseDetailPage({
           {course.demoVideoPath ? (
             <video controls className="aspect-video w-full" src={course.demoVideoPath} />
           ) : (
-            <a
-              href={course.demoVideoUrl!}
-              target="_blank"
-              rel="noreferrer"
-              className="flex aspect-video w-full items-center justify-center gap-3 bg-ink text-cream hover:bg-ink/90"
-            >
-              <PlayCircle className="h-10 w-10" />
-              <span className="font-medium">{t.courses.watchDemo}</span>
-            </a>
+            <iframe
+              src={course.demoVideoUrl!}
+              className="aspect-video w-full"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              title={course.title}
+            />
           )}
         </div>
       )}

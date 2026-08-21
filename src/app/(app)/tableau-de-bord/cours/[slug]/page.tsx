@@ -111,14 +111,13 @@ export default async function CourseContentPage({
             <p className="mt-3 whitespace-pre-line text-sm text-ink-soft">{lesson.content}</p>
 
             {!lesson.videoPath && lesson.videoUrl && (
-              <a
-                href={lesson.videoUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-block text-sm font-medium text-primary hover:underline"
-              >
-                {t.lessonContent.watchVideo}
-              </a>
+              <iframe
+                src={lesson.videoUrl}
+                className="mt-4 aspect-video w-full rounded-xl bg-black"
+                allow="autoplay; fullscreen; picture-in-picture"
+                allowFullScreen
+                title={lesson.title}
+              />
             )}
           </div>
         ))}

@@ -293,7 +293,6 @@ const ar = {
 
   lessonContent: {
     backToDashboard: "← مساحتي",
-    watchVideo: "مشاهدة الفيديو ←",
     noLessonsYet: "محتوى هذه الدورة قيد الإعداد — سنخبرك فور توفره.",
   },
 
