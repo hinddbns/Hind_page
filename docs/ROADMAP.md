@@ -24,15 +24,17 @@ These aren't bugs — the app works correctly — but the content/config is stil
   requested** — once supplied, replace `site.adosPhoto` the same way `ados.png` replaced the
   original placeholder.
 
-## Infrastructure needed only if deploying beyond a single server
+## Infrastructure for serverless (Vercel) deployment
 
-- **Database**: SQLite is fine for one long-running server process. Move to Postgres/MySQL if
-  you need multiple instances, serverless (Vercel-style) deployment, or just want proper
-  concurrent-write safety.
-- **File storage**: receipts and lesson videos live on local disk (`/uploads`, gitignored, not
-  public). Any deployment target without a persistent filesystem (serverless) needs this moved
-  to object storage (S3, R2, etc.) with the auth-gated serving routes (`api/receipts/**`,
-  `api/videos/**`) updated to stream from there instead of `node:fs`.
+- **Database**: done (2026-08-21) — moved from SQLite to Postgres/Supabase specifically for this.
+  See `docs/PROJECT_CONTEXT.md` § "Why Postgres/Supabase" for the connection-string setup and a
+  documented `prisma migrate` hang encountered along the way.
+- **File storage — still open, now urgent**: receipts and lesson videos live on local disk
+  (`/uploads`, gitignored, not public). Vercel's filesystem is not persistent across
+  invocations, so this will silently break (uploads disappearing, receipts/videos 404ing) once
+  the app is actually live there. Needs to move to object storage (S3, R2, Supabase Storage,
+  etc.) with the auth-gated serving routes (`api/receipts/**`, `api/videos/**`) updated to stream
+  from there instead of `node:fs`.
 - **Demo videos** (`public/uploads/demos/`) are committed to the repo and served as static
   files — fine at their current tiny placeholder size (~28KB each); revisit if real demo videos
   are large, since they'd bloat the git repo and the deployed bundle.

@@ -129,8 +129,9 @@ Every change in this project has been verified this way; keep doing it:
 
 ## What to avoid changing without a clear reason
 
-- Don't switch SQLite → another database, or restructure the Prisma schema's relations, without
-  understanding why SQLite was chosen (single-server simplicity) — see `ROADMAP.md`.
+- Don't switch away from Postgres/Supabase, or restructure the Prisma schema's relations, without
+  understanding why it's set up this way (Vercel serverless deployment forced the move off
+  SQLite) — see `docs/PROJECT_CONTEXT.md` § "Why Postgres/Supabase".
 - Don't introduce a second styling approach (CSS modules, a component library, styled-jsx)
   alongside Tailwind.
 - Don't add a state-management library (Redux, Zustand, Jotai) — the app has no client-side

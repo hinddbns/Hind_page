@@ -184,8 +184,11 @@ answer "where am I / what's next" at a glance.
 - **JWT sessions, no session table.** Accept that role/workspace can go stale until re-login;
   don't work around this with a caching hack without addressing it as what it is (a real
   tradeoff to revisit, documented in the roadmap).
-- **SQLite until there's a concrete reason to change it.** One server process, one file. Don't
-  add a second database or an ORM abstraction "for flexibility."
+- **Postgres via Supabase (moved off SQLite 2026-08-21 for Vercel deployment).** Don't add a
+  second database or an ORM abstraction "for flexibility." See `docs/PROJECT_CONTEXT.md` §
+  "Why Postgres/Supabase" for the connection-string setup (pooled `DATABASE_URL` for runtime,
+  session-pooler `DIRECT_URL` for migrations) and a documented `prisma migrate` hang to avoid
+  re-debugging from scratch.
 - **No state-management library, no data-fetching library.** Component-local `useState` +
   server-fetched data has been sufficient for every feature so far. If you think you need Redux
   or React Query, first check whether the actual problem is that data should be fetched in a
@@ -275,7 +278,7 @@ Don't "complete" these without being asked — they were scoped out deliberately
 
 ## Things that should rarely be changed
 
-- SQLite as the database.
+- Postgres (Supabase) as the database.
 - Tailwind-only styling (no CSS modules, no styled-components, no component library).
 - The single Arabic dictionary structure and the French-routes/Arabic-content convention.
 - The `ActionState` / `runAction` / `ConfirmActionForm` pattern for admin mutations — it exists
@@ -306,8 +309,9 @@ Do not treat any of the above as "already done" just because the UI around them 
 Not committed, but plausible directions if the business grows: a second language (French);
 real DRM-backed video delivery if piracy becomes a concern; the "خدماتنا" services (individual
 consultations, books/articles) growing actual functionality behind them; splitting admin
-messages/filtering further by workspace if volume grows; moving off SQLite/local-disk storage if
-multi-instance or serverless deployment becomes necessary.
+messages/filtering further by workspace if volume grows; moving local-disk uploads (`/uploads`)
+to object storage, now that serverless (Vercel) deployment is real, not hypothetical — see
+`docs/ROADMAP.md` § Infrastructure for serverless deployment.
 
 ## Known pitfalls
 

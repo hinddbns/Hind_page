@@ -57,7 +57,7 @@ workspace has zero real courses yet).
 | Framework | **Next.js 16** (App Router, Turbopack), **React 19** |
 | Language | **TypeScript**, strict mode |
 | Styling | **Tailwind CSS v4** (`@theme inline` tokens in `globals.css`, no config file) |
-| Database | **SQLite** via **Prisma 6** (`prisma/dev.db`, gitignored) |
+| Database | **Postgres (Supabase)** via **Prisma 6** — pooled `DATABASE_URL` for runtime, session-pooler `DIRECT_URL` for migrations |
 | Auth | **NextAuth v5 (beta)**, Credentials provider, JWT sessions (no DB session table) |
 | Icons | **lucide-react**, exclusively |
 | Password hashing | **bcryptjs** |
@@ -65,9 +65,9 @@ workspace has zero real courses yet).
 | Dev seed | `tsx prisma/seed.ts` (creates 1 admin + 3 example courses + demo videos) |
 | Linting | **ESLint 9**, `eslint-config-next` |
 | Testing | **None.** No test framework, no CI. Verification is manual (see `CONTRIBUTING.md`). |
-| Deployment | **Not yet deployed anywhere.** SQLite + local-disk uploads work fine for a single
-  long-running server process; a serverless target (Vercel-style) needs the migrations in
-  `ROADMAP.md` § Infrastructure first. |
+| Deployment | **Vercel**, connected to the `hinddbns/Hind_page` GitHub repo. Database moved to
+  Postgres/Supabase to support this (SQLite's local file doesn't survive serverless). Local-disk
+  uploads (`/uploads`, receipts) remain a known gap under serverless — see `ROADMAP.md`. |
 
 Full dependency list: `package.json`. Notably minimal — no state-management library, no
 data-fetching library (SWR/React Query/tRPC), no UI component library, no CSS-in-JS. Data
@@ -291,9 +291,22 @@ top-level `workspace` column would create two sources of truth that could disagr
 pure function (`workspaceFromCategory`) computed at auth time and cached on the session is
 simpler and can't drift out of sync with the category a user actually chose.
 
-**Why SQLite.** Single-coach, single-server-instance app. SQLite means zero external
-infrastructure to run locally or on one server. This is an explicit, documented tradeoff (see
-`ROADMAP.md`) to revisit only if the app needs multiple server instances or serverless hosting.
+**Why Postgres/Supabase (moved from SQLite 2026-08-21).** The app was originally SQLite —
+single-coach, single-server-instance, zero external infrastructure. Deploying to Vercel
+(serverless) made that untenable: a local SQLite file doesn't persist across invocations. Moved
+to Supabase Postgres instead of standing up separate infrastructure, since it's a managed
+Postgres with a connection pooler built for exactly this (many short-lived serverless
+connections). Two connection strings are used deliberately: `DATABASE_URL` (transaction pooler,
+port 6543, `?pgbouncer=true` to disable prepared-statement caching) for the app's runtime
+queries, and `DIRECT_URL` (session pooler, port 5432) for `prisma migrate`/`db execute` — the
+project's true direct-connection host is IPv6-only, which isn't reachable from every network, so
+the session pooler is the practical substitute. `prisma migrate dev`/`deploy` were found to hang
+indefinitely against this pooler setup in local testing (cause unconfirmed — suspected PgBouncer
+interaction with Prisma's advisory-lock/shadow-DB steps); the working pattern is
+`prisma migrate diff --from-empty --to-schema-datamodel` to generate migration SQL offline, then
+`prisma db execute --file ... --url "$DIRECT_URL?connect_timeout=10"` to apply it directly. If
+you hit the same hang, don't spend more time retrying `migrate dev`/`deploy` — use this pattern
+instead.
 
 **Why JWT sessions instead of database sessions.** Same reasoning — one fewer table, one fewer
 round-trip per request, acceptable given the app's scale. The tradeoff (session data can go
@@ -360,8 +373,9 @@ metadata correctness, and direct-linkability for no benefit.
 Full detail in [`ROADMAP.md`](ROADMAP.md). Highest-level summary:
 - **Before public launch**: swap every placeholder (photo, socials, bank details, real course
   content, testimonials, `AUTH_SECRET`) for real values.
-- **If scaling beyond one server**: migrate SQLite → Postgres/MySQL and local-disk uploads →
-  object storage.
+- **Database is now Postgres/Supabase** (moved off SQLite for Vercel deployment, see § 9 "Why
+  Postgres/Supabase"). Local-disk uploads → object storage is still an open gap under
+  serverless.
 - **Feature ideas raised but not built**: individual consultation booking, books/articles content
   type, guardian-mediated enrollment for minors, a second language, real DRM-grade video
   protection.
@@ -396,8 +410,9 @@ scratch.
 string, logical CSS properties, pill buttons/badges, alternating section tints. When adding
 something new, find the closest existing example and match it, rather than introducing a new way
 to solve an already-solved problem. `CONTRIBUTING.md` § "What to avoid changing without a clear
-reason" lists the specific things that should not be swapped out casually (SQLite, Tailwind-only
-styling, no state-management library, the dictionary structure, the `ConfirmActionForm` pattern).
+reason" lists the specific things that should not be swapped out casually (the Postgres/Supabase
+database, Tailwind-only styling, no state-management library, the dictionary structure, the
+`ConfirmActionForm` pattern).
 
 **Treat placeholder content as placeholder, not as done.** Several pieces of the app *look*
 finished but are explicitly marked throughout this documentation as placeholder (coach photo,

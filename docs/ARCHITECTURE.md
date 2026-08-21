@@ -12,8 +12,13 @@ structure, routing, data flow, and the mechanical "how it's wired together" deta
   `node_modules/next/dist/docs/` before using an App Router API you're not 100% sure about.**
 - **TypeScript**, strict mode.
 - **Tailwind CSS v4** — configured via `@theme inline` in `globals.css`, not a `tailwind.config.js`.
-- **Prisma 6** + **SQLite** (`prisma/dev.db`, gitignored) — single-file DB, fine for one server
-  instance, not for multi-instance/serverless deployment as-is.
+- **Prisma 6** + **Postgres (Supabase)** — moved off SQLite to support serverless deployment
+  (Vercel). `DATABASE_URL` is the Supabase **transaction pooler** (port 6543, `pgbouncer=true`)
+  for app runtime queries; `DIRECT_URL` is the **session pooler** (port 5432) used only by
+  migration commands. The project's direct-connection host is IPv6-only and unreachable from
+  networks without IPv6 egress, so the session pooler stands in for it — see
+  `docs/PROJECT_CONTEXT.md` § Database for why, and the connectivity caveats around
+  `prisma migrate` commands specifically.
 - **NextAuth v5 (beta)**, Credentials provider only, JWT session strategy.
 - **No test framework, no CI configured.** Verification today is manual: `tsc --noEmit`,
   `eslint`, `npm run build`, and manual browser click-through (see `CONTRIBUTING.md`).
