@@ -137,8 +137,8 @@ export default async function ParentsEnseignantsPage() {
                 <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-olive/10">
                   <step.icon className="h-6 w-6 text-olive" />
                 </div>
-                <h3 className="mt-4 font-medium text-ink">{step.title}</h3>
-                <p className="mt-2 text-sm text-ink-soft">{step.text}</p>
+                <h3 className="mt-4 text-center font-medium text-ink">{step.title}</h3>
+                <p className="mt-2 text-center text-sm text-ink-soft">{step.text}</p>
               </div>
             ))}
           </div>
