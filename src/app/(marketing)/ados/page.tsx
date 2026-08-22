@@ -135,7 +135,7 @@ export default async function AdosPage() {
                   <step.icon className="h-6 w-6 text-accent" />
                 </div>
                 <h3 className="mt-4 text-center font-medium text-ink">{step.title}</h3>
-                <p className="mt-2 text-center text-sm text-ink-soft">{step.text}</p>
+                <p className="mt-2 text-center text-sm text-ink-soft [text-align-last:center]">{step.text}</p>
               </div>
             ))}
           </div>
