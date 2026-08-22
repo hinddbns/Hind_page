@@ -40,7 +40,7 @@ export default async function ParentsEnseignantsPage() {
   const goals = [t.parentsSpace.goal1, t.parentsSpace.goal2, t.parentsSpace.goal3];
 
   return (
-    <>
+    <div className="bg-parents-bg">
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute -end-32 -top-32 h-96 w-96 rounded-full bg-olive-light/40 blur-3xl" />
@@ -105,7 +105,7 @@ export default async function ParentsEnseignantsPage() {
       </section>
 
       {/* Pour qui */}
-      <section className="bg-cream-dark/60 py-20">
+      <section className="bg-parents-bg-alt py-20">
         <div className="mx-auto max-w-6xl px-6">
           <div className="grid gap-6 md:grid-cols-3">
             <div className="rounded-2xl border border-olive-light/50 bg-white p-8">
@@ -162,7 +162,7 @@ export default async function ParentsEnseignantsPage() {
       </section>
 
       {/* Témoignages */}
-      <section className="bg-cream-dark/60 py-20">
+      <section className="bg-parents-bg-alt py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center font-serif text-3xl text-ink">{t.testimonialsParents.title}</h2>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -190,6 +190,6 @@ export default async function ParentsEnseignantsPage() {
           {t.finalCta.button}
         </Link>
       </section>
-    </>
+    </div>
   );
 }

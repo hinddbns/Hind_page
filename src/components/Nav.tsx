@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
-import { authQueryString } from "@/lib/authTheme";
+import { authQueryString, getAuthTheme } from "@/lib/authTheme";
 import UnreadBadge from "./UnreadBadge";
 
 export default function Nav() {
@@ -17,9 +17,14 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
   const authWorkspace = pathname === "/ados" ? "ADOLESCENT" : pathname === "/parents-enseignants" ? "PARENT_TEACHER" : null;
   const authQuery = authQueryString(authWorkspace);
+  const authTheme = getAuthTheme(authWorkspace);
+  const headerBorderClass =
+    authWorkspace === "ADOLESCENT" ? "border-accent-light" : authWorkspace === "PARENT_TEACHER" ? "border-olive-light" : "border-primary-light/40";
+  const connexionHoverClass =
+    authWorkspace === "ADOLESCENT" ? "hover:text-accent-dark" : authWorkspace === "PARENT_TEACHER" ? "hover:text-olive" : "hover:text-primary";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-primary-light/40 bg-cream/90 backdrop-blur">
+    <header className={`sticky top-0 z-50 border-b ${headerBorderClass} bg-cream/90 backdrop-blur`}>
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link href="/" className="flex items-center">
           <Image
@@ -66,12 +71,12 @@ export default function Nav() {
             </>
           ) : (
             <>
-              <Link href={`/connexion${authQuery}`} className="text-sm font-medium text-ink-soft hover:text-primary">
+              <Link href={`/connexion${authQuery}`} className={`text-sm font-medium text-ink-soft ${connexionHoverClass}`}>
                 {t.nav.connexion}
               </Link>
               <Link
                 href={`/inscription${authQuery}`}
-                className="rounded-full bg-primary px-5 py-2 text-sm font-medium text-cream transition hover:bg-primary-dark"
+                className={`rounded-full px-5 py-2 text-sm font-medium transition ${authTheme.buttonClass}`}
               >
                 {t.nav.creerCompte}
               </Link>
@@ -95,12 +100,12 @@ export default function Nav() {
       </div>
 
       {open && (
-        <div id="mobile-nav-menu" className="border-t border-primary-light/40 bg-cream px-6 py-4 md:hidden">
+        <div id="mobile-nav-menu" className={`border-t ${headerBorderClass} bg-cream px-6 py-4 md:hidden`}>
           <div className="flex flex-col gap-4 text-sm font-medium text-ink-soft">
             <Link href="/#a-propos" onClick={() => setOpen(false)}>{t.nav.apropos}</Link>
             <Link href="/ados" onClick={() => setOpen(false)} className={pathname === "/ados" ? "text-accent" : ""}>{t.nav.espaceAdos}</Link>
             <Link href="/parents-enseignants" onClick={() => setOpen(false)} className={pathname === "/parents-enseignants" ? "text-olive" : ""}>{t.nav.espaceParents}</Link>
-            <hr className="border-primary-light/40" />
+            <hr className={headerBorderClass} />
             {session ? (
               <>
                 {session.user.role !== "ADMIN" && (
@@ -121,7 +126,13 @@ export default function Nav() {
             ) : (
               <>
                 <Link href={`/connexion${authQuery}`} onClick={() => setOpen(false)}>{t.nav.connexion}</Link>
-                <Link href={`/inscription${authQuery}`} onClick={() => setOpen(false)}>{t.nav.creerCompte}</Link>
+                <Link
+                  href={`/inscription${authQuery}`}
+                  onClick={() => setOpen(false)}
+                  className={`self-start rounded-full px-5 py-2 transition ${authTheme.buttonClass}`}
+                >
+                  {t.nav.creerCompte}
+                </Link>
               </>
             )}
           </div>

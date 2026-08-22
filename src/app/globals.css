@@ -20,6 +20,10 @@
   --color-olive: #6b7a3f;
   --color-olive-dark: #4f5c2e;
   --color-olive-light: #dde3c4;
+  --color-ados-bg: #f9f2e6;
+  --color-ados-bg-alt: #f0e2cb;
+  --color-parents-bg: #f4f0e7;
+  --color-parents-bg-alt: #e5dece;
   --color-success: #4d7c5f;
   --color-danger: #b3423a;
   --color-app-tint: #eef4f3;
@@ -44,6 +48,10 @@
   --color-olive: var(--color-olive);
   --color-olive-dark: var(--color-olive-dark);
   --color-olive-light: var(--color-olive-light);
+  --color-ados-bg: var(--color-ados-bg);
+  --color-ados-bg-alt: var(--color-ados-bg-alt);
+  --color-parents-bg: var(--color-parents-bg);
+  --color-parents-bg-alt: var(--color-parents-bg-alt);
   --color-success: var(--color-success);
   --color-danger: var(--color-danger);
   --color-app-tint: var(--color-app-tint);

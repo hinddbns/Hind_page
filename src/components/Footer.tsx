@@ -13,9 +13,15 @@ export default function Footer() {
   const pathname = usePathname();
   const variant = pathname?.startsWith("/ados") ? "ados" : "parents";
   const authWorkspace = pathname === "/ados" ? "ADOLESCENT" : pathname === "/parents-enseignants" ? "PARENT_TEACHER" : null;
+  const footerClass =
+    authWorkspace === "ADOLESCENT"
+      ? "border-accent-light bg-ados-bg-alt"
+      : authWorkspace === "PARENT_TEACHER"
+        ? "border-olive-light bg-parents-bg-alt"
+        : "border-primary-light/40 bg-cream-dark";
 
   return (
-    <footer className="mt-auto border-t border-primary-light/40 bg-cream-dark">
+    <footer className={`mt-auto border-t ${footerClass}`}>
       <div className="mx-auto max-w-6xl px-6 py-10 text-sm text-ink-soft">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <Image

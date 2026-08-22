@@ -47,6 +47,10 @@ the adolescent workspace.
 | `success` | `#4d7c5f` | Approved status, success banners |
 | `danger` | `#b3423a` | Rejected status, delete buttons, error banners |
 | `app-tint` | `#eef4f3` | Logged-in app shell background (distinct from marketing `cream`) |
+| `ados-bg` | `#f9f2e6` | `/ados` page background (replaces `cream` on that page only) |
+| `ados-bg-alt` | `#f0e2cb` | `/ados` alternating section band (replaces `cream-dark`) |
+| `parents-bg` | `#f4f0e7` | `/parents-enseignants` page background (replaces `cream` on that page only) |
+| `parents-bg-alt` | `#e5dece` | `/parents-enseignants` alternating section band (replaces `cream-dark`) |
 
 **Workspace color convention**: the parents/teachers side of the app (`/parents-enseignants`, and
 the accent bar in `AppNav` for parent-teacher-workspace users) leans on `olive`, the adolescent
@@ -57,6 +61,13 @@ workspace-neutral by design). `secondary` (sarcelle) is used for the personal/"a
 regardless of workspace. When adding UI to a workspace-specific page, match this convention rather
 than introducing a new color — this includes shared components rendered on a workspace page
 (e.g. `CourseCard`'s `variant` prop), not just the page's own markup.
+
+**Workspace page background**: `/ados` and `/parents-enseignants` don't use the shared `cream`/
+`cream-dark` background — they wrap their content in `bg-ados-bg`/`bg-parents-bg` (and swap the
+alternating section bands to `-bg-alt`) so the whole page, including `Footer`'s background/border
+and `Nav`'s header border, carries a faint tint of the workspace color. The hub, auth pages, and
+`(app)` shell are unaffected and keep `cream`/`app-tint` — this tint is specific to the two
+workspace marketing pages.
 
 **Testimonial cards**: on all three public pages (hub, `/ados`, `/parents-enseignants`), the
 témoignages section uses a dark card — `bg-primary-dark`/`bg-accent-dark`/`bg-olive-dark`

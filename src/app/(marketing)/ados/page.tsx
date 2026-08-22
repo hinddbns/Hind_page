@@ -46,7 +46,7 @@ export default async function AdosPage() {
   ];
 
   return (
-    <>
+    <div className="bg-ados-bg">
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute -end-32 -top-32 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
@@ -115,7 +115,7 @@ export default async function AdosPage() {
       </section>
 
       {/* Pourquoi cette espace */}
-      <section className="bg-cream-dark/60 py-20">
+      <section className="bg-ados-bg-alt py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center font-serif text-3xl text-ink">{t.ados.pourToiTitle}</h2>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -164,14 +164,14 @@ export default async function AdosPage() {
             ))}
           </div>
         ) : (
-          <p className="mt-10 rounded-2xl border border-accent/30 bg-cream-dark/40 p-8 text-center text-ink-soft">
+          <p className="mt-10 rounded-2xl border border-accent/30 bg-ados-bg-alt p-8 text-center text-ink-soft">
             {t.ados.noCoursesYet}
           </p>
         )}
       </section>
 
       {/* Témoignages */}
-      <section className="bg-cream-dark/60 py-20">
+      <section className="bg-ados-bg-alt py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center font-serif text-3xl text-ink">{t.testimonialsAdos.title}</h2>
           <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
@@ -194,11 +194,11 @@ export default async function AdosPage() {
         <p className="mx-auto mt-4 max-w-lg text-ink-soft">{t.ados.finalCtaSubtitle}</p>
         <Link
           href="/inscription?workspace=ADOLESCENT"
-          className="mt-8 inline-block rounded-full bg-accent px-8 py-4 text-sm font-medium text-ink shadow-lg shadow-accent/20 transition hover:opacity-90"
+          className="mt-8 inline-block rounded-full bg-accent px-8 py-4 text-sm font-medium text-ink shadow-lg shadow-accent/20 transition hover:bg-accent-dark"
         >
           {t.ados.finalCtaButton}
         </Link>
       </section>
-    </>
+    </div>
   );
 }
