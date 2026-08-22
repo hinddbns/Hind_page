@@ -105,7 +105,7 @@ export default async function Home() {
       </section>
 
       {/* À propos de la coach */}
-      <section id="a-propos" className="mx-auto max-w-6xl px-6 py-20">
+      <section id="a-propos" className="mx-auto max-w-6xl px-6 pb-10 pt-20">
         <div className="grid items-center gap-12 md:grid-cols-2">
           <div className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl shadow-xl shadow-primary/10">
             <Image
@@ -147,7 +147,7 @@ export default async function Home() {
       </section>
 
       {/* أعمالي */}
-      <section className="mx-auto max-w-4xl px-6 py-20">
+      <section className="mx-auto max-w-4xl px-6 pb-20 pt-10">
         <h2 className="text-center font-serif text-3xl text-ink">{t.about.workTitle}</h2>
         <ul className="mt-10 grid gap-4 sm:grid-cols-2">
           {t.about.work.map((item) => (
