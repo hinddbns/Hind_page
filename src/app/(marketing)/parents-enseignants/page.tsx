@@ -155,6 +155,7 @@ export default async function ParentsEnseignantsPage() {
               course={course}
               ctaLabel={t.courses.enSavoirPlus}
               demoLabel={t.courses.watchDemo}
+              variant="olive"
             />
           ))}
         </div>
@@ -168,10 +169,10 @@ export default async function ParentsEnseignantsPage() {
             {testimonials.map((item) => (
               <blockquote
                 key={item.name}
-                className="rounded-2xl border border-olive-light/50 bg-white p-8 text-sm text-ink-soft"
+                className="rounded-2xl bg-olive-dark p-8 text-sm text-cream/80 shadow-lg shadow-olive/20"
               >
                 <p>&ldquo;{item.quote}&rdquo;</p>
-                <footer className="mt-4 font-medium text-ink">{item.name}</footer>
+                <footer className="mt-4 font-medium text-cream">{item.name}</footer>
               </blockquote>
             ))}
           </div>

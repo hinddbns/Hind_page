@@ -285,10 +285,10 @@ export default async function Home() {
             {testimonials.map((item) => (
               <blockquote
                 key={item.name}
-                className="rounded-2xl border border-primary-light/50 bg-white p-8 text-sm text-ink-soft"
+                className="rounded-2xl bg-primary-dark p-8 text-sm text-cream/80 shadow-lg shadow-primary/20"
               >
                 <p>&ldquo;{item.quote}&rdquo;</p>
-                <footer className="mt-4 font-medium text-ink">{item.name}</footer>
+                <footer className="mt-4 font-medium text-cream">{item.name}</footer>
               </blockquote>
             ))}
           </div>

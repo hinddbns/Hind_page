@@ -18,7 +18,7 @@ const AUTH_THEMES: Record<Workspace, AuthTheme> = {
     badgeClass: "border-accent/40 text-accent",
     toggleActiveClass: "border-accent bg-accent text-ink",
     toggleInactiveClass: "border-accent/30 text-ink-soft hover:border-accent hover:text-accent",
-    buttonClass: "bg-accent text-ink hover:opacity-90",
+    buttonClass: "bg-accent text-ink hover:bg-accent-dark",
     outlineButtonClass: "border-accent text-accent hover:bg-accent hover:text-ink",
     linkClass: "text-accent hover:underline",
   },

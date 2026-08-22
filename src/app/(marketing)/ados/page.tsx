@@ -50,7 +50,7 @@ export default async function AdosPage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute -end-32 -top-32 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
-        <div className="absolute -start-24 top-40 h-72 w-72 rounded-full bg-secondary/20 blur-3xl" />
+        <div className="absolute -start-24 top-40 h-72 w-72 rounded-full bg-accent-light/50 blur-3xl" />
 
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 py-20 text-center">
           <span className="rounded-full border border-accent/40 bg-white/60 px-4 py-1.5 text-xs font-medium tracking-wide text-accent">
@@ -77,7 +77,7 @@ export default async function AdosPage() {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/inscription?workspace=ADOLESCENT"
-              className="rounded-full bg-accent px-7 py-3.5 text-sm font-medium text-ink shadow-lg shadow-accent/20 transition hover:opacity-90"
+              className="rounded-full bg-accent px-7 py-3.5 text-sm font-medium text-ink shadow-lg shadow-accent/20 transition hover:bg-accent-dark"
             >
               {t.ados.ctaPrimary}
             </Link>
@@ -159,6 +159,7 @@ export default async function AdosPage() {
                 course={course}
                 ctaLabel={t.courses.enSavoirPlus}
                 demoLabel={t.courses.watchDemo}
+                variant="accent"
               />
             ))}
           </div>
@@ -177,7 +178,7 @@ export default async function AdosPage() {
             {testimonials.map((item) => (
               <blockquote
                 key={item.name}
-                className="rounded-2xl border border-accent/30 bg-white p-8 text-sm text-ink-soft"
+                className="rounded-2xl bg-accent-dark p-8 text-sm text-ink shadow-lg shadow-accent/20"
               >
                 <p>&ldquo;{item.quote}&rdquo;</p>
                 <footer className="mt-4 font-medium text-ink">{item.name}</footer>

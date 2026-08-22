@@ -38,7 +38,9 @@ the adolescent workspace.
 | `secondary` | `#4f6f76` | Sarcelle — "about the coach" section, credentials/track-record icons |
 | `secondary-dark` | `#3b555b` | Hover/emphasis for secondary |
 | `secondary-light` | `#dde8e7` | Stat tile backgrounds |
-| `accent` | `#c9a15a` | Gold — adolescent workspace (`/ados`) identity color |
+| `accent` | `#daa520` | Goldenrod — adolescent workspace (`/ados`) identity color |
+| `accent-dark` | `#b8860b` | Hover state for accent; also the dark testimonial-card background on `/ados` |
+| `accent-light` | `#f2e0b1` | Borders, light backgrounds for accent |
 | `olive` | `#6b7a3f` | Olive green — parents/teachers workspace identity color |
 | `olive-dark` | `#4f5c2e` | Hover state for olive |
 | `olive-light` | `#dde3c4` | Borders, light backgrounds for olive |
@@ -53,7 +55,14 @@ side (`/ados`, and the accent bar in `AppNav` for adolescent-workspace users) le
 tied to a specific workspace — the hub page, auth flows, and the admin panel (which stays
 workspace-neutral by design). `secondary` (sarcelle) is used for the personal/"about Hind" content
 regardless of workspace. When adding UI to a workspace-specific page, match this convention rather
-than introducing a new color.
+than introducing a new color — this includes shared components rendered on a workspace page
+(e.g. `CourseCard`'s `variant` prop), not just the page's own markup.
+
+**Testimonial cards**: on all three public pages (hub, `/ados`, `/parents-enseignants`), the
+témoignages section uses a dark card — `bg-primary-dark`/`bg-accent-dark`/`bg-olive-dark`
+respectively — with cream/ink text, rather than the `bg-white` card used elsewhere. This is a
+deliberate exception to the "white card, colored border" pattern used by every other card on
+these pages; don't generalize it back to white without reason.
 
 ## Typography
 

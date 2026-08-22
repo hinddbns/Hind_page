@@ -83,10 +83,13 @@ without duplicating infrastructure to do it.
   is → mission/vision → credentials → track record → values → services → choose your space →
   how it works → testimonials → CTA) is the model: let real content carry the page, don't pad
   with decorative UI that isn't saying something.
-- **One workspace, one accent.** Terracotta (`primary`) = parents/teachers + general CTAs, gold
-  (`accent`) = adolescents, sarcelle (`secondary`) = personal/about-Hind content regardless of
-  workspace. Don't invent a fourth accent color without a reason tied to a real new audience or
-  section, and don't cross-wire the existing two (don't put gold on a parents/teachers page).
+- **One workspace, one accent.** Terracotta (`primary`) = general/neutral CTAs (hub, auth, admin —
+  nothing workspace-specific), goldenrod (`accent`) = adolescents (`/ados`), olive (`olive`) =
+  parents/teachers (`/parents-enseignants`), sarcelle (`secondary`) = personal/about-Hind content
+  regardless of workspace. Don't invent a fifth accent color without a reason tied to a real new
+  audience or section, and don't cross-wire the three workspace colors (don't put gold on a
+  parents/teachers page, or olive/terracotta on `/ados`) — see `docs/DESIGN_SYSTEM.md` for the
+  full token reference.
 - **If two screens look like they were designed by different people, fix them.** Spacing
   (`py-20` sections, `gap-6` grids), typography (`font-serif` + size scale for headings), color
   tokens, iconography (`lucide-react` only), button hierarchy (filled vs. outlined pill), border

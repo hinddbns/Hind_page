@@ -34,8 +34,8 @@ export default function Nav() {
 
         <nav className="hidden items-center gap-8 text-sm font-medium text-ink-soft md:flex">
           <Link href="/#a-propos" className="hover:text-primary">{t.nav.apropos}</Link>
-          <Link href="/ados" className={`hover:text-primary ${pathname === "/ados" ? "text-primary" : ""}`}>{t.nav.espaceAdos}</Link>
-          <Link href="/parents-enseignants" className={`hover:text-primary ${pathname === "/parents-enseignants" ? "text-primary" : ""}`}>{t.nav.espaceParents}</Link>
+          <Link href="/ados" className={`hover:text-accent ${pathname === "/ados" ? "text-accent" : ""}`}>{t.nav.espaceAdos}</Link>
+          <Link href="/parents-enseignants" className={`hover:text-olive ${pathname === "/parents-enseignants" ? "text-olive" : ""}`}>{t.nav.espaceParents}</Link>
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -98,8 +98,8 @@ export default function Nav() {
         <div id="mobile-nav-menu" className="border-t border-primary-light/40 bg-cream px-6 py-4 md:hidden">
           <div className="flex flex-col gap-4 text-sm font-medium text-ink-soft">
             <Link href="/#a-propos" onClick={() => setOpen(false)}>{t.nav.apropos}</Link>
-            <Link href="/ados" onClick={() => setOpen(false)} className={pathname === "/ados" ? "text-primary" : ""}>{t.nav.espaceAdos}</Link>
-            <Link href="/parents-enseignants" onClick={() => setOpen(false)} className={pathname === "/parents-enseignants" ? "text-primary" : ""}>{t.nav.espaceParents}</Link>
+            <Link href="/ados" onClick={() => setOpen(false)} className={pathname === "/ados" ? "text-accent" : ""}>{t.nav.espaceAdos}</Link>
+            <Link href="/parents-enseignants" onClick={() => setOpen(false)} className={pathname === "/parents-enseignants" ? "text-olive" : ""}>{t.nav.espaceParents}</Link>
             <hr className="border-primary-light/40" />
             {session ? (
               <>
