@@ -53,7 +53,7 @@ export default async function AdosPage() {
         <div className="absolute -start-24 top-40 h-72 w-72 rounded-full bg-accent-light/50 blur-3xl" />
 
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 py-20 text-center">
-          <span className="rounded-full border border-accent/40 bg-white/60 px-4 py-1.5 text-xs font-medium tracking-wide text-accent">
+          <span className="rounded-full bg-accent-dark px-4 py-1.5 text-xs font-medium tracking-wide text-ink">
             {t.ados.heroBadge}
           </span>
           <h1 className="mt-6 max-w-3xl font-serif text-4xl leading-tight text-ink md:text-6xl">
@@ -94,7 +94,7 @@ export default async function AdosPage() {
       {/* لماذا هذا الفضاء */}
       <section className="mx-auto max-w-4xl px-6 py-20">
         <blockquote className="border-s-4 border-secondary/40 ps-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-secondary">{t.ados.missionTitle}</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-secondary-dark">{t.ados.missionTitle}</p>
           <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.ados.missionText}&rdquo;</p>
         </blockquote>
 

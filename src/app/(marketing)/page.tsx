@@ -122,12 +122,12 @@ export default async function Home() {
             <h2 className="font-serif text-3xl text-ink md:text-4xl">{t.about.roleTitle}</h2>
 
             <blockquote className="mt-6 border-s-4 border-secondary/40 ps-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-secondary">{t.about.messageTitle}</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-secondary-dark">{t.about.messageTitle}</p>
               <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.about.messageText}&rdquo;</p>
             </blockquote>
 
             <blockquote className="mt-6 border-s-4 border-secondary/40 ps-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-secondary">{t.about.visionTitle}</p>
+              <p className="text-sm font-semibold uppercase tracking-wide text-secondary-dark">{t.about.visionTitle}</p>
               <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.about.visionText}&rdquo;</p>
             </blockquote>
 
@@ -165,19 +165,21 @@ export default async function Home() {
       {/* Identifiants — من هند بنياس */}
       <section className="bg-cream-dark/60 py-20">
         <div className="mx-auto max-w-6xl px-6">
-          <h2 className="text-center font-serif text-3xl text-ink">{t.about.credentialsTitle}</h2>
-          <div className="mt-10 grid items-center gap-12 md:grid-cols-2">
-            <ul className="flex flex-col gap-4">
-              {t.about.credentials.map((credential) => (
-                <li
-                  key={credential}
-                  className="flex items-start gap-3 rounded-2xl border border-primary-light/40 bg-white p-4 text-sm text-ink-soft"
-                >
-                  <span className="flex-1">{credential}</span>
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
-                </li>
-              ))}
-            </ul>
+          <div className="grid items-center gap-12 md:grid-cols-2">
+            <div>
+              <h2 className="text-center font-serif text-3xl text-ink">{t.about.credentialsTitle}</h2>
+              <ul className="mt-6 flex flex-col gap-4">
+                {t.about.credentials.map((credential) => (
+                  <li
+                    key={credential}
+                    className="flex items-start gap-3 rounded-2xl border border-primary-light/40 bg-white p-4 text-sm text-ink-soft"
+                  >
+                    <span className="flex-1">{credential}</span>
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-secondary" />
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             <div className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl shadow-xl shadow-primary/10">
               <Image

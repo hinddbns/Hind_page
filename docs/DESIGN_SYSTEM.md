@@ -38,19 +38,19 @@ the adolescent workspace.
 | `secondary` | `#4f6f76` | Sarcelle — "about the coach" section, credentials/track-record icons |
 | `secondary-dark` | `#3b555b` | Hover/emphasis for secondary |
 | `secondary-light` | `#dde8e7` | Stat tile backgrounds |
-| `accent` | `#daa520` | Goldenrod — adolescent workspace (`/ados`) identity color |
-| `accent-dark` | `#b8860b` | Hover state for accent; also the dark testimonial-card background on `/ados` |
-| `accent-light` | `#f2e0b1` | Borders, light backgrounds for accent |
+| `accent` | `#ffc107` | Vivid yellow — adolescent workspace (`/ados`) identity color |
+| `accent-dark` | `#ffa000` | Darker step of accent, used for hover states and the `/ados` badge/testimonial-card background — always paired with `text-ink`, never `text-cream` (too bright for white text to stay legible; see the contrast note below) |
+| `accent-light` | `#ffe9a8` | Borders, light backgrounds for accent |
 | `olive` | `#6b7a3f` | Olive green — parents/teachers workspace identity color |
-| `olive-dark` | `#4f5c2e` | Hover state for olive |
+| `olive-dark` | `#4f5c2e` | Hover state for olive; also dark enough to pair with `text-cream` directly |
 | `olive-light` | `#dde3c4` | Borders, light backgrounds for olive |
 | `success` | `#4d7c5f` | Approved status, success banners |
 | `danger` | `#b3423a` | Rejected status, delete buttons, error banners |
 | `app-tint` | `#eef4f3` | Logged-in app shell background (distinct from marketing `cream`) |
-| `ados-bg` | `#f9f2e6` | `/ados` page background (replaces `cream` on that page only) |
-| `ados-bg-alt` | `#f0e2cb` | `/ados` alternating section band (replaces `cream-dark`) |
-| `parents-bg` | `#f4f0e7` | `/parents-enseignants` page background (replaces `cream` on that page only) |
-| `parents-bg-alt` | `#e5dece` | `/parents-enseignants` alternating section band (replaces `cream-dark`) |
+| `ados-bg` | `#fff6da` | `/ados` page background (replaces `cream` on that page only) |
+| `ados-bg-alt` | `#ffeeba` | `/ados` alternating section band (replaces `cream-dark`) |
+| `parents-bg` | `#e9ebe2` | `/parents-enseignants` page background (replaces `cream` on that page only) |
+| `parents-bg-alt` | `#d6dac9` | `/parents-enseignants` alternating section band (replaces `cream-dark`) |
 
 **Workspace color convention**: the parents/teachers side of the app (`/parents-enseignants`, and
 the accent bar in `AppNav` for parent-teacher-workspace users) leans on `olive`, the adolescent
@@ -70,10 +70,20 @@ and `Nav`'s header border, carries a faint tint of the workspace color. The hub,
 workspace marketing pages.
 
 **Testimonial cards**: on all three public pages (hub, `/ados`, `/parents-enseignants`), the
-témoignages section uses a dark card — `bg-primary-dark`/`bg-accent-dark`/`bg-olive-dark`
-respectively — with cream/ink text, rather than the `bg-white` card used elsewhere. This is a
-deliberate exception to the "white card, colored border" pattern used by every other card on
-these pages; don't generalize it back to white without reason.
+témoignages section uses a dark card rather than the `bg-white` card used elsewhere — `bg-primary-dark`
++ `text-cream` on the hub, `bg-olive-dark` + `text-cream` on `/parents-enseignants`, and
+`bg-accent-dark` + `text-ink` on `/ados` (accent is bright enough that dark text, not white,
+is what keeps it legible — see below). This is a deliberate exception to the "white card,
+colored border" pattern used by every other card on these pages; don't generalize it back to
+white without reason.
+
+**Why `/ados` uses dark text on its dark boxes**: `accent`/`accent-dark` are both a genuinely
+bright yellow, unlike `primary-dark`/`olive-dark` which are dark enough for white text on their
+own. `text-cream` on `bg-accent-dark` only measures ~1.9:1 (fails WCAG AA badly); `text-ink` on
+the same background measures ~7.5:1. So `/ados`'s badge, sign-up button, and testimonial cards all
+use `text-ink`, not `text-cream`, even though the equivalent elements on the hub and
+`/parents-enseignants` use `text-cream` — this asymmetry is intentional, driven by accent's
+brightness, not an inconsistency to "fix."
 
 ## Typography
 

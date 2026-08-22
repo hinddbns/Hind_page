@@ -47,7 +47,7 @@ export default async function ParentsEnseignantsPage() {
         <div className="absolute -start-24 top-40 h-72 w-72 rounded-full bg-olive/20 blur-3xl" />
 
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-6 py-20 text-center">
-          <span className="rounded-full border border-olive-light bg-white/60 px-4 py-1.5 text-xs font-medium tracking-wide text-olive-dark">
+          <span className="rounded-full bg-olive-dark px-4 py-1.5 text-xs font-medium tracking-wide text-cream">
             {t.hero.badge}
           </span>
           <h1 className="mt-6 max-w-3xl font-serif text-4xl leading-tight text-ink md:text-6xl">
@@ -82,7 +82,7 @@ export default async function ParentsEnseignantsPage() {
       {/* لماذا هذا الفضاء */}
       <section className="mx-auto max-w-4xl px-6 py-20">
         <blockquote className="border-s-4 border-secondary/40 ps-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-secondary">
+          <p className="text-sm font-semibold uppercase tracking-wide text-secondary-dark">
             {t.parentsSpace.missionTitle}
           </p>
           <p className="mt-1 font-serif text-lg italic text-ink">&ldquo;{t.parentsSpace.missionText}&rdquo;</p>

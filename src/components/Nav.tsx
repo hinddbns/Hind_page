@@ -22,6 +22,7 @@ export default function Nav() {
     authWorkspace === "ADOLESCENT" ? "border-accent-light" : authWorkspace === "PARENT_TEACHER" ? "border-olive-light" : "border-primary-light/40";
   const connexionHoverClass =
     authWorkspace === "ADOLESCENT" ? "hover:text-accent-dark" : authWorkspace === "PARENT_TEACHER" ? "hover:text-olive" : "hover:text-primary";
+  const signupButtonClass = authWorkspace === "ADOLESCENT" ? "bg-accent-dark text-ink hover:opacity-90" : authTheme.buttonClass;
 
   return (
     <header className={`sticky top-0 z-50 border-b ${headerBorderClass} bg-cream/90 backdrop-blur`}>
@@ -76,7 +77,7 @@ export default function Nav() {
               </Link>
               <Link
                 href={`/inscription${authQuery}`}
-                className={`rounded-full px-5 py-2 text-sm font-medium transition ${authTheme.buttonClass}`}
+                className={`rounded-full px-5 py-2 text-sm font-medium transition ${signupButtonClass}`}
               >
                 {t.nav.creerCompte}
               </Link>
@@ -129,7 +130,7 @@ export default function Nav() {
                 <Link
                   href={`/inscription${authQuery}`}
                   onClick={() => setOpen(false)}
-                  className={`self-start rounded-full px-5 py-2 transition ${authTheme.buttonClass}`}
+                  className={`self-start rounded-full px-5 py-2 transition ${signupButtonClass}`}
                 >
                   {t.nav.creerCompte}
                 </Link>

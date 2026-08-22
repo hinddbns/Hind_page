@@ -1,6 +1,6 @@
 export const site = {
   name: "هند بنياس",
-  tagline: "مدربة وعي معتمدة من مؤسسة صناع القرار الدولية",
+  tagline: "مدربة وعي معتمدة واستشارية الصحة النفسية للمراهقين والراشدين",
   logo: "/logo.jpg",
   logoWidth: 922,
   logoHeight: 1152,
