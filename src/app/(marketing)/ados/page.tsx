@@ -59,21 +59,15 @@ export default async function AdosPage() {
           <h1 className="mt-6 max-w-3xl font-serif text-4xl leading-tight text-ink md:text-6xl">
             {t.ados.heroTitle}
           </h1>
-          <div className="relative mt-8 w-full max-w-2xl overflow-hidden rounded-2xl shadow-lg shadow-accent/10">
-            <Image
-              src={site.adosPhoto}
-              alt=""
-              width={site.adosPhotoWidth}
-              height={site.adosPhotoHeight}
-              sizes="(min-width: 768px) 640px, 100vw"
-              priority
-              className="h-auto w-full"
-            />
-            {/* Anchored to the photo's own empty left-hand space — physical, not logical, since the image doesn't mirror with RTL */}
-            <div className="absolute inset-y-0 left-0 flex w-3/5 items-center bg-gradient-to-r from-cream via-cream/85 to-transparent p-6">
-              <p className="text-lg font-medium leading-relaxed text-ink">{t.ados.heroSubtitle}</p>
-            </div>
-          </div>
+          <Image
+            src={site.adosPhoto}
+            alt={t.ados.heroSubtitle}
+            width={site.adosPhotoWidth}
+            height={site.adosPhotoHeight}
+            sizes="(min-width: 768px) 640px, 100vw"
+            priority
+            className="mt-8 w-full max-w-2xl rounded-2xl shadow-lg shadow-accent/10"
+          />
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/inscription?workspace=ADOLESCENT"

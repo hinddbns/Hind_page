@@ -16,7 +16,7 @@ export const site = {
   motherTeenPhoto: "/maman.png",
   motherTeenPhotoWidth: 1365,
   motherTeenPhotoHeight: 768,
-  adosPhoto: "/ados.jpeg",
+  adosPhoto: "/ados-hero.jpg",
   adosPhotoWidth: 1376,
   adosPhotoHeight: 768,
   bankDetails: {
