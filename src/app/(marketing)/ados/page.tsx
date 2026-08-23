@@ -36,6 +36,7 @@ export default async function AdosPage() {
   const testimonials = [
     { quote: t.testimonialsAdos.quote1, name: t.testimonialsAdos.name1 },
     { quote: t.testimonialsAdos.quote2, name: t.testimonialsAdos.name2 },
+    { quote: t.testimonialsAdos.quote3, name: t.testimonialsAdos.name3 },
   ];
 
   const steps = [
@@ -168,7 +169,7 @@ export default async function AdosPage() {
       <section className="bg-ados-bg-alt py-20">
         <div className="mx-auto max-w-6xl px-6">
           <h2 className="text-center font-serif text-3xl text-ink">{t.testimonialsAdos.title}</h2>
-          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
             {testimonials.map((item) => (
               <blockquote
                 key={item.name}
