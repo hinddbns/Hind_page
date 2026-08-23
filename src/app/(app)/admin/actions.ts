@@ -16,6 +16,8 @@ import {
   extensionForMime,
 } from "@/lib/uploads";
 import { matchesFileSignature } from "@/lib/fileSignature";
+import { recordAuditLog } from "@/lib/auditLog";
+import { sendEmail } from "@/lib/email";
 
 export type ActionState = { error?: string; ok?: boolean };
 
@@ -68,6 +70,25 @@ async function runAction(fn: () => Promise<ActionState>): Promise<ActionState> {
   }
 }
 
+async function notifyEnrollmentStatus(enrollmentId: string, status: "APPROVED" | "REJECTED") {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    include: { user: true, course: true },
+  });
+  if (!enrollment) return;
+
+  const subject =
+    status === "APPROVED"
+      ? `تم تفعيل وصولك إلى دورة "${enrollment.course.title}"`
+      : `بخصوص طلب الاشتراك في دورة "${enrollment.course.title}"`;
+  const text =
+    status === "APPROVED"
+      ? `مرحبًا ${enrollment.user.name}،\n\nتمت الموافقة على طلبك، ويمكنك الآن الوصول إلى محتوى الدورة من مساحتك الشخصية.`
+      : `مرحبًا ${enrollment.user.name}،\n\nللأسف تعذّر تفعيل وصولك إلى هذه الدورة حاليًا. يمكنك مراجعة إيصال الدفع وإعادة المحاولة من مساحتك الشخصية.`;
+
+  await sendEmail({ to: enrollment.user.email, subject, text });
+}
+
 export async function reviewEnrollment(
   enrollmentId: string,
   status: "APPROVED" | "REJECTED",
@@ -75,11 +96,18 @@ export async function reviewEnrollment(
   _formData: FormData
 ): Promise<ActionState> {
   return runAction(async () => {
-    await requireAdmin();
+    const session = await requireAdmin();
     await prisma.enrollment.update({
       where: { id: enrollmentId },
       data: { status, reviewedAt: new Date() },
     });
+    await recordAuditLog({
+      actorId: session.user.id,
+      action: status === "APPROVED" ? "ENROLLMENT_APPROVED" : "ENROLLMENT_REJECTED",
+      targetType: "Enrollment",
+      targetId: enrollmentId,
+    });
+    await notifyEnrollmentStatus(enrollmentId, status);
     revalidatePath("/admin/demandes");
     revalidatePath("/admin");
     return { ok: true };
@@ -92,7 +120,7 @@ export async function reviewEnrollmentsBulk(
   formData: FormData
 ): Promise<ActionState> {
   return runAction(async () => {
-    await requireAdmin();
+    const session = await requireAdmin();
     const ids = formData.getAll("ids").map(String).filter(Boolean);
     if (ids.length === 0) {
       throw new AdminActionError("لم يتم تحديد أي طلب.");
@@ -101,6 +129,16 @@ export async function reviewEnrollmentsBulk(
       where: { id: { in: ids } },
       data: { status, reviewedAt: new Date() },
     });
+    for (const enrollmentId of ids) {
+      await recordAuditLog({
+        actorId: session.user.id,
+        action: status === "APPROVED" ? "ENROLLMENT_APPROVED" : "ENROLLMENT_REJECTED",
+        targetType: "Enrollment",
+        targetId: enrollmentId,
+        metadata: { bulk: true },
+      });
+      await notifyEnrollmentStatus(enrollmentId, status);
+    }
     revalidatePath("/admin/demandes");
     revalidatePath("/admin");
     return { ok: true };
@@ -384,8 +422,14 @@ export async function promoteToAdmin(
   _formData: FormData
 ): Promise<ActionState> {
   return runAction(async () => {
-    await requireAdmin();
+    const session = await requireAdmin();
     await prisma.user.update({ where: { id: userId }, data: { role: "ADMIN" } });
+    await recordAuditLog({
+      actorId: session.user.id,
+      action: "USER_PROMOTED",
+      targetType: "User",
+      targetId: userId,
+    });
     revalidatePath("/admin/utilisateurs");
     revalidatePath(`/admin/utilisateurs/${userId}`);
     return { ok: true };
@@ -410,6 +454,12 @@ export async function demoteToUser(
     }
 
     await prisma.user.update({ where: { id: userId }, data: { role: "USER" } });
+    await recordAuditLog({
+      actorId: session.user.id,
+      action: "USER_DEMOTED",
+      targetType: "User",
+      targetId: userId,
+    });
     revalidatePath("/admin/utilisateurs");
     revalidatePath(`/admin/utilisateurs/${userId}`);
     return { ok: true };

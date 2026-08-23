@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/i18n/server";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET(req: Request) {
   const session = await auth();
@@ -46,6 +47,11 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`message:${session.user.id}`, 30, 60);
+  if (!allowed) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const body = await req.json().catch(() => null);

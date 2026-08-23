@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { getT, interpolate } from "@/i18n/server";
 import CoachReminder from "@/components/CoachReminder";
+import { getCourseProgressSummary } from "@/lib/lessonAccess";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -36,6 +37,14 @@ export default async function DashboardPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const progressByCourseId = new Map(
+    await Promise.all(
+      enrollments
+        .filter((e) => e.status === "APPROVED")
+        .map(async (e) => [e.courseId, await getCourseProgressSummary(e.courseId, session.user.id)] as const)
+    )
+  );
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
       <h1 className="font-serif text-3xl text-ink">{interpolate(t.dashboard.hello, { name: session.user.name ?? "" })}</h1>
@@ -55,39 +64,75 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="mt-10 flex flex-col gap-4">
-          {enrollments.map((e) => (
-            <div
-              key={e.id}
-              className="flex flex-col gap-3 rounded-2xl border border-primary-light/50 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div>
-                <h2 className="font-serif text-lg text-ink">{e.course.title}</h2>
-                <p className="text-sm text-ink-soft">{formatPrice(e.course.price)}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${STATUS_STYLE[e.status]}`}
-                >
-                  {STATUS_LABEL[e.status]}
-                </span>
-                {e.status === "APPROVED" ? (
-                  <Link
-                    href={`/tableau-de-bord/cours/${e.course.slug}`}
-                    className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-cream hover:bg-primary-dark"
+          {enrollments.map((e) => {
+            const progress = progressByCourseId.get(e.courseId);
+            const continueHref =
+              progress && !progress.isComplete && progress.currentLessonId
+                ? `/tableau-de-bord/cours/${e.course.slug}/lecon/${progress.currentLessonId}`
+                : `/tableau-de-bord/cours/${e.course.slug}`;
+
+            return (
+              <div
+                key={e.id}
+                className="flex flex-col gap-3 rounded-2xl border border-primary-light/50 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <h2 className="font-serif text-lg text-ink">{e.course.title}</h2>
+                  <p className="text-sm text-ink-soft">{formatPrice(e.course.price)}</p>
+                  {progress && progress.totalLessons > 0 && (
+                    <div className="mt-3 max-w-xs">
+                      <div className="flex items-center justify-between gap-2 text-xs text-ink-soft">
+                        <span>
+                          {interpolate(t.lessonContent.progressLabel, {
+                            completed: String(progress.completedLessons),
+                            total: String(progress.totalLessons),
+                          })}
+                        </span>
+                        <span>
+                          {interpolate(t.lessonContent.percentComplete, { percent: String(progress.percent) })}
+                        </span>
+                      </div>
+                      <div
+                        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-cream-dark"
+                        role="progressbar"
+                        aria-valuenow={progress.percent}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={t.lessonContent.courseProgressAriaLabel}
+                      >
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${progress.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-medium ${STATUS_STYLE[e.status]}`}
                   >
-                    {t.dashboard.access}
-                  </Link>
-                ) : (
-                  <Link
-                    href={`/cours/${e.course.slug}`}
-                    className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-cream"
-                  >
-                    {t.dashboard.view}
-                  </Link>
-                )}
+                    {STATUS_LABEL[e.status]}
+                  </span>
+                  {e.status === "APPROVED" ? (
+                    <Link
+                      href={continueHref}
+                      className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-cream hover:bg-primary-dark"
+                    >
+                      {t.dashboard.continueCourse}
+                    </Link>
+                  ) : (
+                    <Link
+                      href={`/cours/${e.course.slug}`}
+                      className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-cream"
+                    >
+                      {t.dashboard.view}
+                    </Link>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           <Link
             href={coursesHref}

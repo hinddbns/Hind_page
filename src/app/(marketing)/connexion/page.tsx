@@ -84,7 +84,12 @@ function ConnexionForm() {
           />
         </div>
         <div>
-          <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-ink">{t.auth.password}</label>
+          <div className="mb-1 flex items-center justify-between">
+            <label htmlFor="login-password" className="block text-sm font-medium text-ink">{t.auth.password}</label>
+            <Link href="/mot-de-passe-oublie" className={`text-xs font-medium ${theme.linkClass}`}>
+              {t.auth.forgotPassword}
+            </Link>
+          </div>
           <PasswordInput
             id="login-password"
             required

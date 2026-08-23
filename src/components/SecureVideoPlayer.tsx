@@ -1,8 +1,14 @@
 "use client";
 
-export default function SecureVideoPlayer({ src, className }: { src: string; className?: string }) {
+import { forwardRef } from "react";
+
+const SecureVideoPlayer = forwardRef<
+  HTMLVideoElement,
+  React.VideoHTMLAttributes<HTMLVideoElement> & { src: string; className?: string }
+>(function SecureVideoPlayer({ src, className, ...rest }, ref) {
   return (
     <video
+      ref={ref}
       controls
       controlsList="nodownload noremoteplayback"
       disablePictureInPicture
@@ -10,6 +16,9 @@ export default function SecureVideoPlayer({ src, className }: { src: string; cla
       onContextMenu={(e) => e.preventDefault()}
       className={className}
       src={src}
+      {...rest}
     />
   );
-}
+});
+
+export default SecureVideoPlayer;

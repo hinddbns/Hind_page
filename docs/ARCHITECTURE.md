@@ -86,8 +86,9 @@ src/
     site.ts                  Brand config: name, tagline, logo, bank details, social links, WhatsApp
     workspace.ts             workspaceFromCategory(): ProfileCategory -> "ADOLESCENT" | "PARENT_TEACHER"
     format.ts                formatPrice()
-    uploads.ts               Upload dirs, allowed MIME sets, size limits, extensionForMime()
+    uploads.ts               Upload dir (videos only), allowed MIME sets, size limits, extensionForMime()
     fileSignature.ts         Magic-byte validation (matchesFileSignature) — see Security below
+    receiptStorage.ts        Supabase Storage wrapper for receipts (upload/download/delete)
 
   i18n/
     dictionaries/ar.ts       ALL user-facing strings, one flat-ish nested object (see below)
@@ -104,9 +105,14 @@ src/
 public/
   logo.jpg                 Brand logo (used in Nav, AppNav, Footer, AppFooter, auth pages, favicon)
   uploads/demos/            Public demo videos (served as static files, NOT through an API route)
-uploads/                  PRIVATE, gitignored: uploads/receipts, uploads/videos — served only
-                          through the authenticated API routes above, never as static assets
+uploads/                  PRIVATE, gitignored: uploads/videos — served only through the
+                          authenticated API route above, never as static assets. Receipts no
+                          longer live here — see Supabase Storage note below.
 ```
+
+Receipts live in a private **Supabase Storage** bucket (`receipts`), not on local disk — see
+"File uploads & serving" below for why (`/uploads` doesn't survive Vercel's serverless
+filesystem). Lesson videos are still local disk pending their own migration (see `ROADMAP.md`).
 
 ## Routing model
 
@@ -183,6 +189,36 @@ code (`admin/messages/page.tsx`). Unread state is tracked via two timestamp colu
 (`messagesReadByUserAt`, `messagesReadByAdminAt`) compared against message `createdAt` — not a
 per-message `read` boolean.
 
+`LessonProgress` — one row per `(userId, lessonId)` pair (unique constraint), added in the V2
+lesson-progress work. `furthestSeconds` is the server-validated, rate-limited high-water mark
+(never trusts a client-reported jump faster than real elapsed time since the last accepted
+update — see `api/lessons/[lessonId]/progress/route.ts`); `lastPositionSeconds` is just the
+resume point, trusted directly since it isn't a security boundary. `completed` gates sequential
+lesson locking (`lib/lessonAccess.ts`'s `getLessonsWithAccess`): first non-completed lesson in
+`order` is `current`, everything after is `locked`, enforced server-side on every lesson-content
+access path (the lesson page, `api/videos/[lessonId]`, and the progress route itself all
+independently re-check this — don't add a fourth lesson-content path without the same check).
+Lessons with no `videoPath` (external `videoUrl` or text-only — the majority of real lesson
+content as of 2026-08-23) have no timeline to validate, so they're completed via an explicit
+`{event: "complete"}` request instead (`components/LessonCompleteButton.tsx`).
+
+`AuditLog` — minimal admin action trail (`lib/auditLog.ts`), written for enrollment approve/
+reject and user promote/demote. `targetId` is a plain string, not a real FK (it points at
+different tables depending on `targetType`), so it doesn't cascade-delete — fine today since
+nothing in the app deletes users or enrollments outright. Rendered read-only on
+`admin/parametres`. Don't build this into a bigger analytics feature without being asked.
+
+`PasswordResetToken` — one row per issued reset link. Stores `sha256(rawToken)`, never the raw
+token; the raw token only ever exists in the emailed link and the client's URL. Single-use
+(`usedAt`) and time-limited (`expiresAt`, 1 hour). The forgot-password route always returns the
+same `{ok:true}` regardless of whether the email exists, to avoid account enumeration.
+
+`RateLimitHit` — backs `lib/rateLimit.ts`'s `checkRateLimit(key, max, windowSeconds)`, a small
+DB-backed sliding-window limiter (delete-then-count-then-insert against this table). No external
+infra (Redis, etc.) — Postgres is already the shared state every serverless instance can see, and
+traffic at this app's scale doesn't need anything more. Keys are typically `"<route>:<userId>"`
+for authenticated routes or `"<route>:<ip>"` for public ones.
+
 **NULL-handling pitfall (already hit once, now fixed in two places)**: `profileCategory` is
 nullable. A Prisma filter like `{ profileCategory: { not: "ADOLESCENT" } }` does **not** match
 rows where the column is `NULL` (standard SQL three-valued-logic behavior) — it silently
@@ -214,23 +250,30 @@ Server Action for user-facing flows unless there's a specific reason.
 
 ## File uploads & serving — the trust boundary
 
-Two upload paths, same shape:
+Two upload paths, different storage backends since 2026-08-23:
 
 1. **Receipts** (`api/enrollments/route.ts`, user-facing, untrusted): client-declared
    `File.type` is checked against `ALLOWED_RECEIPT_TYPES` (fast pre-filter) **and then** the
-   actual bytes are checked against `matchesFileSignature()` (magic-byte check) before writing
-   to disk. This two-step exists because `File.type` is fully attacker-controlled — a user could
-   upload an HTML/script file with a spoofed `image/jpeg` Content-Type, and the receipt-serving
-   route re-uses that same (attacker-influenced) extension to set the response
-   `Content-Type` — that's the concrete stored-XSS-via-upload scenario this closes off, on top
-   of the `X-Content-Type-Options: nosniff` header on the serving route.
-2. **Videos** (`admin/actions.ts` → `saveVideoIfPresent()`, admin-only, trusted): same
-   signature-check function is applied here too, for consistency/defense-in-depth, even though
-   the threat model is much lower (only an admin can upload).
+   actual bytes are checked against `matchesFileSignature()` (magic-byte check) before the
+   validated buffer is handed to `lib/receiptStorage.ts`, which uploads it to a private Supabase
+   Storage bucket (`receipts`) via the service-role key. This two-step validation exists because
+   `File.type` is fully attacker-controlled — a user could upload an HTML/script file with a
+   spoofed `image/jpeg` Content-Type, and the receipt-serving route re-uses that same
+   (attacker-influenced) extension to set the response `Content-Type` — that's the concrete
+   stored-XSS-via-upload scenario this closes off, on top of the `X-Content-Type-Options: nosniff`
+   header on the serving route. The bucket is private and only ever touched server-side with the
+   service-role key — the client never gets a Storage URL or signed link, only
+   `/api/receipts/[enrollmentId]`, so the existing owner-or-admin auth check is the only gate,
+   unchanged by the migration.
+2. **Videos** (`admin/actions.ts` → `saveVideoIfPresent()`, admin-only, trusted): still local disk
+   (`uploads/videos`, `node:fs`) — **not yet migrated**, see `ROADMAP.md`. Same signature-check
+   function is applied here too, for consistency/defense-in-depth, even though the threat model is
+   much lower (only an admin can upload).
 
 `extensionForMime()` (in `lib/uploads.ts`) is the single place mapping MIME → file extension —
-used both when writing the file and (duplicated as a local `CONTENT_TYPES` map, not imported)
-when serving it back in `api/receipts/[enrollmentId]/route.ts` and `api/videos/[lessonId]/route.ts`.
+used both when naming the uploaded object (local file for videos, Storage object key for
+receipts) and (duplicated as a local `CONTENT_TYPES` map, not imported) when serving it back in
+`api/receipts/[enrollmentId]/route.ts` and `api/videos/[lessonId]/route.ts`.
 If you add a new allowed MIME type, you must update **three** places: `ALLOWED_*_TYPES` in
 `lib/uploads.ts`, `matchesFileSignature()` in `lib/fileSignature.ts`, and the `CONTENT_TYPES` map
 in the relevant serving route.

@@ -1,16 +1,21 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile, unlink } from "node:fs/promises";
-import path from "node:path";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { ALLOWED_RECEIPT_TYPES, MAX_RECEIPT_SIZE, UPLOADS_DIR, extensionForMime } from "@/lib/uploads";
+import { ALLOWED_RECEIPT_TYPES, MAX_RECEIPT_SIZE, extensionForMime } from "@/lib/uploads";
 import { matchesFileSignature } from "@/lib/fileSignature";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { uploadReceipt, deleteReceipt } from "@/lib/receiptStorage";
 
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  }
+
+  const allowed = await checkRateLimit(`enrollment:${session.user.id}`, 10, 60 * 60);
+  if (!allowed) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
   const formData = await req.formData().catch(() => null);
@@ -62,12 +67,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "unsupported_format" }, { status: 400 });
     }
 
-    await mkdir(UPLOADS_DIR, { recursive: true });
     filename = `${randomUUID()}${extensionForMime(uploadedFile.type)}`;
-    await writeFile(path.join(UPLOADS_DIR, filename), buffer);
+    await uploadReceipt(filename, buffer, uploadedFile.type);
 
     if (existing) {
-      await unlink(path.join(UPLOADS_DIR, existing.receiptPath)).catch(() => {});
+      await deleteReceipt(existing.receiptPath);
     }
   }
 
@@ -110,7 +114,7 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "cannot_cancel_approved" }, { status: 409 });
   }
 
-  await unlink(path.join(UPLOADS_DIR, enrollment.receiptPath)).catch(() => {});
+  await deleteReceipt(enrollment.receiptPath);
   await prisma.enrollment.delete({ where: { id: enrollmentId } });
 
   return NextResponse.json({ ok: true });

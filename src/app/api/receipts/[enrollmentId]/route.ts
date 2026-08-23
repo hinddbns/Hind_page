@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { UPLOADS_DIR } from "@/lib/uploads";
+import { downloadReceipt } from "@/lib/receiptStorage";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -33,20 +32,18 @@ export async function GET(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const filePath = path.join(UPLOADS_DIR, enrollment.receiptPath);
   const ext = path.extname(enrollment.receiptPath).toLowerCase();
-
-  try {
-    const buffer = await readFile(filePath);
-    return new NextResponse(new Uint8Array(buffer), {
-      headers: {
-        "Content-Type": CONTENT_TYPES[ext] ?? "application/octet-stream",
-        "Content-Disposition": "inline",
-        "Cache-Control": "private, no-store",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
-  } catch {
+  const buffer = await downloadReceipt(enrollment.receiptPath);
+  if (!buffer) {
     return NextResponse.json({ error: "file_not_found" }, { status: 404 });
   }
+
+  return new NextResponse(new Uint8Array(buffer), {
+    headers: {
+      "Content-Type": CONTENT_TYPES[ext] ?? "application/octet-stream",
+      "Content-Disposition": "inline",
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }

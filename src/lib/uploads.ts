@@ -1,6 +1,5 @@
 import path from "node:path";
 
-export const UPLOADS_DIR = path.join(process.cwd(), "uploads", "receipts");
 export const VIDEOS_DIR = path.join(process.cwd(), "uploads", "videos");
 export const DEMO_VIDEOS_DIR = path.join(process.cwd(), "public", "uploads", "demos");
 export const DEMO_VIDEOS_PUBLIC_PREFIX = "/uploads/demos";

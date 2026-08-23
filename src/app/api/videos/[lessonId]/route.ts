@@ -6,6 +6,7 @@ import path from "node:path";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { VIDEOS_DIR } from "@/lib/uploads";
+import { getApprovedEnrollment, getLessonsWithAccess, isQuestionnaireComplete } from "@/lib/lessonAccess";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -30,10 +31,33 @@ export async function GET(
   }
 
   if (session.user.role !== "ADMIN") {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId: session.user.id, courseId: lesson.courseId } },
-    });
+    const enrollment = await getApprovedEnrollment(session.user.id, lesson.courseId);
     if (enrollment?.status !== "APPROVED") {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    // A course/direct-URL fetch of a video that isn't unlocked yet — the lesson
+    // page itself redirects away from this, but this is the actual byte
+    // source, so it has to enforce the same lock independently.
+    const course = await prisma.course.findUnique({
+      where: { id: lesson.courseId },
+      include: {
+        lessons: { orderBy: { order: "asc" } },
+        questions: { include: { options: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } },
+      },
+    });
+    if (!course) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+
+    const questionnaireDone = await isQuestionnaireComplete(course, session.user.id);
+    if (!questionnaireDone) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+
+    const lessonsWithAccess = await getLessonsWithAccess(course.id, session.user.id, course.lessons);
+    const target = lessonsWithAccess.find((l) => l.id === lessonId);
+    if (!target || target.state === "locked") {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
   }

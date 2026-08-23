@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 const VALID_CATEGORIES = new Set(["MOTHER", "TEACHER", "ADOLESCENT", "OTHER"]);
 
 export async function POST(req: Request) {
+  const allowed = await checkRateLimit(`signup:${clientIp(req)}`, 10, 60 * 60);
+  if (!allowed) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   const body = await req.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });

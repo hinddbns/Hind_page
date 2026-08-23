@@ -29,15 +29,46 @@ These aren't bugs — the app works correctly — but the content/config is stil
 - **Database**: done (2026-08-21) — moved from SQLite to Postgres/Supabase specifically for this.
   See `docs/PROJECT_CONTEXT.md` § "Why Postgres/Supabase" for the connection-string setup and a
   documented `prisma migrate` hang encountered along the way.
-- **File storage — still open, now urgent**: receipts and lesson videos live on local disk
-  (`/uploads`, gitignored, not public). Vercel's filesystem is not persistent across
-  invocations, so this will silently break (uploads disappearing, receipts/videos 404ing) once
-  the app is actually live there. Needs to move to object storage (S3, R2, Supabase Storage,
-  etc.) with the auth-gated serving routes (`api/receipts/**`, `api/videos/**`) updated to stream
-  from there instead of `node:fs`.
+- **Receipt storage → Supabase Storage: done (2026-08-23).** Enrollment receipts moved off local
+  disk to a private `receipts` bucket in the same Supabase project as the database — `api/receipts/[enrollmentId]/route.ts`
+  and `api/enrollments/route.ts` now go through `src/lib/receiptStorage.ts` instead of `node:fs`.
+  Object keys are flat `${randomUUID()}.${ext}` (unchanged naming scheme, only the backend moved)
+  stored in the same `Enrollment.receiptPath` column — no schema migration was needed. The
+  auth-gated serving route, ownership checks, and magic-byte upload validation are all unchanged.
+  Verified end-to-end against the real bucket (upload → serve → withdraw → object actually
+  removed, confirmed via `list()`) with a disposable QA account, since there were no real
+  production receipts yet to worry about (pre-launch). Requires `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY` in `.env` (local) and Vercel's environment variables (production).
+- **Lesson video storage — still open, now the only remaining piece.** Lesson videos still live on
+  local disk (`/uploads/videos`, gitignored, not public). Vercel's filesystem is not persistent
+  across invocations, so this will silently break (videos 404ing) once the app is actually live
+  there. Demo videos (`public/uploads/demos/`) are unaffected — they're committed static assets,
+  not runtime uploads. Video migration was intentionally not bundled with the receipt migration
+  above (different urgency, and the video plan already points at Bunny Stream, not generic object
+  storage — see below) — **still blocked on Bunny credentials**, see next entry.
+- **Video delivery → Bunny Stream — planned for V2, blocked on credentials.** Same status: no
+  Bunny.net account, library ID, or API key exist anywhere in this repo. See the "Real DRM/
+  screen-recording-resistant video delivery" entry further down — the V2 plan already settled on
+  Bunny Stream specifically (signed playback URLs, player stays in-app, local video kept as a
+  `bunnyVideoId ? Bunny : local` fallback during migration). Needs: a Bunny Stream library created,
+  its Library ID, and a Stream API key with permission to create videos and generate signed
+  playback URLs.
 - **Demo videos** (`public/uploads/demos/`) are committed to the repo and served as static
   files — fine at their current tiny placeholder size (~28KB each); revisit if real demo videos
   are large, since they'd bloat the git repo and the deployed bundle.
+
+## Email transport — mechanism done, provider not configured
+
+Password reset (forgot/reset password pages + `PasswordResetToken` model, single-use, 1-hour
+expiry, no email-enumeration) and enrollment-approved/rejected notifications (V2 Phase 8,
+2026-08-23) are both fully implemented and route through one shared function,
+`sendEmail()` in `src/lib/email.ts`. That function is the **only** thing not finished: with no
+`RESEND_API_KEY` set, it logs the message instead of sending it (visible in server logs), so the
+rest of the app was built and tested against a stable interface. To go live, set `RESEND_API_KEY`
+(and optionally `EMAIL_FROM`) — no other code changes needed. This isn't a placeholder that fakes
+success; the app just doesn't claim to have sent anything it hasn't (the "check your email"
+copy on the forgot-password page reads the same either way, since the no-enumeration requirement
+means it can't say more than that regardless of transport).
 
 ## Known gaps worth closing (not launch-blocking, but real)
 
@@ -48,14 +79,26 @@ These aren't bugs — the app works correctly — but the content/config is stil
   inertia.
 - **JWT session staleness**: promoting/demoting a user, or changing their `profileCategory`,
   doesn't affect their *current* session (see ARCHITECTURE.md § Auth & session) until they log
-  in again. Low-impact today (small user base, admin changes are rare) but worth a session
-  refresh mechanism (e.g. a `session.update()` trigger, or shortening JWT lifetime) if the app
-  grows.
-- **No rate limiting on public endpoints** other than the login-lockout added for
-  `/api/auth`. `/api/inscription` (sign-up), `/api/enrollments` (receipt upload), and
-  `/api/messages` (send message) have no throttling — a scripted client could spam accounts,
-  fake enrollment requests, or flood the message inbox. Not urgent for a low-traffic single-coach
-  site, but worth revisiting if abuse becomes a real concern.
+  in again. Re-reviewed during the V2 Phase 8 pass (2026-08-23) and deliberately left as-is —
+  still low-impact (small user base, admin changes are rare), and a session-refresh mechanism
+  would touch the auth core for a benefit that doesn't justify it yet. Revisit if the app grows.
+- **Rate limiting beyond login: done (V2, 2026-08-23).** A small DB-backed sliding-window
+  limiter (`src/lib/rateLimit.ts`, backed by the `RateLimitHit` table — no external infra, works
+  fine across stateless serverless instances since Postgres is the shared state) now covers
+  `/api/inscription` (10/hour/IP), `/api/enrollments` (10/hour/user), `/api/messages` POST
+  (30/min/user), `/api/auth/forgot-password` (5/hour/IP), and `/api/lessons/[lessonId]/progress`
+  (60/min/user — generous headroom over the ~12/min legitimate heartbeat cadence; this is
+  volume/DoS protection, not the forgery defense, which is the rate-limited `furthestSeconds` math
+  already in that route).
+- **RLS: explicitly reviewed, not needed.** The app never exposes a Supabase anon/publishable key
+  to the browser — all database access goes through server-side Prisma using the full connection
+  string, the same trust model as any server-side Postgres app. Supabase RLS matters for the
+  PostgREST/client-SDK direct-access pattern, which this app doesn't use anywhere. Revisit only if
+  that changes.
+- **Public course search: still deferred.** 3 published courses total as of 2026-08-23 — nowhere
+  near enough to justify search/filter UI. Revisit once the catalog actually grows (the admin
+  side already has search/filter/bulk actions, built when that volume justified it — see
+  PROJECT_CONTEXT.md's "Honest gaps" note).
 - **No automated tests.** Every verification pass in this project so far has been manual
   (`tsc`, `eslint`, `npm run build`, and a throwaway QA account clicking through the browser).
   There is no unit/integration/e2e test suite. If the codebase keeps growing, this is the single

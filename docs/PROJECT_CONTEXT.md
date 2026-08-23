@@ -65,9 +65,14 @@ workspace has zero real courses yet).
 | Dev seed | `tsx prisma/seed.ts` (creates 1 admin + 3 example courses + demo videos) |
 | Linting | **ESLint 9**, `eslint-config-next` |
 | Testing | **None.** No test framework, no CI. Verification is manual (see `CONTRIBUTING.md`). |
+| File storage (receipts) | **Supabase Storage**, private `receipts` bucket, same project as the
+  database. Accessed only server-side via the service-role key — see `ARCHITECTURE.md` § File
+  uploads & serving. |
 | Deployment | **Vercel**, connected to the `hinddbns/Hind_page` GitHub repo. Database moved to
   Postgres/Supabase to support this (SQLite's local file doesn't survive serverless). Local-disk
-  uploads (`/uploads`, receipts) remain a known gap under serverless — see `ROADMAP.md`. |
+  storage for lesson videos (`/uploads/videos`) remains a known gap under serverless — see
+  `ROADMAP.md`. Receipts were migrated off local disk to Supabase Storage (2026-08-23) for the
+  same reason. |
 
 Full dependency list: `package.json`. Notably minimal — no state-management library, no
 data-fetching library (SWR/React Query/tRPC), no UI component library, no CSS-in-JS. Data
@@ -99,8 +104,9 @@ Full detail in [`ARCHITECTURE.md`](ARCHITECTURE.md). Summary:
 - **Styling system**: Tailwind utility classes only, tokens defined in `globals.css`. See
   `DESIGN_SYSTEM.md`.
 - **Assets**: `public/logo.jpg` (brand mark, used everywhere), `public/uploads/demos/` (public
-  demo videos), and a **separate, non-public** `uploads/` directory at the repo root (gitignored)
-  holding private receipts and lesson videos, served only through auth-gated API routes.
+  demo videos), a **separate, non-public** `uploads/` directory at the repo root (gitignored)
+  holding lesson videos, and a private Supabase Storage bucket (`receipts`) holding enrollment
+  receipts — all three served only through auth-gated API routes, never as static assets.
 
 ---
 
@@ -301,12 +307,41 @@ port 6543, `?pgbouncer=true` to disable prepared-statement caching) for the app'
 queries, and `DIRECT_URL` (session pooler, port 5432) for `prisma migrate`/`db execute` — the
 project's true direct-connection host is IPv6-only, which isn't reachable from every network, so
 the session pooler is the practical substitute. `prisma migrate dev`/`deploy` were found to hang
-indefinitely against this pooler setup in local testing (cause unconfirmed — suspected PgBouncer
-interaction with Prisma's advisory-lock/shadow-DB steps); the working pattern is
-`prisma migrate diff --from-empty --to-schema-datamodel` to generate migration SQL offline, then
+indefinitely against this pooler setup in local testing; the working pattern is
+`prisma migrate diff --from-schema-datasource ... --to-schema-datamodel ... --script` (or
+`--from-empty` for a from-scratch diff) to generate migration SQL offline, then
 `prisma db execute --file ... --url "$DIRECT_URL?connect_timeout=10"` to apply it directly. If
 you hit the same hang, don't spend more time retrying `migrate dev`/`deploy` — use this pattern
 instead.
+
+**Root cause confirmed (2026-08-23, V2 Phase 8 pass): `prisma migrate resolve --applied` hits
+the exact same wall, and now with a precise error** — `P1002: ... Timed out trying to acquire a
+postgres advisory lock`. PgBouncer in transaction-pooling mode (what `DATABASE_URL` uses) doesn't
+preserve session state across statements, so a session-scoped advisory lock can never succeed
+against it — this isn't a timing fluke, `migrate resolve` will never complete against the pooled
+URL, no amount of retrying fixes it. Unlike `db execute`, `migrate resolve` has no `--url` flag
+to point it at `DIRECT_URL` instead. The workaround: insert the bookkeeping row into
+`_prisma_migrations` yourself, matching the columns Prisma itself would write (`id` as a random
+UUID, `checksum` as `sha256(migration.sql contents)` hex-encoded, `finished_at`/`started_at` both
+`now()`, `migration_name`, `logs: ''`, `applied_steps_count: 1`) via a one-off script using the
+already-working Prisma Client (see next paragraph — the client itself isn't affected by this,
+only the CLI's migrate commands are). A checksum computed this way is only used for local
+drift-detection warnings, not correctness, so a script-level SHA-256 match is sufficient.
+
+**Also confirmed: `prisma generate`'s failure mode on Windows is narrower than it looks.** The
+documented `EPERM: ... rename query_engine-windows.dll.node.tmp... -> query_engine-windows.dll.node`
+error (when another process — e.g. a second `next dev`/`next start` — has the current engine
+binary loaded) only blocks the *native binary* replacement step. The generated TypeScript client
+code and `.d.ts` types are written *before* that step and typically succeed regardless — so
+`prisma generate` reporting EPERM does not necessarily mean the client is stale. Verify directly
+(`npx tsx` a one-off script that queries a newly-added model) before concluding you're blocked;
+in practice the existing engine binary is usually still ABI-compatible since it doesn't change
+per schema edit, only per Prisma version. What *does* stay stale is any **already-running**
+`node` process (like a long-lived `next dev`) that imported `@prisma/client` before the schema
+change — Node doesn't hot-reload `node_modules` internals, so that process's in-memory client
+genuinely won't know about new models until it restarts, even though the files on disk and a
+freshly-started process are fine. If you don't own that running process, don't kill it — verify
+against a disposable `next start` (after `npm run build`) on a different port instead.
 
 **Why JWT sessions instead of database sessions.** Same reasoning — one fewer table, one fewer
 round-trip per request, acceptable given the app's scale. The tradeoff (session data can go
