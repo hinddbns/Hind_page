@@ -23,6 +23,10 @@ These aren't bugs — the app works correctly — but the content/config is stil
   "الشباب والمراهقين" (youth and teens) and a new hero photo of a confident young man was
   requested** — once supplied, replace `site.adosPhoto` the same way `ados.png` replaced the
   original placeholder.
+- **Real email sending domain**: no production domain has been chosen yet, so `EMAIL_FROM` in
+  `.env`/Vercel is unset and outbound mail (password reset, enrollment notifications) falls back
+  to Resend's test sender — see § Email transport below. Once a domain exists, verify it in
+  Resend and set `EMAIL_FROM`/`RESEND_API_KEY`.
 
 ## Infrastructure for serverless (Vercel) deployment
 
@@ -57,17 +61,25 @@ These aren't bugs — the app works correctly — but the content/config is stil
   files — fine at their current tiny placeholder size (~28KB each); revisit if real demo videos
   are large, since they'd bloat the git repo and the deployed bundle.
 
-## Email transport — mechanism done, provider not configured
+## Email transport — infrastructure and templates done, production sender not configured
 
 Password reset (forgot/reset password pages + `PasswordResetToken` model, single-use, 1-hour
 expiry, no email-enumeration) and enrollment-approved/rejected notifications (V2 Phase 8,
-2026-08-23) are both fully implemented and route through one shared function,
-`sendEmail()` in `src/lib/email.ts`. That function is the **only** thing not finished: with no
-`RESEND_API_KEY` set, it logs the message instead of sending it (visible in server logs), so the
-rest of the app was built and tested against a stable interface. To go live, set `RESEND_API_KEY`
-(and optionally `EMAIL_FROM`) — no other code changes needed. This isn't a placeholder that fakes
-success; the app just doesn't claim to have sent anything it hasn't (the "check your email"
-copy on the forgot-password page reads the same either way, since the no-enumeration requirement
+2026-08-23) are both fully implemented and route through one shared function, `sendEmail()` in
+`src/lib/email.ts`, via Resend. Branded HTML + plain-text templates for all three emails live in
+`src/lib/emailTemplates.ts` (shared RTL layout, terracotta/cream brand colors, escaped
+user-supplied content). The sender is entirely environment-driven (2026-08-24) — `EMAIL_FROM`
+(a full `"Name <address@domain>"` string), not hardcoded anywhere. With no `EMAIL_FROM` set, it
+falls back to Resend's own test sender (`onboarding@resend.dev`, sends real mail without a
+verified domain) so dev/staging can be exercised without a domain decision. With no
+`RESEND_API_KEY` set at all, it logs the message instead of sending it (visible in server logs),
+so the rest of the app was built and tested against a stable interface either way. **What's
+still open**: the real production `EMAIL_FROM` (a verified sending domain) — blocked on the same
+"real domain not chosen yet" gap as the rest of the launch content, see § Blocking a real public
+launch. Once a domain exists: verify it in Resend, set `EMAIL_FROM` and `RESEND_API_KEY` in
+Vercel's environment variables — no code changes needed. This isn't a placeholder that fakes
+success; the app just doesn't claim to have sent anything it hasn't (the "check your email" copy
+on the forgot-password page reads the same either way, since the no-enumeration requirement
 means it can't say more than that regardless of transport).
 
 ## Known gaps worth closing (not launch-blocking, but real)

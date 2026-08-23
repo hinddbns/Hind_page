@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { MessageCircle } from "lucide-react";
 import { useLocale } from "@/i18n/LocaleProvider";
 
 type Message = {
@@ -67,7 +68,10 @@ export default function ChatPanel({
     <div className="flex h-[60vh] flex-col rounded-2xl border border-primary-light/50 bg-white">
       <div className="flex-1 overflow-y-auto p-5">
         {loaded && messages.length === 0 && (
-          <p className="text-center text-sm text-ink-soft">{t.messages.empty}</p>
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+            <MessageCircle aria-hidden className="h-8 w-8 text-primary-light" strokeWidth={1.5} />
+            <p className="text-sm text-ink-soft">{t.messages.empty}</p>
+          </div>
         )}
         <div role="log" aria-live="polite" className="flex flex-col gap-3">
           {messages.map((m) => {

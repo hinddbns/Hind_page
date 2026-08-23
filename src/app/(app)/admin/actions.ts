@@ -18,6 +18,7 @@ import {
 import { matchesFileSignature } from "@/lib/fileSignature";
 import { recordAuditLog } from "@/lib/auditLog";
 import { sendEmail } from "@/lib/email";
+import { enrollmentApprovedEmail, enrollmentRejectedEmail } from "@/lib/emailTemplates";
 
 export type ActionState = { error?: string; ok?: boolean };
 
@@ -77,16 +78,12 @@ async function notifyEnrollmentStatus(enrollmentId: string, status: "APPROVED" |
   });
   if (!enrollment) return;
 
-  const subject =
+  const emailContent =
     status === "APPROVED"
-      ? `تم تفعيل وصولك إلى دورة "${enrollment.course.title}"`
-      : `بخصوص طلب الاشتراك في دورة "${enrollment.course.title}"`;
-  const text =
-    status === "APPROVED"
-      ? `مرحبًا ${enrollment.user.name}،\n\nتمت الموافقة على طلبك، ويمكنك الآن الوصول إلى محتوى الدورة من مساحتك الشخصية.`
-      : `مرحبًا ${enrollment.user.name}،\n\nللأسف تعذّر تفعيل وصولك إلى هذه الدورة حاليًا. يمكنك مراجعة إيصال الدفع وإعادة المحاولة من مساحتك الشخصية.`;
+      ? enrollmentApprovedEmail({ name: enrollment.user.name, courseTitle: enrollment.course.title })
+      : enrollmentRejectedEmail({ name: enrollment.user.name, courseTitle: enrollment.course.title });
 
-  await sendEmail({ to: enrollment.user.email, subject, text });
+  await sendEmail({ to: enrollment.user.email, ...emailContent });
 }
 
 export async function reviewEnrollment(

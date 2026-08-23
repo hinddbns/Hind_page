@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { randomBytes, createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
+import { passwordResetEmail } from "@/lib/emailTemplates";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
 const TOKEN_TTL_MS = 60 * 60 * 1000;
@@ -27,11 +28,7 @@ export async function POST(req: Request) {
       });
 
       const resetUrl = `${new URL(req.url).origin}/reinitialiser-mot-de-passe?token=${rawToken}`;
-      await sendEmail({
-        to: user.email,
-        subject: "استعادة كلمة المرور",
-        text: `مرحبًا ${user.name}،\n\nاضغط على الرابط التالي لتعيين كلمة مرور جديدة (صالح لمدة ساعة واحدة):\n${resetUrl}\n\nإذا لم تطلب هذا، يمكنك تجاهل هذه الرسالة.`,
-      });
+      await sendEmail({ to: user.email, ...passwordResetEmail({ name: user.name, resetUrl }) });
     }
   }
 
