@@ -13,7 +13,7 @@ export const site = {
   coachWorkPhoto: "/coach-work.jpg",
   coachWorkPhotoWidth: 1600,
   coachWorkPhotoHeight: 2400,
-  motherTeenPhoto: "/maman.png",
+  motherTeenPhoto: "/parents-mothers-hero.jpg",
   motherTeenPhotoWidth: 1365,
   motherTeenPhotoHeight: 768,
   adosPhoto: "/ados-hero.jpg",
