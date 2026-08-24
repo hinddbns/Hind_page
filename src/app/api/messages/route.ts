@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/i18n/server";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { requireVerifiedSession } from "@/lib/authGuard";
 
 export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   const { searchParams } = new URL(req.url);
   const queryUserId = searchParams.get("userId");
@@ -44,10 +42,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   const allowed = await checkRateLimit(`message:${session.user.id}`, 30, 60);
   if (!allowed) {

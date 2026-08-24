@@ -24,8 +24,8 @@ admin :
   encore rattaché).
 - Chaque utilisateur appartient à **un seul espace**, dérivé de son `profileCategory` à
   l'inscription (`MOTHER` / `TEACHER` / `OTHER` → espace parents-enseignants, `ADOLESCENT` →
-  espace ados) via `src/lib/workspace.ts`. Ce `workspace` est porté par la session NextAuth
-  (`session.user.workspace`) et détermine :
+  espace ados) via `src/lib/workspace.ts`. Ce `workspace` est calculé à chaque requête par
+  `getAppUser()` (`src/lib/session.ts`) et détermine :
   - la variante de liens réseaux sociaux affichée (`src/components/SocialLinks.tsx` : Instagram +
     Facebook pour les parents/enseignants, + TikTok en plus pour les ados —
     `src/lib/site.ts#social`) ;
@@ -189,5 +189,5 @@ sarcelle (calme, section "qui est Hind"), et doré/accent (espace ados).
 
 ## Stack
 
-Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Prisma · SQLite · NextAuth v5
-(Credentials) · interface arabe (RTL).
+Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Prisma · Postgres (Supabase) ·
+Supabase Auth · interface arabe (RTL).

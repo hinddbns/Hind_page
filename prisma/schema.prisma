@@ -54,19 +54,15 @@ model User {
   phone                  String?
   dateOfBirth            DateTime?
   profileCategory        ProfileCategory?
-  passwordHash           String
   role                   Role             @default(USER)
   createdAt              DateTime         @default(now())
   messagesReadByUserAt   DateTime?
   messagesReadByAdminAt  DateTime?
-  failedLoginAttempts    Int              @default(0)
-  lockedUntil            DateTime?
   enrollments            Enrollment[]
   messages               Message[]
   questionAnswers        QuestionAnswer[]
   lessonProgress         LessonProgress[]
   auditLogs              AuditLog[]
-  passwordResetTokens    PasswordResetToken[]
 }
 
 model Course {
@@ -197,16 +193,6 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
-}
-
-model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
 }
 
 model RateLimitHit {

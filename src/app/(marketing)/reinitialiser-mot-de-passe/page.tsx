@@ -1,23 +1,51 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { site } from "@/lib/site";
 import PasswordInput from "@/components/PasswordInput";
+import { createClient } from "@/lib/supabase/client";
 
 function ResetPasswordForm() {
   const { t } = useLocale();
   const params = useSearchParams();
-  const token = params.get("token") ?? "";
 
+  const [ready, setReady] = useState(false);
+  const [invalid, setInvalid] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    // Supabase's reset-password email link establishes the recovery session
+    // via one of a few possible URL shapes depending on project settings —
+    // handle each so this page works regardless of exactly which one fires.
+    async function establishRecoverySession() {
+      const supabase = createClient();
+      const tokenHash = params.get("token_hash");
+      const code = params.get("code");
+
+      if (tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+        setInvalid(!!verifyError);
+      } else if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        setInvalid(!!exchangeError);
+      } else {
+        // No query param — either @supabase/ssr already parsed a hash-based
+        // token on client init, or the link was invalid/already used.
+        const { data } = await supabase.auth.getSession();
+        setInvalid(!data.session);
+      }
+      setReady(true);
+    }
+    establishRecoverySession();
+  }, [params]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,23 +61,21 @@ function ResetPasswordForm() {
     }
 
     setLoading(true);
-    const res = await fetch("/api/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, newPassword }),
-    });
+    const supabase = createClient();
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error === "too_short" ? t.auth.errorPasswordTooShort : t.auth.resetInvalidToken);
+    if (updateError) {
+      setError(t.auth.resetInvalidToken);
       return;
     }
 
     setSuccess(true);
   }
 
-  if (!token) {
+  if (!ready) return null;
+
+  if (invalid) {
     return (
       <div className="mt-8 text-center">
         <p className="text-sm text-danger">{t.auth.resetInvalidToken}</p>

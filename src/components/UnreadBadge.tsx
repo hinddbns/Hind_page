@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { interpolate } from "@/i18n/config";
 
-export default function UnreadBadge() {
-  const { data: session } = useSession();
+export default function UnreadBadge({ enabled = true }: { enabled?: boolean }) {
   const { t } = useLocale();
   const [count, setCount] = useState(0);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (!enabled) return;
 
     let active = true;
     async function poll() {
@@ -27,7 +25,7 @@ export default function UnreadBadge() {
       active = false;
       clearInterval(interval);
     };
-  }, [session?.user]);
+  }, [enabled]);
 
   if (!count) return null;
 

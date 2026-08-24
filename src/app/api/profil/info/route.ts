@@ -1,14 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireVerifiedSession } from "@/lib/authGuard";
 
 const VALID_CATEGORIES = new Set(["MOTHER", "TEACHER", "ADOLESCENT", "OTHER"]);
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   const body = await req.json().catch(() => null);
   if (!body) {

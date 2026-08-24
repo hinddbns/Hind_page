@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import path from "node:path";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { downloadReceipt } from "@/lib/receiptStorage";
+import { requireVerifiedSession } from "@/lib/authGuard";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -15,10 +15,8 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ enrollmentId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   const { enrollmentId } = await params;
   const enrollment = await prisma.enrollment.findUnique({ where: { id: enrollmentId } });

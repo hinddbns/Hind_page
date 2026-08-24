@@ -53,29 +53,7 @@ function renderLayout(title: string, bodyHtml: string) {
 </html>`;
 }
 
-function button(href: string, label: string) {
-  return `<p style="margin:24px 0; text-align:center;">
-    <a href="${href}" style="display:inline-block; background-color:${COLORS.primary}; color:${COLORS.white}; text-decoration:none; padding:12px 28px; border-radius:999px; font-weight:600; font-size:14px;">${escapeHtml(label)}</a>
-  </p>`;
-}
-
 export type EmailContent = { subject: string; html: string; text: string };
-
-export function passwordResetEmail({ name, resetUrl }: { name: string; resetUrl: string }): EmailContent {
-  const subject = "استعادة كلمة المرور";
-  const safeName = escapeHtml(name);
-
-  const bodyHtml = `
-    <p style="margin:0 0 16px;">مرحبًا ${safeName}،</p>
-    <p style="margin:0;">اضغطي على الزر التالي لتعيين كلمة مرور جديدة. الرابط صالح لمدة ساعة واحدة فقط.</p>
-    ${button(resetUrl, "تعيين كلمة مرور جديدة")}
-    <p style="margin:0; color:${COLORS.inkSoft}; font-size:13px;">إذا لم تطلبي هذا، يمكنك تجاهل هذه الرسالة بأمان.</p>
-  `;
-
-  const text = `مرحبًا ${name}،\n\nاضغطي على الرابط التالي لتعيين كلمة مرور جديدة (صالح لمدة ساعة واحدة):\n${resetUrl}\n\nإذا لم تطلبي هذا، يمكنك تجاهل هذه الرسالة.`;
-
-  return { subject, html: renderLayout(subject, bodyHtml), text };
-}
 
 export function enrollmentApprovedEmail({ name, courseTitle }: { name: string; courseTitle: string }): EmailContent {
   const subject = `تم تفعيل وصولك إلى دورة "${courseTitle}"`;

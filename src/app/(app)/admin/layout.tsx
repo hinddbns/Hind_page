@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { getT } from "@/i18n/server";
 import AdminSidebarNav from "@/components/admin/AdminSidebarNav";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  if (!session?.user) redirect("/connexion?next=/admin");
-  if (session.user.role !== "ADMIN") redirect("/tableau-de-bord");
+  const user = await getAppUser();
+  if (!user) redirect("/connexion?next=/admin");
+  if (user.role !== "ADMIN") redirect("/tableau-de-bord");
 
   const { t } = await getT();
 

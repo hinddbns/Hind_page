@@ -58,9 +58,8 @@ workspace has zero real courses yet).
 | Language | **TypeScript**, strict mode |
 | Styling | **Tailwind CSS v4** (`@theme inline` tokens in `globals.css`, no config file) |
 | Database | **Postgres (Supabase)** via **Prisma 6** — pooled `DATABASE_URL` for runtime, session-pooler `DIRECT_URL` for migrations |
-| Auth | **NextAuth v5 (beta)**, Credentials provider, JWT sessions (no DB session table) |
+| Auth | **Supabase Auth** (`@supabase/ssr`), email+password with a 6-digit OTP email-confirmation gate. Credentials, verification, and password reset are owned entirely by Supabase (`auth.users`), not Prisma — see `ARCHITECTURE.md` § Auth & session. |
 | Icons | **lucide-react**, exclusively |
-| Password hashing | **bcryptjs** |
 | Fonts | **Tajawal** (Google Font, via `next/font/google`) — the only typeface in the app |
 | Dev seed | `tsx prisma/seed.ts` (creates 1 admin + 3 example courses + demo videos) |
 | Linting | **ESLint 9**, `eslint-config-next` |
@@ -99,8 +98,9 @@ Full detail in [`ARCHITECTURE.md`](ARCHITECTURE.md). Summary:
   was a real (now-closed) stored-XSS risk. See `ARCHITECTURE.md` § File uploads & serving.
 - **No React Context for i18n** — `useLocale()`/`getT()` just return the single imported Arabic
   dictionary directly. There is no locale switching today.
-- **State management**: none beyond `next-auth`'s `SessionProvider` and ordinary component-local
-  `useState`. No Redux/Zustand/Jotai — not missing, just genuinely not needed at this app's scale.
+- **State management**: none beyond ordinary component-local `useState`; session identity is read
+  fresh server-side via `getAppUser()` on every request, not held in client-side global state. No
+  Redux/Zustand/Jotai — not missing, just genuinely not needed at this app's scale.
 - **Styling system**: Tailwind utility classes only, tokens defined in `globals.css`. See
   `DESIGN_SYSTEM.md`.
 - **Assets**: `public/logo.jpg` (brand mark, used everywhere), `public/uploads/demos/` (public
@@ -122,8 +122,11 @@ Naming conventions for why.
 | `/` | `page.tsx` | **The hub.** Neutral, audience-agnostic landing page. Opens with a personal "hook" statement + scroll cue, then: expanded about-Hind (photo, role, message, real stats), Mission & Vision, full credentials list, track record, values, services, then a "choose your space" section linking to `/ados` and `/parents-enseignants`, then generic how-it-works/testimonials/final-CTA. | Fully built. |
 | `/ados` | `ados/page.tsx` | Adolescent-workspace landing page (gold/`accent`-toned): hero photo, mission statement + "why this space" story + 3 goals, 3 "why this space" cards, how-it-works, a course grid filtered to `audience: ADOLESCENT`, 2 real testimonials, final CTA. | Fully built; course grid is empty (honest "coming soon" state) since no adolescent courses exist yet. |
 | `/parents-enseignants` | `parents-enseignants/page.tsx` | Parents/teachers-workspace landing page (olive-toned): hero photo, mission statement + "why this space" story + 3 goals, "pour qui" (mothers / teachers / general self-development) cards, how-it-works, course grid filtered to `audience: PARENT_TEACHER`, 3 real testimonials, final CTA. | Fully built and populated — this is where all 3 seeded example courses currently live. |
-| `/connexion` | `connexion/page.tsx` | Login. Client component, `signIn("credentials", { redirect: false })`, then `router.push`. Shows a generic error for any failure (wrong password *or* locked-out account — deliberately not distinguished, see `ARCHITECTURE.md` § Auth). Reads an optional `?workspace=ADOLESCENT\|PARENT_TEACHER` search param (via `src/lib/authTheme.ts`) to show a gold/olive space badge and a "welcome back to your space" subtitle instead of the generic one — purely cosmetic continuity, doesn't affect auth logic. | Fully built. |
-| `/inscription` | `inscription/page.tsx` | Sign-up. Collects name/email/phone(optional)/date-of-birth(optional)/profile-category(mother, teacher, adolescent, other)/password+confirm. Client-side mismatch check before hitting `/api/inscription`, then auto-signs-in on success. Same `?workspace=` param as `/connexion`: for `ADOLESCENT` it pre-selects the "مراهق(ة)" category (still changeable) and applies the gold theme; for `PARENT_TEACHER` it applies the olive theme without pre-selecting a category (ambiguous between mother/teacher/other). Every entry point on `/ados` and `/parents-enseignants` (hero CTA, final CTA, `Nav`, `Footer`) links here with the matching `workspace` value already set; links from the neutral hub stay bare. | Fully built. |
+| `/connexion` | `connexion/page.tsx` | Login. Client component, `supabase.auth.signInWithPassword(...)`, then `router.push`. Shows a generic error for a wrong password; an unconfirmed account routes straight to `/verification-email` instead. Reads an optional `?workspace=ADOLESCENT\|PARENT_TEACHER` search param (via `src/lib/authTheme.ts`) to show a gold/olive space badge and a "welcome back to your space" subtitle instead of the generic one — purely cosmetic continuity, doesn't affect auth logic. | Fully built. |
+| `/inscription` | `inscription/page.tsx` | Sign-up. Collects name/email/phone(optional)/date-of-birth(optional)/profile-category(mother, teacher, adolescent, other)/password+confirm. Client-side mismatch check, then `supabase.auth.signUp(...)` (form fields carried in `user_metadata`), then routes to `/verification-email` — no session exists yet and no Prisma row is created until the OTP is confirmed. Same `?workspace=` param as `/connexion`: for `ADOLESCENT` it pre-selects the "مراهق(ة)" category (still changeable) and applies the gold theme; for `PARENT_TEACHER` it applies the olive theme without pre-selecting a category (ambiguous between mother/teacher/other). Every entry point on `/ados` and `/parents-enseignants` (hero CTA, final CTA, `Nav`, `Footer`) links here with the matching `workspace` value already set; links from the neutral hub stay bare. | Fully built. |
+| `/verification-email` | `verification-email/page.tsx` | 6-digit OTP entry right after sign-up (or after an unconfirmed login attempt). Calls `supabase.auth.verifyOtp(...)`, then `POST /api/auth/create-profile` to create the Prisma profile row, then routes to `/tableau-de-bord`. Countdown + resend with cooldown. | Fully built. |
+| `/mot-de-passe-oublie` | `mot-de-passe-oublie/page.tsx` | Password-reset request: `supabase.auth.resetPasswordForEmail(...)`. Always shows the same "check your email" success state regardless of whether the address has an account, to avoid enumeration. | Fully built. |
+| `/reinitialiser-mot-de-passe` | `reinitialiser-mot-de-passe/page.tsx` | Password-reset confirmation, reached from the emailed link. Establishes the recovery session (handles a few possible URL shapes Supabase may use), then `supabase.auth.updateUser({ password })`. | Fully built. |
 
 ### Shared (`cours/`, not in a route group)
 
@@ -252,8 +255,14 @@ Full detail in [`DESIGN_SYSTEM.md`](DESIGN_SYSTEM.md). Summary:
   all now workspace-aware (filters, badges, and a per-workspace stats breakdown on the overview).
 - Account system: sign-up with profile category, login, profile editing, password change —
   every password field has a confirm step where relevant and a single-click show/hide toggle.
-- Security hardening: login lockout after repeated failures, real file-signature validation on
-  uploads (not just client-declared MIME type), `nosniff` headers on file-serving routes.
+  Signup now gates on email verification: a 6-digit OTP (Supabase Auth's own confirmation email,
+  routed through Resend as the project's SMTP provider) must be entered at `/verification-email`
+  before the account gets real platform access — see "Auth & session" in `ARCHITECTURE.md` for
+  the full mechanism.
+- Security hardening: credentials, verification, and password reset are owned entirely by
+  Supabase Auth (not this app's code) as of the 2026-08 migration off NextAuth — see
+  `ARCHITECTURE.md` § Auth & session. Plus: real file-signature validation on uploads (not just
+  client-declared MIME type), `nosniff` headers on file-serving routes.
 - Accessibility: every form field in the app has a properly associated `<label>` (`htmlFor`/`id`
   or native wrapping), verified across all ~10 forms in the codebase.
 - Branding: logo integrated into every nav/footer/favicon/auth-page touchpoint, custom branded
@@ -357,10 +366,13 @@ and could enable a stored-XSS-via-upload attack against the admin (who views use
 receipts). `lib/fileSignature.ts` closes this by checking actual magic bytes, applied to both the
 untrusted (receipts) and trusted (admin video) upload paths for consistency.
 
-**Why login lockout was added.** Same audit pass — no brute-force protection existed on the
-login endpoint. Added a straightforward 5-attempts/15-minutes lockout tracked on the `User` row
-itself (no separate rate-limit infrastructure), matching the app's overall infrastructure-light
-philosophy.
+**Why the NextAuth-era login lockout was retired, not ported.** The original audit pass added a
+straightforward 5-attempts/15-minutes lockout tracked on the `User` row. The 2026-08 move to
+Supabase Auth retired it rather than porting it: Supabase now owns the login endpoint entirely
+(the app has no server-side login handler to attach lockout logic to — login is a direct client
+call to `supabase.auth.signInWithPassword`), and Supabase applies its own auth-endpoint rate
+limiting. Re-implementing a parallel app-level lockout on top of that would be redundant, not
+missing protection.
 
 **Why routes are French and content is Arabic.** This was already the established convention
 before any of the recent work (`/connexion`, `/tableau-de-bord`, etc.) and was deliberately
@@ -380,10 +392,9 @@ metadata correctness, and direct-linkability for no benefit.
 
 - **Legacy `/cours` flat catalog** still exists, unlinked from the public nav but still
   reachable and functional. Not broken, just an unresolved "retire or keep" decision.
-- **JWT session staleness**: role/category changes don't affect an already-logged-in user's
-  session until they log in again — no session-invalidation mechanism exists.
-- **No rate limiting** on sign-up, receipt upload, or messaging endpoints — only login has
-  lockout protection. Low risk at current scale, worth revisiting if abuse appears.
+- **No rate limiting** on sign-up, receipt upload, or messaging endpoints from this app's own
+  code (login itself is rate-limited by Supabase Auth, outside the app). Low risk at current
+  scale, worth revisiting if abuse appears.
 - **No automated tests** — every verification has been manual (see `CONTRIBUTING.md`). This is
   the single highest-leverage gap if the codebase keeps growing.
 - **Toggle-button-group styling is copy-pasted** in ~4 places (profile-category pickers, admin

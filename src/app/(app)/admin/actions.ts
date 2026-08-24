@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import type { QuestionType } from "@prisma/client";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import {
   ALLOWED_VIDEO_TYPES,
@@ -25,11 +25,11 @@ export type ActionState = { error?: string; ok?: boolean };
 class AdminActionError extends Error {}
 
 async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  const user = await getAppUser();
+  if (!user || user.role !== "ADMIN") {
     throw new AdminActionError("غير مصرح به.");
   }
-  return session;
+  return { user };
 }
 
 function readString(formData: FormData, key: string) {

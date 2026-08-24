@@ -63,12 +63,14 @@ These aren't bugs — the app works correctly — but the content/config is stil
 
 ## Email transport — infrastructure and templates done, production sender not configured
 
-Password reset (forgot/reset password pages + `PasswordResetToken` model, single-use, 1-hour
-expiry, no email-enumeration) and enrollment-approved/rejected notifications (V2 Phase 8,
-2026-08-23) are both fully implemented and route through one shared function, `sendEmail()` in
-`src/lib/email.ts`, via Resend. Branded HTML + plain-text templates for all three emails live in
-`src/lib/emailTemplates.ts` (shared RTL layout, terracotta/cream brand colors, escaped
-user-supplied content). The sender is entirely environment-driven (2026-08-24) — `EMAIL_FROM`
+Password reset and sign-up OTP confirmation are both owned by Supabase Auth as of the 2026-08
+migration off NextAuth — Supabase sends those emails itself (through Resend as the project's
+configured SMTP provider), not through this app's `sendEmail()`/`emailTemplates.ts`. What this
+app's own email pipeline still sends: enrollment-approved/rejected notifications (V2 Phase 8,
+2026-08-23), routed through one shared function, `sendEmail()` in `src/lib/email.ts`, via Resend.
+Their branded HTML + plain-text templates live in `src/lib/emailTemplates.ts` (shared RTL layout,
+terracotta/cream brand colors, escaped user-supplied content). The sender is entirely
+environment-driven (2026-08-24) — `EMAIL_FROM`
 (a full `"Name <address@domain>"` string), not hardcoded anywhere. With no `EMAIL_FROM` set, it
 falls back to Resend's own test sender (`onboarding@resend.dev`, sends real mail without a
 verified domain) so dev/staging can be exercised without a domain decision. With no

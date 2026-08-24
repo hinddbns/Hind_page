@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,6 +8,7 @@ import { useLocale } from "@/i18n/LocaleProvider";
 import { site } from "@/lib/site";
 import { getAuthTheme, parseAuthWorkspace, authQueryString } from "@/lib/authTheme";
 import PasswordInput from "@/components/PasswordInput";
+import { createClient } from "@/lib/supabase/client";
 
 function ConnexionForm() {
   const router = useRouter();
@@ -35,15 +35,20 @@ function ConnexionForm() {
     setError(null);
     setLoading(true);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    const supabase = createClient();
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
 
     setLoading(false);
 
-    if (res?.error) {
+    if (loginError) {
+      // An unverified account can't establish a session at all under
+      // Supabase Auth (unlike the old NextAuth flow, which deliberately let
+      // it sign in gated) — route straight to OTP entry instead of showing
+      // a generic login error.
+      if (loginError.code === "email_not_confirmed") {
+        router.push(`/verification-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
       setError(t.auth.loginError);
       return;
     }

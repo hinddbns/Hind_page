@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import {
   getApprovedEnrollment,
@@ -7,6 +6,7 @@ import {
   isQuestionnaireComplete,
 } from "@/lib/lessonAccess";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { requireVerifiedSession } from "@/lib/authGuard";
 
 // A lesson with no locally-hosted video (external link or text-only) has no
 // timeline we can validate, so it's completed by explicit student action
@@ -27,10 +27,8 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ lessonId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   // Admin previews aren't real student progress — nothing to record.
   if (session.user.role === "ADMIN") {

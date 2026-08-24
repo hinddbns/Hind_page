@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { getT, interpolate } from "@/i18n/server";
 import { getCourseProgressSummary } from "@/lib/lessonAccess";
 
 export default async function CoursesPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/connexion?next=/tableau-de-bord/cours");
-  if (session.user.role === "ADMIN") redirect("/admin");
+  const user = await getAppUser();
+  if (!user) redirect("/connexion?next=/tableau-de-bord/cours");
+  if (user.role === "ADMIN") redirect("/admin");
 
   const { t } = await getT();
 
@@ -25,7 +25,7 @@ export default async function CoursesPage() {
   };
 
   const enrollments = await prisma.enrollment.findMany({
-    where: { userId: session.user.id },
+    where: { userId: user.id },
     include: { course: true },
     orderBy: { createdAt: "desc" },
   });
@@ -34,11 +34,11 @@ export default async function CoursesPage() {
     await Promise.all(
       enrollments
         .filter((e) => e.status === "APPROVED")
-        .map(async (e) => [e.courseId, await getCourseProgressSummary(e.courseId, session.user.id)] as const)
+        .map(async (e) => [e.courseId, await getCourseProgressSummary(e.courseId, user.id)] as const)
     )
   );
 
-  const audience = session.user.workspace === "ADOLESCENT" ? "ADOLESCENT" : "PARENT_TEACHER";
+  const audience = user.workspace === "ADOLESCENT" ? "ADOLESCENT" : "PARENT_TEACHER";
   const availableCourses = await prisma.course.findMany({
     where: {
       published: true,

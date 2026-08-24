@@ -1,13 +1,12 @@
 import Image from "next/image";
-import { auth } from "@/auth";
 import { getT } from "@/i18n/server";
 import { site } from "@/lib/site";
+import type { AppUser } from "@/lib/session";
 import SocialLinks from "./SocialLinks";
 
-export default async function AppFooter() {
+export default async function AppFooter({ user }: { user: AppUser | null }) {
   const { t } = await getT();
-  const session = await auth();
-  const variant = session?.user.workspace === "ADOLESCENT" ? "ados" : "parents";
+  const variant = user?.workspace === "ADOLESCENT" ? "ados" : "parents";
 
   return (
     <footer className="mt-auto border-t border-secondary/25 bg-app-tint px-6 py-5">

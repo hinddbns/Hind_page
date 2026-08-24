@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CheckCircle2, Lock, PartyPopper, PlayCircle } from "lucide-react";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/i18n/server";
 import { interpolate } from "@/i18n/config";
@@ -14,8 +14,8 @@ export default async function CourseOverviewPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/connexion");
+  const user = await getAppUser();
+  if (!user) redirect("/connexion");
 
   const { slug } = await params;
   const { t } = await getT();
@@ -23,8 +23,8 @@ export default async function CourseOverviewPage({
   const course = await getStudentCourse(slug);
   if (!course) notFound();
 
-  const isAdmin = session.user.role === "ADMIN";
-  const enrollment = isAdmin ? null : await getApprovedEnrollment(session.user.id, course.id);
+  const isAdmin = user.role === "ADMIN";
+  const enrollment = isAdmin ? null : await getApprovedEnrollment(user.id, course.id);
 
   if (!isAdmin && enrollment?.status !== "APPROVED") {
     redirect(`/cours/${slug}`);
@@ -34,7 +34,7 @@ export default async function CourseOverviewPage({
 
   if (needsQuestionnaire) {
     const existingAnswers = await prisma.questionAnswer.findMany({
-      where: { userId: session.user.id, courseId: course.id },
+      where: { userId: user.id, courseId: course.id },
     });
 
     if (existingAnswers.length < course.questions.length) {
@@ -80,7 +80,7 @@ export default async function CourseOverviewPage({
 
   const lessonsWithAccess: (typeof course.lessons[number] & { state: LessonAccessState })[] = isAdmin
     ? course.lessons.map((l) => ({ ...l, state: "current" as const }))
-    : await getLessonsWithAccess(course.id, session.user.id, course.lessons);
+    : await getLessonsWithAccess(course.id, user.id, course.lessons);
 
   const totalCount = course.lessons.length;
   const completedCount = lessonsWithAccess.filter((l) => l.state === "completed").length;

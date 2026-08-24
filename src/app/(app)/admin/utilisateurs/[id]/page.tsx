@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PartyPopper } from "lucide-react";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { getT, interpolate } from "@/i18n/server";
@@ -22,7 +22,7 @@ export default async function AdminUserDetailPage({
 }) {
   const { id } = await params;
   const { t } = await getT();
-  const session = await auth();
+  const currentUser = await getAppUser();
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -30,7 +30,7 @@ export default async function AdminUserDetailPage({
   });
   if (!user) notFound();
 
-  const isSelf = session?.user.id === user.id;
+  const isSelf = currentUser?.id === user.id;
 
   const progressByEnrollmentId = new Map(
     await Promise.all(

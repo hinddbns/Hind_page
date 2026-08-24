@@ -3,10 +3,10 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import path from "node:path";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { VIDEOS_DIR } from "@/lib/uploads";
 import { getApprovedEnrollment, getLessonsWithAccess, isQuestionnaireComplete } from "@/lib/lessonAccess";
+import { requireVerifiedSession } from "@/lib/authGuard";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".mp4": "video/mp4",
@@ -19,10 +19,8 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ lessonId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   const { lessonId } = await params;
   const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });

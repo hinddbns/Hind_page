@@ -4,20 +4,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
+import { signOutAndRedirect } from "@/lib/supabase/signOut";
+import type { AppUser } from "@/lib/session";
 import UnreadBadge from "./UnreadBadge";
 
-export default function AppNav() {
-  const { data: session } = useSession();
+export default function AppNav({ user }: { user: AppUser }) {
   const { t } = useLocale();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const isAdmin = session?.user.role === "ADMIN";
+  const isAdmin = user.role === "ADMIN";
   const homeHref = isAdmin ? "/admin" : "/tableau-de-bord";
-  const isAdosWorkspace = !isAdmin && session?.user.workspace === "ADOLESCENT";
-  const isParentWorkspace = !isAdmin && session?.user.workspace === "PARENT_TEACHER";
+  const isAdosWorkspace = !isAdmin && user.workspace === "ADOLESCENT";
+  const isParentWorkspace = !isAdmin && user.workspace === "PARENT_TEACHER";
   const coursesHref = "/tableau-de-bord/cours";
 
   const isDashboardActive = pathname === "/tableau-de-bord";
@@ -72,7 +72,7 @@ export default function AppNav() {
 
         <div className="hidden items-center gap-3 md:flex">
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => signOutAndRedirect("/")}
             className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-cream"
           >
             {t.nav.seDeconnecter}
@@ -114,7 +114,7 @@ export default function AppNav() {
               </Link>
             )}
             <Link href="/profil" onClick={() => setOpen(false)} aria-current={isProfilActive ? "page" : undefined} className={isProfilActive ? "text-primary" : ""}>{t.nav.monProfil}</Link>
-            <button className="text-start" onClick={() => signOut({ callbackUrl: "/" })}>
+            <button className="text-start" onClick={() => signOutAndRedirect("/")}>
               {t.nav.seDeconnecter}
             </button>
           </div>

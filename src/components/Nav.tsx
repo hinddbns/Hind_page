@@ -4,14 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { authQueryString, getAuthTheme } from "@/lib/authTheme";
+import { signOutAndRedirect } from "@/lib/supabase/signOut";
+import type { AppUser } from "@/lib/session";
 import UnreadBadge from "./UnreadBadge";
 
-export default function Nav() {
-  const { data: session, status } = useSession();
+export default function Nav({ user }: { user: AppUser | null }) {
   const { t } = useLocale();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -45,26 +45,33 @@ export default function Nav() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          {status === "loading" ? null : session ? (
+          {user && !user.verified ? (
+            <button
+              onClick={() => signOutAndRedirect("/")}
+              className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-cream"
+            >
+              {t.nav.seDeconnecter}
+            </button>
+          ) : user ? (
             <>
-              {session.user.role !== "ADMIN" && (
+              {user.role !== "ADMIN" && (
                 <Link href="/tableau-de-bord/messages" className="flex items-center text-sm font-medium text-ink-soft hover:text-primary">
                   {t.nav.messages}
                   <UnreadBadge />
                 </Link>
               )}
               <Link
-                href={session.user.role === "ADMIN" ? "/admin" : "/tableau-de-bord"}
+                href={user.role === "ADMIN" ? "/admin" : "/tableau-de-bord"}
                 className="flex items-center text-sm font-medium text-ink-soft hover:text-primary"
               >
-                {session.user.role === "ADMIN" ? t.nav.espaceAdmin : t.nav.monEspace}
-                {session.user.role === "ADMIN" && <UnreadBadge />}
+                {user.role === "ADMIN" ? t.nav.espaceAdmin : t.nav.monEspace}
+                {user.role === "ADMIN" && <UnreadBadge />}
               </Link>
               <Link href="/profil" className="text-sm font-medium text-ink-soft hover:text-primary">
                 {t.nav.monProfil}
               </Link>
               <button
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={() => signOutAndRedirect("/")}
                 className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-cream"
               >
                 {t.nav.seDeconnecter}
@@ -107,20 +114,24 @@ export default function Nav() {
             <Link href="/ados" onClick={() => setOpen(false)} className={pathname === "/ados" ? "text-accent" : ""}>{t.nav.espaceAdos}</Link>
             <Link href="/parents-enseignants" onClick={() => setOpen(false)} className={pathname === "/parents-enseignants" ? "text-olive" : ""}>{t.nav.espaceParents}</Link>
             <hr className={headerBorderClass} />
-            {session ? (
+            {user && !user.verified ? (
+              <button className="text-start" onClick={() => signOutAndRedirect("/")}>
+                {t.nav.seDeconnecter}
+              </button>
+            ) : user ? (
               <>
-                {session.user.role !== "ADMIN" && (
+                {user.role !== "ADMIN" && (
                   <Link href="/tableau-de-bord/messages" onClick={() => setOpen(false)} className="flex items-center">
                     {t.nav.messages}
                     <UnreadBadge />
                   </Link>
                 )}
-                <Link href={session.user.role === "ADMIN" ? "/admin" : "/tableau-de-bord"} onClick={() => setOpen(false)} className="flex items-center">
-                  {session.user.role === "ADMIN" ? t.nav.espaceAdmin : t.nav.monEspace}
-                  {session.user.role === "ADMIN" && <UnreadBadge />}
+                <Link href={user.role === "ADMIN" ? "/admin" : "/tableau-de-bord"} onClick={() => setOpen(false)} className="flex items-center">
+                  {user.role === "ADMIN" ? t.nav.espaceAdmin : t.nav.monEspace}
+                  {user.role === "ADMIN" && <UnreadBadge />}
                 </Link>
                 <Link href="/profil" onClick={() => setOpen(false)}>{t.nav.monProfil}</Link>
-                <button className="text-start" onClick={() => signOut({ callbackUrl: "/" })}>
+                <button className="text-start" onClick={() => signOutAndRedirect("/")}>
                   {t.nav.seDeconnecter}
                 </button>
               </>

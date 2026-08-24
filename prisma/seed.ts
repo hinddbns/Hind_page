@@ -1,25 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+// Admin accounts are no longer seeded here — Supabase Auth owns account
+// creation now, and a User row's id must match a real auth.users id. Sign up
+// normally through the app, then promote that account's role to ADMIN via
+// Prisma directly (or through another existing admin's promote action).
+
 async function main() {
-  const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@example.com";
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMoi123!";
-
-  const adminPasswordHash = await bcrypt.hash(adminPassword, 12);
-
-  await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {},
-    create: {
-      name: "Admin",
-      email: adminEmail,
-      passwordHash: adminPasswordHash,
-      role: "ADMIN",
-    },
-  });
-
   await prisma.settings.upsert({
     where: { id: "main" },
     update: {},
@@ -123,7 +111,7 @@ async function main() {
     }
   }
 
-  console.log("تم التهيئة. المسؤول:", adminEmail, "/ كلمة المرور:", adminPassword);
+  console.log("تم التهيئة.");
 }
 
 main()

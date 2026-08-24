@@ -19,7 +19,10 @@ structure, routing, data flow, and the mechanical "how it's wired together" deta
   networks without IPv6 egress, so the session pooler stands in for it — see
   `docs/PROJECT_CONTEXT.md` § Database for why, and the connectivity caveats around
   `prisma migrate` commands specifically.
-- **NextAuth v5 (beta)**, Credentials provider only, JWT session strategy.
+- **Supabase Auth** (`@supabase/ssr`), email+password with a 6-digit OTP email-confirmation gate.
+  `auth.users` (Supabase's own table) is the sole authority for credentials, email verification,
+  and password reset; the Prisma `User` table holds only application profile data (name, phone,
+  category, role) keyed on the same `id`. See "Auth & session" below.
 - **No test framework, no CI configured.** Verification today is manual: `tsc --noEmit`,
   `eslint`, `npm run build`, and manual browser click-through (see `CONTRIBUTING.md`).
 
@@ -38,7 +41,6 @@ src/
     not-found.tsx           Global 404 (branded)
     icon.jpg, apple-icon.jpg  Favicon / iOS icon (file-convention based, see app-icons.md)
     globals.css             Design tokens + Tailwind import (see DESIGN_SYSTEM.md)
-    providers.tsx           Wraps children in NextAuth's <SessionProvider>
 
     (marketing)/            Route group: public, unauthenticated-friendly pages
       layout.tsx             <Nav /> + <Footer />
@@ -47,6 +49,9 @@ src/
       parents-enseignants/page.tsx
       connexion/page.tsx
       inscription/page.tsx
+      mot-de-passe-oublie/page.tsx     Password-reset request (Supabase resetPasswordForEmail)
+      reinitialiser-mot-de-passe/page.tsx  Password-reset confirmation (Supabase updateUser)
+      verification-email/page.tsx     6-digit OTP entry, shown right after sign-up
 
     (app)/                  Route group: authenticated app shell
       layout.tsx              Redirects to /connexion if no session; <AppNav/> + <AppFooter/>
@@ -69,8 +74,9 @@ src/
 
     api/                    Route Handlers (REST-ish JSON/form endpoints, not used for admin
                              mutations — those are Server Actions in admin/actions.ts)
-      auth/[...nextauth]/     NextAuth handler
-      inscription/            Sign-up
+      auth/create-profile/    Creates the Prisma User row right after a Supabase signup is
+                               email-confirmed (sign-up itself is client-side, straight to
+                               Supabase Auth — see "Auth & session" below)
       enrollments/            Receipt upload (POST), withdraw (DELETE)
       questionnaire/          Submit onboarding answers
       messages/, messages/unread-count/
@@ -89,6 +95,15 @@ src/
     uploads.ts               Upload dir (videos only), allowed MIME sets, size limits, extensionForMime()
     fileSignature.ts         Magic-byte validation (matchesFileSignature) — see Security below
     receiptStorage.ts        Supabase Storage wrapper for receipts (upload/download/delete)
+    session.ts               getAppUser(): the Supabase-Auth equivalent of the old auth() — see
+                              "Auth & session" below
+    authGuard.ts             requireVerifiedSession(): the choke point every student-facing
+                              Route Handler calls instead of re-checking session + verification
+    supabase/
+      client.ts                Browser-side Supabase client (Auth calls only, never queries data)
+      server.ts                Server Component / Route Handler Supabase client
+      middleware.ts            updateSupabaseSession(): refreshes the session cookie, called by proxy.ts
+      signOut.ts                signOutAndRedirect(): full-page nav sign-out for client components
 
   i18n/
     dictionaries/ar.ts       ALL user-facing strings, one flat-ish nested object (see below)
@@ -97,10 +112,9 @@ src/
     server.ts                getT() — async server-side equivalent
     config.ts                interpolate(template, vars) — `{siteName}`-style placeholder substitution
 
-  auth.ts                  NextAuth config: Credentials provider, JWT callbacks, login lockout
   proxy.ts                 Next.js Proxy/Middleware: auth-gates /admin, /tableau-de-bord, /profil;
-                            redirects logged-in users away from /, /connexion, /inscription
-  types/next-auth.d.ts     Module augmentation: session.user.{id,role,workspace}
+                            redirects logged-in users away from /, /connexion, /inscription;
+                            redirects unverified sessions to /verification-email
 
 public/
   logo.jpg                 Brand logo (used in Nav, AppNav, Footer, AppFooter, auth pages, favicon)
@@ -121,11 +135,11 @@ Three parallel "shells", all under the Next.js **App Router**:
 1. **`(marketing)`** — public. Rendered via `Nav` (top bar with logo + `من نحن` / `مساحة الشباب
    والمراهقين` / `مساحة الأمهات والأستاذات` links) and `Footer`.
 2. **`(app)`** — authenticated. Rendered via `AppNav` (workspace-tinted accent bar) and
-   `AppFooter`. The layout itself calls `auth()` and `redirect()`s to `/connexion` if there's no
-   session — this is a **second, redundant layer of protection** on top of `proxy.ts`
+   `AppFooter`. The layout itself calls `getAppUser()` and `redirect()`s to `/connexion` if
+   there's no session — this is a **second, redundant layer of protection** on top of `proxy.ts`
    middleware, which is intentional defense-in-depth, not an oversight.
-3. **`cours/`** (no group, no parentheses) — shared. Its own `layout.tsx` calls `auth()` and
-   picks which nav/footer pair to render. This exists because `/cours/[slug]` (view a course,
+3. **`cours/`** (no group, no parentheses) — shared. Its own `layout.tsx` calls `getAppUser()`
+   and picks which nav/footer pair to render. This exists because `/cours/[slug]` (view a course,
    upload a receipt) needs to work identically for logged-out visitors deciding whether to sign
    up and logged-in users still in `PENDING` status.
 
@@ -142,31 +156,89 @@ Three parallel "shells", all under the Next.js **App Router**:
 workspace) still exists and still works, but is no longer linked from the public nav — visitors
 are steered to `/ados` or `/parents-enseignants` instead. It's kept because the logged-in
 `AppNav` "الدورات" link is workspace-aware (`/ados` or `/parents-enseignants` depending on
-`session.user.workspace`) but nothing currently prevents a stray link to `/cours` from someone
+`user.workspace` from `getAppUser()`) but nothing currently prevents a stray link to `/cours` from someone
 who bookmarked it; it's a safe no-op page, not dead code that breaks.
 
 ## Auth & session
 
-NextAuth v5, `Credentials` provider only (email + password, bcrypt-hashed), **JWT** session
-strategy (no `Session` table).
+**Supabase Auth** (`@supabase/ssr`) is the sole authority for credentials, email verification,
+and password reset — `auth.users` (Supabase's own table, not Prisma) stores the password hash,
+confirmation status, and OTP/reset tokens. The Prisma `User` table holds only application profile
+data (`name`, `phone`, `dateOfBirth`, `profileCategory`, `role`) and is keyed on the **same id**
+as the matching `auth.users` row (`User.id = authUser.id`, not a separate FK — Supabase's id is
+authoritative). There is no `passwordHash` column and no custom OTP/reset-token tables in Prisma
+any more; that's Supabase's job now. (This replaced an earlier NextAuth v5 + bcrypt + custom-OTP
+system in full — see `docs/PROJECT_CONTEXT.md` § Development Decisions if you find a reference to
+that older design anywhere and aren't sure whether it's still accurate.)
 
-- `authorize()` in `src/auth.ts`: checks `lockedUntil`, compares password, tracks
-  `failedLoginAttempts` (locks for 15 min after 5 failures, resets on success), and computes
-  `workspace` via `workspaceFromCategory()`.
-- `jwt` / `session` callbacks copy `id`, `role`, `workspace` from the DB user onto the token and
-  then onto `session.user`. **Important**: because this is JWT-based, `session.user.workspace`
-  and `.role` are snapshotted at login time — if an admin promotes/demotes a user or their
-  category changes, that user's own session won't reflect it until they log in again. There is
-  no session invalidation mechanism.
-- Module augmentation lives in `src/types/next-auth.d.ts` — extend this file (not a local
-  interface) whenever you add a field to `session.user`.
+- **Sign-up** (`/inscription`, client component): calls `supabase.auth.signUp({ email, password,
+  options: { data: { name, phone, dateOfBirth, profileCategory } } })` directly — no Prisma write
+  happens here. Supabase requires email confirmation, so `signUp()` grants **no session** while
+  confirmation is pending; the client then routes to `/verification-email?email=...`.
+- **Email verification (OTP gate)**: `/verification-email` calls
+  `supabase.auth.verifyOtp({ email, token, type: "signup" })` with the 6-digit code Supabase
+  emailed. Only once that succeeds does a session exist — at which point the page calls
+  `POST /api/auth/create-profile`, which reads the now-authenticated Supabase user (id, email via
+  `getUser()`, never trusted from the request body) and the `user_metadata` set at sign-up time,
+  and creates the one-time Prisma `User` row (`id` copied from `authUser.id`). This is the only
+  place a Prisma `User` row gets created — until this call succeeds, the person has a confirmed
+  Supabase identity but no application profile (see the "verified-but-no-profile" case in
+  `getAppUser()` below).
+- **Login** (`/connexion`): `supabase.auth.signInWithPassword({ email, password })`. An
+  `email_not_confirmed` error routes straight to `/verification-email` instead of showing a
+  generic error, since an unconfirmed account can't establish a session at all under Supabase
+  Auth (this differs from the old NextAuth flow, which used to let an unverified session through
+  and gate it downstream).
+- **Password reset**: `/mot-de-passe-oublie` calls `supabase.auth.resetPasswordForEmail(email, {
+  redirectTo: .../reinitialiser-mot-de-passe })`; `/reinitialiser-mot-de-passe` establishes the
+  recovery session from whichever URL shape Supabase used (`token_hash`, `code`, or an
+  already-parsed hash fragment — it tries all three) and then calls
+  `supabase.auth.updateUser({ password })`. Changing your password while logged in
+  (`PasswordChangeForm`, on `/profil`) re-authenticates with the current password first via
+  `signInWithPassword` before calling `updateUser`, since `updateUser()` alone only requires an
+  active session — without the re-auth check, anyone with a live (e.g. shared-device) session
+  could change the password without knowing it.
+- **Session reads**: `getAppUser()` (`src/lib/session.ts`) is the single choke point every Server
+  Component/Route Handler uses — the equivalent of the old `auth()`. It always calls
+  `supabase.auth.getUser()` (never `getSession()`), which revalidates identity against Supabase's
+  servers rather than trusting a client-modifiable cookie payload, then does **one indexed Prisma
+  lookup** (`select: { name, role, profileCategory }`) for the application data Supabase's own
+  session doesn't know about. Wrapped in React's `cache()` since a layout and its page routinely
+  both call it in the same request. If the Supabase user exists but has no matching Prisma row
+  yet (confirmed via `verifyOtp` but `create-profile` hasn't run — shouldn't happen in the normal
+  client flow, since the client always calls it immediately after `verifyOtp` succeeds, but is
+  reachable via direct API use), `getAppUser()` returns `null`, i.e. treated as logged out.
+  **Important**: because `getAppUser()` does a live lookup on every call rather than caching role/
+  workspace in a token, there's no JWT-staleness problem for role — a promotion/demotion is live
+  on the next request; the only thing cached across requests is Supabase's own session cookie
+  (refreshed by `updateSupabaseSession()` in `proxy.ts`, standard `@supabase/ssr` cookie-refresh
+  pattern), not application data.
+- **Sign-out**: `signOutAndRedirect()` (`src/lib/supabase/signOut.ts`) calls
+  `supabase.auth.signOut()` then does a full `window.location.href` navigation (not
+  `router.push`) so the entire Server Component tree re-fetches with the now-cleared session.
+- Every student-facing Route Handler (videos, enrollments, messages, progress, receipts,
+  questionnaire, profile) calls `requireVerifiedSession()` from `src/lib/authGuard.ts` instead of
+  checking `getAppUser()` directly — it 401s if there's no session, 403s
+  (`email_not_verified`) if `!user.verified`, matching the return shape the old NextAuth-era
+  version used so none of those call sites needed editing when this migrated.
+- The verification gate itself is enforced in layers: `src/proxy.ts` redirects an unauthenticated
+  request for `/admin`, `/tableau-de-bord`, or `/profil` to `/connexion`, and a
+  logged-in-but-unverified one to `/verification-email`; `src/app/(app)/layout.tsx` and
+  `admin/layout.tsx` re-check via `getAppUser()` server-side as defense-in-depth (Next 16's Proxy
+  is explicitly documented as an optimistic check, not a full authorization solution); and
+  `requireVerifiedSession()` covers the API surface. Note the "logged-in-but-unverified" proxy
+  branch is defensive rather than reachable through the normal sign-up flow today, since
+  `signUp()` grants no session until confirmed — it exists for any future path (OAuth, an admin-
+  created account, a Supabase project-setting change) that could produce a session before
+  confirmation.
 
 ## Data model (`prisma/schema.prisma`)
 
-`User` — `profileCategory` (`MOTHER | TEACHER | ADOLESCENT | OTHER`, nullable — many existing
-rows are `null`, see the NULL-handling pitfall below) drives which workspace a user belongs to.
-`role` (`USER | ADMIN`) is separate from category. `failedLoginAttempts` / `lockedUntil` back the
-login lockout.
+`User` — `id` matches the corresponding Supabase `auth.users.id` (see "Auth & session" above);
+this table holds application profile data only, not credentials. `profileCategory`
+(`MOTHER | TEACHER | ADOLESCENT | OTHER`, nullable — many existing rows are `null`, see the
+NULL-handling pitfall below) drives which workspace a user belongs to. `role` (`USER | ADMIN`) is
+separate from category.
 
 `Course` — `audience` (`ADOLESCENT | PARENT_TEACHER`, defaults to `PARENT_TEACHER`) is what
 splits the catalog between `/ados` and `/parents-enseignants`. `published` hides a course from
@@ -207,11 +279,6 @@ reject and user promote/demote. `targetId` is a plain string, not a real FK (it 
 different tables depending on `targetType`), so it doesn't cascade-delete — fine today since
 nothing in the app deletes users or enrollments outright. Rendered read-only on
 `admin/parametres`. Don't build this into a bigger analytics feature without being asked.
-
-`PasswordResetToken` — one row per issued reset link. Stores `sha256(rawToken)`, never the raw
-token; the raw token only ever exists in the emailed link and the client's URL. Single-use
-(`usedAt`) and time-limited (`expiresAt`, 1 hour). The forgot-password route always returns the
-same `{ok:true}` regardless of whether the email exists, to avoid account enumeration.
 
 `RateLimitHit` — backs `lib/rateLimit.ts`'s `checkRateLimit(key, max, windowSeconds)`, a small
 DB-backed sliding-window limiter (delete-then-count-then-insert against this table). No external

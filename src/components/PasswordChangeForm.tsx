@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useLocale } from "@/i18n/LocaleProvider";
 import PasswordInput from "@/components/PasswordInput";
+import { createClient } from "@/lib/supabase/client";
 
-export default function PasswordChangeForm() {
+export default function PasswordChangeForm({ email }: { email: string }) {
   const { t } = useLocale();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -28,18 +29,24 @@ export default function PasswordChangeForm() {
     }
 
     setLoading(true);
-    const res = await fetch("/api/profil/password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ currentPassword, newPassword }),
-    });
-    const data = await res.json().catch(() => ({}));
+    const supabase = createClient();
+
+    // Re-authenticate with the current password first — Supabase's
+    // updateUser() only requires an active session, so without this check
+    // anyone with a live (e.g. shared-device) session could change the
+    // password without knowing it, unlike the previous flow's explicit check.
+    const { error: reauthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+    if (reauthError) {
+      setLoading(false);
+      setError(t.profil.errorWrongCurrent);
+      return;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
     setLoading(false);
 
-    if (!res.ok) {
-      if (data.error === "wrong_current") setError(t.profil.errorWrongCurrent);
-      else if (data.error === "too_short") setError(t.profil.errorTooShort);
-      else setError(t.profil.errorGeneric);
+    if (updateError) {
+      setError(t.profil.errorGeneric);
       return;
     }
 

@@ -188,9 +188,12 @@ answer "where am I / what's next" at a glance.
 - **Server Actions for `/admin` mutations, Route Handlers for everything else.** This split is
   deliberate (see `docs/ARCHITECTURE.md`) — do not blur it for a new feature "because it's
   easier."
-- **JWT sessions, no session table.** Accept that role/workspace can go stale until re-login;
-  don't work around this with a caching hack without addressing it as what it is (a real
-  tradeoff to revisit, documented in the roadmap).
+- **Supabase Auth owns credentials/verification/reset; Prisma holds only profile data.**
+  `getAppUser()` (`src/lib/session.ts`) does a live, cached-per-request Prisma lookup for role/
+  workspace on every call rather than trusting a snapshotted token, so a promotion/demotion or
+  category change is live on the user's very next request — there is no re-login-to-refresh
+  tradeoff here (unlike the NextAuth-era JWT session this replaced). Don't add a caching layer on
+  top of it "for performance" without a measured reason; the lookup is one indexed query.
 - **Postgres via Supabase (moved off SQLite 2026-08-21 for Vercel deployment).** Don't add a
   second database or an ORM abstraction "for flexibility." See `docs/PROJECT_CONTEXT.md` §
   "Why Postgres/Supabase" for the connection-string setup (pooled `DATABASE_URL` for runtime,
@@ -338,9 +341,15 @@ to object storage, now that serverless (Vercel) deployment is real, not hypothet
 - **Enum-keyed `Record<string, ...>` lookup maps are easy to under-cover.** This already happened
   once (a category-label map missing the `ADOLESCENT` case). Whenever `ProfileCategory` or
   `CourseAudience` gains a value, grep for every map keyed by that enum and check all of them.
-- **JWT sessions snapshot `role`/`workspace` at login** — a promoted/demoted/recategorized user
-  won't see the change until they log in again. Don't "fix" this locally in one place; it's a
-  known, documented, accepted tradeoff.
+- **A Supabase-confirmed user with no matching Prisma `User` row is treated as logged out.**
+  `getAppUser()` returns `null` if the Prisma lookup misses, even when `supabase.auth.getUser()`
+  succeeds — this is the normal state for the brief window between `verifyOtp()` succeeding and
+  `POST /api/auth/create-profile` completing (the client always calls both in sequence, but if
+  you're testing/scripting against Supabase Auth directly, don't forget the second step or
+  protected pages will bounce to `/connexion` with no obvious error).
+- **`supabase.auth.signUp()` grants no session while email confirmation is pending.** Don't
+  expect to read `user_metadata` or an id back from a live session right after `signUp()` — the
+  session only exists once `verifyOtp()` succeeds.
 
 ## Common mistakes to avoid
 

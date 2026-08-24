@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
-import Providers from "./providers";
 import { site } from "@/lib/site";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import ar from "@/i18n/dictionaries/ar";
@@ -26,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" className={`${tajawal.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col bg-cream text-ink">
-        <Providers>{children}</Providers>
+        {children}
         <WhatsAppButton label={ar.common.whatsappContact} />
       </body>
     </html>

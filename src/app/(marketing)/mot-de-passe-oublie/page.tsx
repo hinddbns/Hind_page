@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { site } from "@/lib/site";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const { t } = useLocale();
@@ -15,10 +16,9 @@ export default function ForgotPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+    const supabase = createClient();
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reinitialiser-mot-de-passe`,
     });
     setLoading(false);
     setSent(true);

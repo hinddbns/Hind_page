@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,6 +8,7 @@ import { useLocale } from "@/i18n/LocaleProvider";
 import { site } from "@/lib/site";
 import { getAuthTheme, parseAuthWorkspace, authQueryString } from "@/lib/authTheme";
 import PasswordInput from "@/components/PasswordInput";
+import { createClient } from "@/lib/supabase/client";
 
 type ProfileCategory = "MOTHER" | "TEACHER" | "ADOLESCENT" | "OTHER" | "";
 
@@ -42,44 +42,44 @@ function InscriptionForm() {
       setError(t.auth.errorPasswordMismatch);
       return;
     }
+    if (form.password.length < 8) {
+      setError(t.auth.errorPasswordTooShort);
+      return;
+    }
 
     setLoading(true);
 
     try {
-      const res = await fetch("/api/inscription", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+      const supabase = createClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            name: form.name,
+            phone: form.phone,
+            dateOfBirth: form.dateOfBirth,
+            profileCategory: form.profileCategory,
+          },
+        },
       });
-      const data = await res.json();
 
-      if (!res.ok) {
-        const errorMessages: Record<string, string> = {
-          missing_fields: t.auth.errorMissingFields,
-          invalid_email: t.auth.errorInvalidEmail,
-          password_too_short: t.auth.errorPasswordTooShort,
-          invalid_date_of_birth: t.auth.errorInvalidDateOfBirth,
-          email_taken: t.auth.errorEmailTaken,
-        };
-        setError(errorMessages[data.error] || t.auth.genericError);
+      if (signUpError) {
+        setError(t.auth.genericError);
         setLoading(false);
         return;
       }
 
-      const signInRes = await signIn("credentials", {
-        email: form.email,
-        password: form.password,
-        redirect: false,
-      });
-
-      setLoading(false);
-
-      if (signInRes?.error) {
-        router.push("/connexion");
+      // Supabase returns an empty `identities` array (no error) when the
+      // email already has an account — its own no-enumeration pattern.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setError(t.auth.errorEmailTaken);
+        setLoading(false);
         return;
       }
 
-      router.push("/tableau-de-bord");
+      setLoading(false);
+      router.push(`/verification-email?email=${encodeURIComponent(form.email)}`);
       router.refresh();
     } catch {
       setError(t.auth.networkError);

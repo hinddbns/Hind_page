@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireVerifiedSession } from "@/lib/authGuard";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   if (session.user.role === "ADMIN") {
     const users = await prisma.user.findMany({

@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireVerifiedSession } from "@/lib/authGuard";
 import { ALLOWED_RECEIPT_TYPES, MAX_RECEIPT_SIZE, extensionForMime } from "@/lib/uploads";
 import { matchesFileSignature } from "@/lib/fileSignature";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { uploadReceipt, deleteReceipt } from "@/lib/receiptStorage";
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   const allowed = await checkRateLimit(`enrollment:${session.user.id}`, 10, 60 * 60);
   if (!allowed) {
@@ -95,10 +93,8 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const session = await auth();
-  if (!session?.user) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const { session, response } = await requireVerifiedSession();
+  if (response) return response;
 
   const { searchParams } = new URL(req.url);
   const enrollmentId = searchParams.get("id");

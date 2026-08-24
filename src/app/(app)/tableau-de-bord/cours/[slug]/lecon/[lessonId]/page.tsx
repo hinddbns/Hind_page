@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { getT } from "@/i18n/server";
 import { interpolate } from "@/i18n/config";
 import SecureVideoPlayer from "@/components/SecureVideoPlayer";
@@ -21,8 +21,8 @@ export default async function LessonPage({
 }: {
   params: Promise<{ slug: string; lessonId: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user) redirect("/connexion");
+  const user = await getAppUser();
+  if (!user) redirect("/connexion");
 
   const { slug, lessonId } = await params;
   const { t } = await getT();
@@ -30,15 +30,15 @@ export default async function LessonPage({
   const course = await getStudentCourse(slug);
   if (!course) notFound();
 
-  const isAdmin = session.user.role === "ADMIN";
-  const enrollment = isAdmin ? null : await getApprovedEnrollment(session.user.id, course.id);
+  const isAdmin = user.role === "ADMIN";
+  const enrollment = isAdmin ? null : await getApprovedEnrollment(user.id, course.id);
 
   if (!isAdmin && enrollment?.status !== "APPROVED") {
     redirect(`/cours/${slug}`);
   }
 
   if (!isAdmin) {
-    const questionnaireDone = await isQuestionnaireComplete(course, session.user.id);
+    const questionnaireDone = await isQuestionnaireComplete(course, user.id);
     if (!questionnaireDone) {
       redirect(`/tableau-de-bord/cours/${slug}`);
     }
@@ -46,7 +46,7 @@ export default async function LessonPage({
 
   const lessonsWithAccess: (typeof course.lessons[number] & { state: LessonAccessState })[] = isAdmin
     ? course.lessons.map((l) => ({ ...l, state: "current" as const }))
-    : await getLessonsWithAccess(course.id, session.user.id, course.lessons);
+    : await getLessonsWithAccess(course.id, user.id, course.lessons);
 
   const index = lessonsWithAccess.findIndex((l) => l.id === lessonId);
   if (index === -1) notFound();
@@ -61,7 +61,7 @@ export default async function LessonPage({
   const next = index < lessonsWithAccess.length - 1 ? lessonsWithAccess[index + 1] : null;
   const nextAccessible = next ? next.state !== "locked" : false;
 
-  const progress = isAdmin ? null : await getLessonProgressRecord(session.user.id, lesson.id);
+  const progress = isAdmin ? null : await getLessonProgressRecord(user.id, lesson.id);
 
   const totalCount = lessonsWithAccess.length;
   const completedCount = lessonsWithAccess.filter((l) => l.state === "completed").length;

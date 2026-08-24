@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { getT } from "@/i18n/server";
@@ -22,19 +22,19 @@ export default async function CourseDetailPage({
 
   if (!course || !course.published) notFound();
 
-  const session = await auth();
+  const user = await getAppUser();
 
   // A logged-in visitor is already inside the authenticated shell (see cours/layout.tsx) —
   // "back" should return them to their personal space, not out to public marketing.
-  const backHref = session?.user
+  const backHref = user
     ? "/tableau-de-bord/cours"
     : course.audience === "ADOLESCENT"
       ? "/ados"
       : "/parents-enseignants";
 
-  const enrollment = session?.user
+  const enrollment = user
     ? await prisma.enrollment.findUnique({
-        where: { userId_courseId: { userId: session.user.id, courseId: course.id } },
+        where: { userId_courseId: { userId: user.id, courseId: course.id } },
       })
     : null;
 
@@ -86,7 +86,7 @@ export default async function CourseDetailPage({
       </div>
 
       <div className="mt-8">
-        {!session?.user ? (
+        {!user ? (
           <div className="rounded-2xl border border-primary-light/50 bg-white p-6 text-center">
             <p className="text-ink-soft">{t.receipt.loginPrompt}</p>
             <div className="mt-4 flex justify-center gap-3">

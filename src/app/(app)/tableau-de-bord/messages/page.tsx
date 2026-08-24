@@ -1,13 +1,13 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/i18n/server";
 import ChatPanel from "@/components/ChatPanel";
 
 export default async function UserMessagesPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/connexion?next=/tableau-de-bord/messages");
-  if (session.user.role === "ADMIN") redirect("/admin/messages");
+  const user = await getAppUser();
+  if (!user) redirect("/connexion?next=/tableau-de-bord/messages");
+  if (user.role === "ADMIN") redirect("/admin/messages");
 
   const { t } = await getT();
 
@@ -26,7 +26,7 @@ export default async function UserMessagesPage() {
       </p>
 
       <div className="mt-6">
-        <ChatPanel targetUserId={session.user.id} isAdmin={false} />
+        <ChatPanel targetUserId={user.id} isAdmin={false} />
       </div>
     </div>
   );

@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
+import { getAppUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/i18n/server";
 import PasswordChangeForm from "@/components/PasswordChangeForm";
 import PersonalInfoForm from "@/components/PersonalInfoForm";
 
 export default async function ProfilPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/connexion?next=/profil");
+  const appUser = await getAppUser();
+  if (!appUser) redirect("/connexion?next=/profil");
 
   const { t } = await getT();
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
+  const user = await prisma.user.findUnique({ where: { id: appUser.id } });
   if (!user) redirect("/connexion");
 
   const dateOfBirthValue = user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : "";
@@ -42,7 +42,7 @@ export default async function ProfilPage() {
 
       <div className="mt-8 rounded-2xl border border-primary-light/50 bg-white p-6">
         <h2 className="font-serif text-lg text-ink">{t.profil.changePassword}</h2>
-        <PasswordChangeForm />
+        <PasswordChangeForm email={user.email} />
       </div>
     </div>
   );

@@ -122,6 +122,13 @@ Every change in this project has been verified this way; keep doing it:
    data/files it created** before finishing. Never leave QA accounts, disposable test
    courses/lessons, or test uploads behind — every session in this project's history has
    confirmed a clean DB state at the end.
+   - **Signup now requires OTP email verification** before an account gets real access (see
+     "Auth & session" in `ARCHITECTURE.md`). Resend rejects sending to `@example.com` addresses
+     (`422 validation_error`), so the `qa.xxx.verifyN@example.com` convention above doesn't work
+     for testing signup/verification specifically — use Resend's own test recipient
+     `delivered@resend.dev` instead, and read the OTP back via the Resend API
+     (`GET https://api.resend.com/emails/{id}`, using the id from `GET /emails`) rather than a
+     real inbox.
 5. If verifying a form's behavior specifically, prefer letting the real client code run
    (`form.requestSubmit()`, native input events with the React-aware value setter) over
    reimplementing the request by hand — reimplementing risks validating a different code path
@@ -135,8 +142,9 @@ Every change in this project has been verified this way; keep doing it:
 - Don't introduce a second styling approach (CSS modules, a component library, styled-jsx)
   alongside Tailwind.
 - Don't add a state-management library (Redux, Zustand, Jotai) — the app has no client-side
-  global state need beyond `next-auth`'s `SessionProvider`; component-local `useState` and
-  server-fetched data have been sufficient throughout.
+  global state need; session identity is read fresh server-side via `getAppUser()` on every
+  request, and component-local `useState` plus server-fetched data have been sufficient
+  throughout.
 - Don't rename or restructure the dictionary namespaces casually — many components destructure
   `t.someNamespace.someKey` and a rename is a find-and-replace across potentially many files.
 - Don't remove the `runAction`/`ActionState`/`ConfirmActionForm` pattern in favor of something
