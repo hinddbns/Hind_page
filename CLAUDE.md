@@ -307,9 +307,12 @@ The app is **functionally complete, content-incomplete** (see `docs/ROADMAP.md`)
 1. ~~Real coach photo~~ — done (verified 2026-08-21: `public/personal.webp`, `public/me.png`,
    `public/coach-work.jpg`, `public/maman.png`, `public/ados.jpeg` all exist as real files, not
    placeholder stubs).
-2. Real social media URLs — still generic homepage placeholders for both workspaces
-   (`site.social` in `src/lib/site.ts`), shown in `AppFooter` (authenticated app) too, not just
-   the marketing pages.
+2. Real social media URLs — no longer hardcoded (moved to an admin-managed `SocialLink`/
+   `SocialLinkAssignment` model, editable at `/admin/parametres`, each link targeting any
+   combination of Global/Parents/Adolescents surfaces), but nothing has been entered yet, so
+   every footer (marketing pages and the authenticated `AppFooter`) currently renders no icons at
+   all. Needs the owner to add her real links through the admin UI — see `docs/ARCHITECTURE.md`
+   § Data model for how the platform/surface model works.
 3. Real bank transfer details — still a fake-but-realistic-looking placeholder RIB/IBAN
    (`site.bankDetails` in `src/lib/site.ts`), shown live on the enrollment/receipt-upload page
    real users see. Do not invent a real value for this — get it from the site owner.

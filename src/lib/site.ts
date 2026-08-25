@@ -25,17 +25,6 @@ export const site = {
     rib: "007 780 0001234567890012 34",
     iban: "MA00 0077 8000 0123 4567 8900 12",
   },
-  social: {
-    parents: {
-      instagram: "https://instagram.com/",
-      facebook: "https://facebook.com/",
-    },
-    ados: {
-      instagram: "https://instagram.com/",
-      facebook: "https://facebook.com/",
-      tiktok: "https://tiktok.com/",
-    },
-  },
   whatsappNumber: "212600000000",
 };
 

@@ -2,11 +2,13 @@ import Image from "next/image";
 import { getT } from "@/i18n/server";
 import { site } from "@/lib/site";
 import type { AppUser } from "@/lib/session";
+import { getSocialLinksByVariant } from "@/lib/socialLinks";
 import SocialLinks from "./SocialLinks";
 
 export default async function AppFooter({ user }: { user: AppUser | null }) {
   const { t } = await getT();
   const variant = user?.workspace === "ADOLESCENT" ? "ados" : "parents";
+  const socialLinksByVariant = await getSocialLinksByVariant();
 
   return (
     <footer className="mt-auto border-t border-secondary/25 bg-app-tint px-6 py-5">
@@ -19,7 +21,7 @@ export default async function AppFooter({ user }: { user: AppUser | null }) {
           className="h-8 w-auto rounded-md"
         />
         <span>{t.common.followUs}</span>
-        <SocialLinks variant={variant} />
+        <SocialLinks links={socialLinksByVariant[variant]} />
       </div>
     </footer>
   );

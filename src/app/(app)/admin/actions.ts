@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
-import type { QuestionType } from "@prisma/client";
+import type { QuestionType, SocialPlatform, SocialSurface } from "@prisma/client";
 import { getAppUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import {
@@ -624,6 +624,75 @@ export async function deleteQuestion(
     await requireAdmin();
     await prisma.question.delete({ where: { id: questionId } });
     revalidatePath(`/admin/cours/${courseId}/questionnaire`);
+    return { ok: true };
+  });
+}
+
+const SOCIAL_SURFACE_LABEL_AR: Record<SocialSurface, string> = {
+  GLOBAL: "عام",
+  PARENTS: "الأمهات والأستاذات",
+  ADOLESCENTS: "الشباب والمراهقين",
+};
+
+function revalidateSocialLinkSurfaces() {
+  revalidatePath("/admin/parametres");
+  revalidatePath("/");
+  revalidatePath("/ados");
+  revalidatePath("/parents-enseignants");
+}
+
+export async function createSocialLink(
+  platform: SocialPlatform,
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  return runAction(async () => {
+    await requireAdmin();
+
+    const url = readString(formData, "url");
+    try {
+      new URL(url);
+    } catch {
+      throw new AdminActionError("الرابط غير صالح. يجب أن يبدأ بـ https:// أو http://");
+    }
+
+    const surfaces = formData.getAll("surfaces").map(String) as SocialSurface[];
+    if (surfaces.length === 0) {
+      throw new AdminActionError("يجب اختيار نطاق واحد على الأقل.");
+    }
+
+    const conflicts = await prisma.socialLinkAssignment.findMany({
+      where: { platform, surface: { in: surfaces } },
+    });
+    if (conflicts.length > 0) {
+      const labels = conflicts.map((c) => SOCIAL_SURFACE_LABEL_AR[c.surface]).join("، ");
+      throw new AdminActionError(`هذا النطاق مخصص بالفعل لرابط آخر لنفس المنصة: ${labels}.`);
+    }
+
+    await prisma.socialLink.create({
+      data: {
+        platform,
+        url,
+        assignments: {
+          create: surfaces.map((surface) => ({ platform, surface })),
+        },
+      },
+    });
+
+    revalidateSocialLinkSurfaces();
+    return { ok: true };
+  });
+}
+
+export async function deleteSocialLink(
+  linkId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  return runAction(async () => {
+    await requireAdmin();
+    await prisma.socialLink.delete({ where: { id: linkId } });
+    revalidateSocialLinkSurfaces();
     return { ok: true };
   });
 }

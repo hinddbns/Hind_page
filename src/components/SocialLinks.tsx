@@ -1,5 +1,5 @@
 import { Music2 } from "lucide-react";
-import { site } from "@/lib/site";
+import type { SocialLinksMap, SocialPlatformKey } from "@/lib/socialLinks";
 
 function InstagramIcon() {
   return (
@@ -19,26 +19,48 @@ function FacebookIcon() {
   );
 }
 
+function YoutubeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
+      <path d="M10.5 9.5v5l4.5-2.5-4.5-2.5z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function WhatsappIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 20l1.3-4.1A8 8 0 1 1 8.6 19L4 20z" />
+      <path d="M9 9.8c0 3 2.5 5.4 5.4 5.4.5 0 1-.4 1-.9v-.9l-2.1-.7-.6.9a4.6 4.6 0 0 1-2.6-2.6l.9-.6-.7-2.1h-.9c-.5 0-.9.4-.9 1z" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+const PLATFORM_META: { key: SocialPlatformKey; label: string; Icon: React.ComponentType<{ className?: string; size?: number }> }[] = [
+  { key: "instagram", label: "Instagram", Icon: InstagramIcon },
+  { key: "facebook", label: "Facebook", Icon: FacebookIcon },
+  { key: "youtube", label: "YouTube", Icon: YoutubeIcon },
+  { key: "tiktok", label: "TikTok", Icon: Music2 },
+  { key: "whatsapp", label: "WhatsApp", Icon: WhatsappIcon },
+];
+
 export default function SocialLinks({
   className = "",
-  variant = "parents",
+  links,
 }: {
   className?: string;
-  variant?: "parents" | "ados";
+  links: SocialLinksMap;
 }) {
-  const socials = site.social[variant];
-  const links = [
-    { href: socials.instagram, label: "Instagram", Icon: InstagramIcon },
-    { href: socials.facebook, label: "Facebook", Icon: FacebookIcon },
-    ...("tiktok" in socials ? [{ href: socials.tiktok, label: "TikTok", Icon: Music2 }] : []),
-  ];
+  const active = PLATFORM_META.filter(({ key }) => links[key]);
+  if (active.length === 0) return null;
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {links.map(({ href, label, Icon }) => (
+      {active.map(({ key, label, Icon }) => (
         <a
-          key={label}
-          href={href}
+          key={key}
+          href={links[key]}
           target="_blank"
           rel="noreferrer"
           aria-label={label}

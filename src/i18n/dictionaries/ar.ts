@@ -543,6 +543,22 @@ const ar = {
     availabilityLabel: "أوقات التوفر المعروضة",
     save: "حفظ",
     saved: "تم الحفظ.",
+
+    socialLinksTitle: "روابط التواصل الاجتماعي",
+    socialLinksHint: "لكل منصة يمكن إضافة أكثر من رابط، كل رابط يظهر في نطاق واحد أو أكثر. لا يمكن تخصيص نفس النطاق لرابطين مختلفين في نفس المنصة.",
+    socialPlatformInstagram: "Instagram",
+    socialPlatformFacebook: "Facebook",
+    socialPlatformYoutube: "YouTube",
+    socialPlatformTiktok: "TikTok",
+    socialPlatformWhatsapp: "WhatsApp",
+    socialSurfaceGlobal: "عام",
+    socialSurfaceParents: "الأمهات والأستاذات",
+    socialSurfaceAdolescents: "الشباب والمراهقين",
+    socialLinkUrlLabel: "الرابط",
+    socialLinkSurfacesLabel: "النطاقات",
+    socialLinkAddBtn: "إضافة رابط",
+    socialLinkNoConfigs: "لا توجد روابط مضافة لهذه المنصة بعد.",
+    confirmDeleteSocialLink: "هل تريد حذف هذا الرابط؟",
   },
 
   profil: {

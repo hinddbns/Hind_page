@@ -216,6 +216,7 @@ All in `src/components/` unless noted. Every prop type is inlined at the compone
 | `CourseForm.tsx` | Create/edit course: title, slug (create-only), price, audience selector, summary, description, demo video (file or URL). Self-managed open/close state (a button, not `<details>`, so it survives the server-driven re-render after a successful save). Uses `useId()` for label association. | `admin/cours`, `admin/cours/[id]` | `action`, `mode: "create" \| "edit"`, `initial?`, `defaultOpen?` |
 | `LessonForm.tsx` | Add/edit lesson: title, order, video (file or URL), content. Same self-managed open/close + `useActionState` pattern as `CourseForm`. | `admin/cours/[id]` | `action`, `mode: "add" \| "edit"`, `initial?`, `defaultOpen?` |
 | `SettingsForm.tsx` | Single-field form for the availability text. | `admin/parametres` | `action`, `initialAvailability` |
+| `SocialLinksForm.tsx` | Per-platform (Instagram/Facebook/YouTube/TikTok/WhatsApp) list of link configs + an add-form with a Global/Parents/Adolescents multi-select checkbox group; delete via `ConfirmActionForm`. One platform+surface pair can only ever belong to one config (enforced by a DB unique constraint on `SocialLinkAssignment`, plus a friendly pre-check in the action). | `admin/parametres` | `platforms`, `createAction`, `deleteAction` |
 
 ---
 

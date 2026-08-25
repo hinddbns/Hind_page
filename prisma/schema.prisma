@@ -47,6 +47,20 @@ enum QuestionType {
   SCALE
 }
 
+enum SocialPlatform {
+  INSTAGRAM
+  FACEBOOK
+  YOUTUBE
+  TIKTOK
+  WHATSAPP
+}
+
+enum SocialSurface {
+  GLOBAL
+  PARENTS
+  ADOLESCENTS
+}
+
 model User {
   id                     String           @id @default(cuid())
   name                   String
@@ -193,6 +207,28 @@ model AuditLog {
   createdAt  DateTime @default(now())
 
   @@index([createdAt])
+}
+
+model SocialLink {
+  id          String                 @id @default(cuid())
+  platform    SocialPlatform
+  url         String
+  createdAt   DateTime               @default(now())
+  assignments SocialLinkAssignment[]
+}
+
+// Denormalizing `platform` here (instead of joining through `link`) lets a
+// single unique constraint enforce "one link per platform+surface" directly
+// in the database, so an ambiguous double-assignment can't happen even under
+// a race condition.
+model SocialLinkAssignment {
+  id       String        @id @default(cuid())
+  linkId   String
+  link     SocialLink    @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  platform SocialPlatform
+  surface  SocialSurface
+
+  @@unique([platform, surface])
 }
 
 model RateLimitHit {

@@ -6,12 +6,21 @@ import { usePathname } from "next/navigation";
 import { site } from "@/lib/site";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { authQueryString } from "@/lib/authTheme";
+import type { SocialVariant, SocialLinksMap } from "@/lib/socialLinks";
 import SocialLinks from "./SocialLinks";
 
-export default function Footer() {
+export default function Footer({
+  socialLinksByVariant,
+}: {
+  socialLinksByVariant: Record<SocialVariant, SocialLinksMap>;
+}) {
   const { t } = useLocale();
   const pathname = usePathname();
-  const variant = pathname?.startsWith("/ados") ? "ados" : "parents";
+  const variant: SocialVariant = pathname?.startsWith("/ados")
+    ? "ados"
+    : pathname?.startsWith("/parents-enseignants")
+      ? "parents"
+      : "global";
   const authWorkspace = pathname === "/ados" ? "ADOLESCENT" : pathname === "/parents-enseignants" ? "PARENT_TEACHER" : null;
   const footerClass =
     authWorkspace === "ADOLESCENT"
@@ -36,7 +45,7 @@ export default function Footer() {
             <Link href="/parents-enseignants" className="hover:text-primary">{t.nav.espaceParents}</Link>
             <Link href={`/connexion${authQueryString(authWorkspace)}`} className="hover:text-primary">{t.nav.connexion}</Link>
           </div>
-          <SocialLinks variant={variant} />
+          <SocialLinks links={socialLinksByVariant[variant]} />
         </div>
         <p className="mt-6 text-center text-xs text-ink-soft/70 md:text-start">
           © {new Date().getFullYear()} {site.name}. {t.footer.droitsReserves}

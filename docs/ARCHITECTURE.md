@@ -280,6 +280,21 @@ different tables depending on `targetType`), so it doesn't cascade-delete — fi
 nothing in the app deletes users or enrollments outright. Rendered read-only on
 `admin/parametres`. Don't build this into a bigger analytics feature without being asked.
 
+`SocialLink` / `SocialLinkAssignment` — replaces the old hardcoded `site.social` object.
+`SocialLink` is one URL for one `platform` (`INSTAGRAM | FACEBOOK | YOUTUBE | TIKTOK |
+WHATSAPP`); a platform can have several `SocialLink` rows (several configs). Each
+`SocialLinkAssignment` points a link at exactly one `surface` (`GLOBAL | PARENTS |
+ADOLESCENTS`), and a link can have several assignments — that's how one URL targets multiple
+surfaces at once. `platform` is denormalized onto `SocialLinkAssignment` (not just reachable via
+the `link` relation) specifically so `@@unique([platform, surface])` can enforce "at most one
+link per platform+surface" at the database level — this is the actual guarantee against
+ambiguous double-assignment, not just an application-level check (`lib/socialLinks.ts`'s
+`getSocialLinksByVariant()` does the read side; `admin/actions.ts`'s `createSocialLink` does a
+friendlier pre-check before hitting the constraint). Rendering only ever looks up a single
+surface's assignments — there's no "Global also shows on Parents/Adolescents" fallback; the three
+surfaces are independent, per the product requirement that "a surface must render only the link
+assigned to it."
+
 `RateLimitHit` — backs `lib/rateLimit.ts`'s `checkRateLimit(key, max, windowSeconds)`, a small
 DB-backed sliding-window limiter (delete-then-count-then-insert against this table). No external
 infra (Redis, etc.) — Postgres is already the shared state every serverless instance can see, and

@@ -9,9 +9,11 @@ scheduled; it's organized by how blocking it is for a real public launch.
 These aren't bugs — the app works correctly — but the content/config is still placeholder and
 **must** be replaced before this goes in front of real customers:
 
-- **Real social media URLs**: `src/lib/site.ts`'s `social.parents.{instagram,facebook}` and
-  `social.ados.{instagram,facebook,tiktok}` all point at the bare `instagram.com`/`facebook.com`/
-  `tiktok.com` homepages. Needs the owner's actual account URLs, one set per workspace.
+- **Real social media URLs**: social links are now admin-managed (`/admin/parametres`, see
+  `SocialLink`/`SocialLinkAssignment` in `prisma/schema.prisma`) instead of hardcoded — but no
+  real links have been entered yet for any platform/surface, so every public footer currently
+  renders empty. Needs the owner to add her actual Instagram/Facebook/YouTube/TikTok/WhatsApp
+  URLs through the admin UI, choosing which of Global/Parents/Adolescents each one targets.
 - **Real bank details**: `site.bankDetails` (bank name, holder, RIB, IBAN) are placeholder
   values shown on every course's payment instructions.
 - **Real course content & videos**: all 3 seeded courses and their lesson videos are
