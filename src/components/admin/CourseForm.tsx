@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import type { ActionState } from "@/app/(app)/admin/actions";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useToastActionState } from "@/lib/useToastActionState";
@@ -47,9 +48,13 @@ export default function CourseForm({
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={`${uid}-fields`}
-        className="w-full text-start font-serif text-lg text-ink"
+        className="flex w-full items-center justify-between gap-2 rounded-lg text-start font-serif text-lg text-primary transition hover:text-primary-dark"
       >
-        {mode === "create" ? t.admin.addCourse : t.admin.editCourseTitle}
+        <span>{mode === "create" ? t.admin.addCourse : t.admin.editCourseTitle}</span>
+        <ChevronDown
+          aria-hidden
+          className={`h-5 w-5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (

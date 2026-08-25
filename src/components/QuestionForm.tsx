@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { interpolate } from "@/i18n/config";
 import type { ActionState } from "@/app/(app)/admin/actions";
@@ -63,8 +64,14 @@ export default function QuestionForm({
 
   if (mode === "edit" && !open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} aria-expanded={false} className="mt-3 text-sm font-medium text-primary">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-expanded={false}
+        className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary transition hover:bg-primary/10"
+      >
         {t.admin.edit}
+        <ChevronDown aria-hidden className="h-4 w-4" />
       </button>
     );
   }
