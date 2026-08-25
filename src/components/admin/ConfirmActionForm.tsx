@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { Loader2 } from "lucide-react";
 import type { ActionState } from "@/app/(app)/admin/actions";
 import { useLocale } from "@/i18n/LocaleProvider";
+import { useToastActionState } from "@/lib/useToastActionState";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 function SubmitButton({
@@ -24,7 +26,7 @@ function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      className={`${className} disabled:opacity-60`}
+      className={`inline-flex items-center justify-center gap-2 ${className} disabled:opacity-60`}
       onClick={(e) => {
         if (needsConfirm) {
           e.preventDefault();
@@ -32,6 +34,7 @@ function SubmitButton({
         }
       }}
     >
+      {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />}
       {pending ? pendingLabel : label}
     </button>
   );
@@ -40,6 +43,7 @@ function SubmitButton({
 export default function ConfirmActionForm({
   action,
   confirmMessage,
+  successMessage,
   label,
   pendingLabel,
   className,
@@ -48,6 +52,10 @@ export default function ConfirmActionForm({
 }: {
   action: (prevState: ActionState, formData: FormData) => Promise<ActionState>;
   confirmMessage?: string;
+  /** Shown via the global toast on success. Defaults to a generic
+   * "action succeeded" message if omitted — pass one specific to the
+   * action (e.g. "تمت الموافقة على الطلب.") wherever possible. */
+  successMessage?: string;
   label: string;
   pendingLabel: string;
   className: string;
@@ -55,7 +63,7 @@ export default function ConfirmActionForm({
   onSuccess?: () => void;
 }) {
   const { t } = useLocale();
-  const [state, formAction] = useActionState(action, {});
+  const [state, formAction] = useToastActionState(action, successMessage ?? t.admin.actionSuccess);
   const [dialogOpen, setDialogOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const isDanger = className.includes("danger");
@@ -78,11 +86,6 @@ export default function ConfirmActionForm({
       {state.error && (
         <p role="alert" className="mt-2 max-w-xs rounded-lg bg-danger/10 px-3 py-1.5 text-xs text-danger">
           {state.error}
-        </p>
-      )}
-      {state.ok && (
-        <p role="status" className="mt-2 max-w-xs rounded-lg bg-success/10 px-3 py-1.5 text-xs text-success">
-          {t.admin.actionSuccess}
         </p>
       )}
       {confirmMessage && (

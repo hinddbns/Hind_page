@@ -88,11 +88,13 @@ Follow the existing split exactly (detailed in `ARCHITECTURE.md`):
 ## Confirmation & feedback patterns
 
 - Any **destructive or hard-to-reverse admin action** (delete, unpublish, demote, reject) must
-  go through `<ConfirmActionForm>` with a `confirmMessage` prop (uses `window.confirm`) — never
-  wire a delete button directly to a bare form submit.
-- Every mutation-driven form must show **inline pending/success/error state** (the
-  `useActionState` + `state.ok`/`state.error` pattern used throughout `admin/*Form.tsx`
-  components) — never let a failed validation crash to Next's default error boundary, and never
+  go through `<ConfirmActionForm>` with a `confirmMessage` prop (renders an accessible
+  `ConfirmDialog` — focus trap, `Escape`, `role="dialog"` — not `window.confirm`) — never wire a
+  delete button directly to a bare form submit.
+- Every mutation-driven form must show **inline pending/error state and a success toast** (the
+  `useToastActionState` + `state.error` pattern used throughout `admin/*Form.tsx` components,
+  with an optional `successMessage` for toast text specific to the action) — never let a failed
+  validation crash to Next's default error boundary, and never
   leave a successful save with zero visible feedback.
 
 ## Security checklist for anything touching file uploads or auth

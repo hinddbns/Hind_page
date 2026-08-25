@@ -102,6 +102,7 @@ export default async function AdminCoursPage({
               <ConfirmActionForm
                 action={toggleCoursePublished.bind(null, course.id, !course.published)}
                 confirmMessage={course.published ? t.admin.confirmUnpublish : undefined}
+                successMessage={course.published ? t.admin.courseUnpublished : t.admin.coursePublished}
                 label={course.published ? t.admin.unpublish : t.admin.publish}
                 pendingLabel={t.admin.saving}
                 className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:border-primary hover:text-primary"
@@ -109,6 +110,7 @@ export default async function AdminCoursPage({
               <ConfirmActionForm
                 action={deleteCourse.bind(null, course.id)}
                 confirmMessage={t.admin.confirmDeleteCourse}
+                successMessage={t.admin.courseDeleted}
                 label={t.admin.delete}
                 pendingLabel={t.admin.deleting}
                 className="rounded-full border border-danger/30 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"

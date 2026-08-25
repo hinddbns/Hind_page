@@ -48,14 +48,21 @@ license for unrequested rewrites, new abstractions, or wandering into unrelated 
 app — see "Reusable component philosophy" and "Extract after real duplication appears, not
 preemptively" below. Polish what you touched; don't go looking for a bigger project.
 
-**Honest gaps against this bar, as of the last full audit (2026-08-21)** (don't assume these are
+**Honest gaps against this bar, as of the last full audit (2026-08-25)** (don't assume these are
 fixed unless you've verified it yourself): free-text search (`AdminSearchForm`), bulk approve/
 reject (`BulkEnrollmentList`), and a card layout that reflows on mobile are now in place across
 `admin/cours`, `admin/utilisateurs`, and `admin/demandes` — this was a real gap in an earlier
-audit but has since been closed. What's still genuinely missing: there is no toast/undo pattern
-for destructive actions beyond the `window.confirm` gate, and — for enrollment review
-specifically — approve/reject can still be flipped back and forth freely with no history of who
-changed what or when. Also, `site.bankDetails`, `site.social`, and `site.whatsappNumber` in
+audit but has since been closed. Confirmation dialogs also moved off `window.confirm` onto a
+real accessible `ConfirmDialog` component (focus trap, `Escape`, `role="dialog"`), and a shared
+global toast system (`src/lib/toast.ts` + `ToastViewport`, mounted once in the root layout) now
+backs every `ConfirmActionForm`/admin-form mutation via `useToastActionState` — this specifically
+fixes a case where approving/rejecting an enrollment or promoting/demoting a user made its own
+"success" confirmation disappear before it could be read, because the very status change the
+action caused unmounted the button showing it (see the 2026-08-25 action-UX audit for the full
+writeup). What's still genuinely missing: for enrollment review specifically, approve/reject can
+still be flipped back and forth freely with no history of who changed what or when (the audit log
+records each flip, but there's no dedicated undo affordance). Also, `site.bankDetails`,
+`site.social`, and `site.whatsappNumber` in
 `src/lib/site.ts` are still fake-but-realistic-looking placeholder values (a made-up RIB/IBAN, a
 placeholder WhatsApp number, generic social homepage URLs) shown live on the authenticated
 enrollment/receipt page and in the app footer — not just the marketing pages. Don't invent real
@@ -101,11 +108,15 @@ without duplicating infrastructure to do it.
 
 ## UX principles
 
-- **No silent mutations.** Every action that changes data shows pending → success/error state
-  inline. A user or admin should never wonder "did that work?"
+- **No silent mutations.** Every action that changes data shows pending → success/error state,
+  and success is confirmed via the shared global toast (`src/lib/toast.ts`/`ToastViewport`) so it
+  survives even if the mutating component itself unmounts as a result of the action (e.g.
+  approving an enrollment removes the "Approve" button in the same update). A user or admin
+  should never wonder "did that work?"
 - **Every destructive/hard-to-reverse action confirms first.** Delete, unpublish, demote, reject
-  — all gated behind `window.confirm` via `ConfirmActionForm`. This is not optional ceremony; it
-  was added after a real incident where these fired instantly with no confirmation.
+  — all gated behind `ConfirmDialog` (an accessible modal: focus trap, `Escape`, `role="dialog"`)
+  via `ConfirmActionForm`, not the browser's native `window.confirm`. This is not optional
+  ceremony; it was added after a real incident where these fired instantly with no confirmation.
 - **Never crash to the default error boundary for an expected failure.** Validation errors,
   wrong passwords, duplicate slugs — these are normal user input problems, not exceptions. Only
   genuinely unexpected errors should hit `error.tsx`.

@@ -1,22 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useId, useRef, useState } from "react";
 import type { ActionState } from "@/app/(app)/admin/actions";
 import { useLocale } from "@/i18n/LocaleProvider";
-
-function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-cream hover:bg-primary-dark disabled:opacity-60"
-    >
-      {pending ? pendingLabel : label}
-    </button>
-  );
-}
+import { useToastActionState } from "@/lib/useToastActionState";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 export default function CourseForm({
   action,
@@ -38,15 +26,19 @@ export default function CourseForm({
 }) {
   const { t } = useLocale();
   const [open, setOpen] = useState(defaultOpen);
-  const [state, formAction] = useActionState(action, {});
   const formRef = useRef<HTMLFormElement>(null);
   const uid = useId();
-
-  useEffect(() => {
-    if (state.ok && mode === "create") {
+  const successMessage = mode === "create" ? t.admin.courseCreated : t.admin.courseUpdated;
+  const [state, formAction] = useToastActionState(action, successMessage, () => {
+    if (mode === "create") {
       formRef.current?.reset();
+    } else {
+      // Edit mode: collapse the panel back to its summary state now that
+      // the save is confirmed by the server — never on validation/server
+      // error, since this only runs when the action actually succeeded.
+      setOpen(false);
     }
-  }, [state.ok, mode]);
+  });
 
   return (
     <div className="rounded-2xl border border-primary-light/50 bg-white p-6">
@@ -61,7 +53,13 @@ export default function CourseForm({
       </button>
 
       {open && (
-        <form ref={formRef} id={`${uid}-fields`} action={formAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+        <form
+          key={initial ? JSON.stringify(initial) : "create"}
+          ref={formRef}
+          id={`${uid}-fields`}
+          action={formAction}
+          className="mt-4 grid gap-3 sm:grid-cols-2"
+        >
           <div>
             <label htmlFor={`${uid}-title`} className="mb-1 block text-sm font-medium text-ink">{t.admin.titleLabel}</label>
             <input
@@ -164,15 +162,11 @@ export default function CourseForm({
             {state.error && (
               <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{state.error}</p>
             )}
-            {state.ok && (
-              <p role="status" className="rounded-lg bg-success/10 px-4 py-2 text-sm text-success">
-                {mode === "create" ? t.admin.courseCreated : t.admin.courseUpdated}
-              </p>
-            )}
             <div>
-              <SubmitButton
+              <FormSubmitButton
                 label={mode === "create" ? t.admin.createCourseBtn : t.admin.updateCourseBtn}
                 pendingLabel={t.admin.saving}
+                className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-cream hover:bg-primary-dark"
               />
             </div>
           </div>

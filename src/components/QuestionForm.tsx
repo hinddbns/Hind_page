@@ -1,27 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useId, useRef, useState } from "react";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { interpolate } from "@/i18n/config";
 import type { ActionState } from "@/app/(app)/admin/actions";
+import { useToastActionState } from "@/lib/useToastActionState";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 type QuestionType = "OPEN" | "SINGLE_CHOICE" | "MULTIPLE_CHOICE" | "SCALE";
 
 type InitialOption = { label: string };
-
-function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-cream hover:bg-primary-dark disabled:opacity-60"
-    >
-      {pending ? pendingLabel : label}
-    </button>
-  );
-}
 
 export default function QuestionForm({
   action,
@@ -50,17 +38,17 @@ export default function QuestionForm({
 }) {
   const { t } = useLocale();
   const [type, setType] = useState<QuestionType>(initialType);
-  const [state, formAction] = useActionState(action, {});
   const formRef = useRef<HTMLFormElement>(null);
   const uid = useId();
-
-  useEffect(() => {
-    if (state.ok && mode === "add") {
-      formRef.current?.reset();
-    }
-  }, [state.ok, mode]);
-
   const [open, setOpen] = useState(mode === "add");
+  const successMessage = mode === "add" ? t.admin.questionAdded : t.admin.questionUpdated;
+  const [state, formAction] = useToastActionState(action, successMessage, () => {
+    if (mode === "add") {
+      formRef.current?.reset();
+    } else {
+      setOpen(false);
+    }
+  });
 
   const isChoice = type === "SINGLE_CHOICE" || type === "MULTIPLE_CHOICE";
   const isScale = type === "SCALE";
@@ -82,7 +70,21 @@ export default function QuestionForm({
   }
 
   return (
-    <form ref={formRef} action={formAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+    <form
+      key={JSON.stringify({
+        initialType,
+        initialText,
+        initialOrder,
+        initialOptions,
+        initialScaleMin,
+        initialScaleMax,
+        initialScaleMinLabel,
+        initialScaleMaxLabel,
+      })}
+      ref={formRef}
+      action={formAction}
+      className="mt-4 grid gap-3 sm:grid-cols-2"
+    >
       <div className="sm:col-span-2">
         <label htmlFor={`${uid}-type`} className="mb-1 block text-sm font-medium text-ink">{t.admin.questionType}</label>
         <select
@@ -191,13 +193,12 @@ export default function QuestionForm({
         {state.error && (
           <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{state.error}</p>
         )}
-        {state.ok && (
-          <p role="status" className="rounded-lg bg-success/10 px-4 py-2 text-sm text-success">
-            {mode === "add" ? t.admin.questionAdded : t.admin.questionUpdated}
-          </p>
-        )}
         <div>
-          <SubmitButton label={submitLabel} pendingLabel={t.admin.saving} />
+          <FormSubmitButton
+            label={submitLabel}
+            pendingLabel={t.admin.saving}
+            className="rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-cream hover:bg-primary-dark"
+          />
         </div>
       </div>
     </form>

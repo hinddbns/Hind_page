@@ -1,26 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef } from "react";
-import { useFormStatus } from "react-dom";
+import { useEffect, useId, useRef } from "react";
 import type { SocialPlatform, SocialSurface } from "@prisma/client";
 import type { ActionState } from "@/app/(app)/admin/actions";
 import { useLocale } from "@/i18n/LocaleProvider";
+import { useToastActionState } from "@/lib/useToastActionState";
+import FormSubmitButton from "@/components/admin/FormSubmitButton";
 import ConfirmActionForm from "./ConfirmActionForm";
 
 const SURFACES: SocialSurface[] = ["GLOBAL", "PARENTS", "ADOLESCENTS"];
-
-function SubmitButton({ label, pendingLabel }: { label: string; pendingLabel: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-medium text-cream hover:bg-primary-dark disabled:opacity-60"
-    >
-      {pending ? pendingLabel : label}
-    </button>
-  );
-}
 
 function PlatformSection({
   label,
@@ -34,7 +22,7 @@ function PlatformSection({
   deleteAction: (id: string, prevState: ActionState, formData: FormData) => Promise<ActionState>;
 }) {
   const { t } = useLocale();
-  const [state, formAction] = useActionState(createAction, {});
+  const [state, formAction] = useToastActionState(createAction, t.admin.socialLinkCreatedSuccess);
   const formRef = useRef<HTMLFormElement>(null);
   const uid = useId();
 
@@ -77,6 +65,7 @@ function PlatformSection({
               <ConfirmActionForm
                 action={deleteAction.bind(null, config.id)}
                 confirmMessage={t.admin.confirmDeleteSocialLink}
+                successMessage={t.admin.socialLinkDeletedSuccess}
                 label={t.admin.delete}
                 pendingLabel={t.admin.deleting}
                 className="shrink-0 rounded-full border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10"
@@ -111,7 +100,11 @@ function PlatformSection({
             ))}
           </div>
         </fieldset>
-        <SubmitButton label={t.admin.socialLinkAddBtn} pendingLabel={t.admin.saving} />
+        <FormSubmitButton
+          label={t.admin.socialLinkAddBtn}
+          pendingLabel={t.admin.saving}
+          className="shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-medium text-cream hover:bg-primary-dark"
+        />
       </form>
       {state.error && (
         <p role="alert" className="mt-2 rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{state.error}</p>

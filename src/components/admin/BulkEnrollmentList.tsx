@@ -101,6 +101,7 @@ export default function BulkEnrollmentList({
               <ConfirmActionForm
                 action={reviewEnrollment.bind(null, e.id, "APPROVED")}
                 confirmMessage={t.admin.confirmApprove}
+                successMessage={t.admin.enrollmentApprovedSuccess}
                 label={t.admin.approve}
                 pendingLabel={t.admin.saving}
                 className="rounded-full bg-success px-4 py-2 text-sm font-medium text-cream hover:opacity-90"
@@ -110,6 +111,7 @@ export default function BulkEnrollmentList({
               <ConfirmActionForm
                 action={reviewEnrollment.bind(null, e.id, "REJECTED")}
                 confirmMessage={t.admin.confirmReject}
+                successMessage={t.admin.enrollmentRejectedSuccess}
                 label={t.admin.reject}
                 pendingLabel={t.admin.saving}
                 className="rounded-full bg-danger px-4 py-2 text-sm font-medium text-cream hover:opacity-90"
@@ -127,6 +129,7 @@ export default function BulkEnrollmentList({
           <ConfirmActionForm
             action={reviewEnrollmentsBulk.bind(null, "APPROVED")}
             confirmMessage={interpolate(t.admin.confirmBulkApprove, { n: String(selectedIds.length) })}
+            successMessage={interpolate(t.admin.enrollmentsBulkApprovedSuccess, { n: String(selectedIds.length) })}
             label={t.admin.bulkApprove}
             pendingLabel={t.admin.saving}
             className="rounded-full bg-success px-4 py-2 text-sm font-medium text-cream hover:opacity-90"
@@ -139,6 +142,7 @@ export default function BulkEnrollmentList({
           <ConfirmActionForm
             action={reviewEnrollmentsBulk.bind(null, "REJECTED")}
             confirmMessage={interpolate(t.admin.confirmBulkReject, { n: String(selectedIds.length) })}
+            successMessage={interpolate(t.admin.enrollmentsBulkRejectedSuccess, { n: String(selectedIds.length) })}
             label={t.admin.bulkReject}
             pendingLabel={t.admin.saving}
             className="rounded-full bg-danger px-4 py-2 text-sm font-medium text-cream hover:opacity-90"

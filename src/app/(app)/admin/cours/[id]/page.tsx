@@ -107,6 +107,7 @@ export default async function AdminCourseDetailPage({
               <ConfirmActionForm
                 action={deleteLesson.bind(null, lesson.id, course.id)}
                 confirmMessage={t.admin.confirmDeleteLesson}
+                successMessage={t.admin.lessonDeleted}
                 label={t.admin.delete}
                 pendingLabel={t.admin.deleting}
                 className="shrink-0 rounded-full border border-danger/30 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"

@@ -3,6 +3,7 @@ import { Tajawal } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import ToastViewport from "@/components/ToastViewport";
 import ar from "@/i18n/dictionaries/ar";
 
 const tajawal = Tajawal({
@@ -27,6 +28,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-cream text-ink">
         {children}
         <WhatsAppButton label={ar.common.whatsappContact} />
+        <ToastViewport />
       </body>
     </html>
   );

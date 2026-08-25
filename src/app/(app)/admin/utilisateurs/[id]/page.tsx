@@ -100,6 +100,7 @@ export default async function AdminUserDetailPage({
             <ConfirmActionForm
               action={promoteToAdmin.bind(null, user.id)}
               confirmMessage={t.admin.confirmPromote}
+              successMessage={t.admin.userPromotedSuccess}
               label={t.admin.promoteToAdmin}
               pendingLabel={t.admin.saving}
               className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:border-primary hover:text-primary"
@@ -108,6 +109,7 @@ export default async function AdminUserDetailPage({
             <ConfirmActionForm
               action={demoteToUser.bind(null, user.id)}
               confirmMessage={t.admin.confirmDemote}
+              successMessage={t.admin.userDemotedSuccess}
               label={t.admin.demoteToUser}
               pendingLabel={t.admin.saving}
               className="rounded-full border border-danger/30 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"

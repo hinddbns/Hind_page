@@ -43,6 +43,14 @@ export default async function AdminQuestionnairePage({
         </div>
         <ConfirmActionForm
           action={toggleQuestionnaire.bind(null, course.id, !course.questionnaireEnabled)}
+          confirmMessage={
+            course.questionnaireEnabled && course.questions.length > 0
+              ? t.admin.confirmDisableQuestionnaire
+              : undefined
+          }
+          successMessage={
+            course.questionnaireEnabled ? t.admin.questionnaireDisabledSuccess : t.admin.questionnaireEnabledSuccess
+          }
           label={course.questionnaireEnabled ? t.admin.questionnaireOn : t.admin.questionnaireOff}
           pendingLabel={t.admin.saving}
           className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
@@ -92,6 +100,7 @@ export default async function AdminQuestionnairePage({
               <ConfirmActionForm
                 action={deleteQuestion.bind(null, q.id, course.id)}
                 confirmMessage={t.admin.confirmDeleteQuestion}
+                successMessage={t.admin.questionDeleted}
                 label={t.admin.delete}
                 pendingLabel={t.admin.deleting}
                 className="shrink-0 rounded-full border border-danger/30 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"
