@@ -1,11 +1,14 @@
 import type { SocialPlatform } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getT } from "@/i18n/server";
-import { updateSettings, createSocialLink, deleteSocialLink } from "../actions";
+import { updateSettings, updateWhatsAppNumber, createSocialLink, deleteSocialLink } from "../actions";
 import SettingsForm from "@/components/admin/SettingsForm";
 import SocialLinksForm from "@/components/admin/SocialLinksForm";
 
-const SOCIAL_PLATFORMS: SocialPlatform[] = ["INSTAGRAM", "FACEBOOK", "YOUTUBE", "TIKTOK", "WHATSAPP"];
+// WhatsApp is deliberately excluded here: it drives the site-wide floating
+// WhatsApp button (via Settings.whatsappNumber, edited below) instead of
+// being one more icon in the footer's social-icon row like the others.
+const SOCIAL_PLATFORMS: SocialPlatform[] = ["INSTAGRAM", "FACEBOOK", "YOUTUBE", "TIKTOK"];
 
 const AUDIT_ACTION_LABEL_KEY = {
   ENROLLMENT_APPROVED: "auditActionEnrollmentApproved",
@@ -57,7 +60,23 @@ export default async function AdminSettingsPage() {
   return (
     <div>
       <h1 className="font-serif text-3xl text-ink">{t.admin.settingsTitle}</h1>
-      <SettingsForm action={updateSettings} initialAvailability={settings.availability} />
+      <SettingsForm
+        action={updateSettings}
+        successMessage={t.admin.saved}
+        fieldId="settings-availability"
+        fieldName="availability"
+        fieldLabel={t.admin.availabilityLabel}
+        initialValue={settings.availability}
+      />
+      <SettingsForm
+        action={updateWhatsAppNumber}
+        successMessage={t.admin.whatsappNumberSaved}
+        fieldId="settings-whatsapp-number"
+        fieldName="whatsappNumber"
+        fieldLabel={t.admin.whatsappNumberLabel}
+        fieldHint={t.admin.whatsappNumberHint}
+        initialValue={settings.whatsappNumber}
+      />
 
       <SocialLinksForm
         platforms={socialPlatformGroups}

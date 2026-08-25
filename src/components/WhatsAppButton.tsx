@@ -1,5 +1,3 @@
-import { whatsappLink } from "@/lib/site";
-
 function WhatsAppIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
@@ -8,10 +6,10 @@ function WhatsAppIcon() {
   );
 }
 
-export default function WhatsAppButton({ label }: { label: string }) {
+export default function WhatsAppButton({ label, whatsappNumber }: { label: string; whatsappNumber: string }) {
   return (
     <a
-      href={whatsappLink()}
+      href={`https://wa.me/${whatsappNumber}`}
       target="_blank"
       rel="noreferrer"
       aria-label={label}

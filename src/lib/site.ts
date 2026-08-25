@@ -25,10 +25,4 @@ export const site = {
     rib: "007 780 0001234567890012 34",
     iban: "MA00 0077 8000 0123 4567 8900 12",
   },
-  whatsappNumber: "212600000000",
 };
-
-export function whatsappLink(message?: string) {
-  const base = `https://wa.me/${site.whatsappNumber}`;
-  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
-}

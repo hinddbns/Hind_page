@@ -28,21 +28,14 @@ function YoutubeIcon() {
   );
 }
 
-function WhatsappIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 20l1.3-4.1A8 8 0 1 1 8.6 19L4 20z" />
-      <path d="M9 9.8c0 3 2.5 5.4 5.4 5.4.5 0 1-.4 1-.9v-.9l-2.1-.7-.6.9a4.6 4.6 0 0 1-2.6-2.6l.9-.6-.7-2.1h-.9c-.5 0-.9.4-.9 1z" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
+// WhatsApp is deliberately not in this list — it drives the site-wide
+// floating WhatsApp button instead of appearing as a footer icon here,
+// see admin/parametres/page.tsx.
 const PLATFORM_META: { key: SocialPlatformKey; label: string; Icon: React.ComponentType<{ className?: string; size?: number }> }[] = [
   { key: "instagram", label: "Instagram", Icon: InstagramIcon },
   { key: "facebook", label: "Facebook", Icon: FacebookIcon },
   { key: "youtube", label: "YouTube", Icon: YoutubeIcon },
   { key: "tiktok", label: "TikTok", Icon: Music2 },
-  { key: "whatsapp", label: "WhatsApp", Icon: WhatsappIcon },
 ];
 
 export default function SocialLinks({

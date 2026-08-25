@@ -192,8 +192,9 @@ model Message {
 }
 
 model Settings {
-  id           String @id @default("main")
-  availability String @default("من الاثنين إلى الجمعة، من 9 صباحًا إلى 5 مساءً.")
+  id             String @id @default("main")
+  availability   String @default("من الاثنين إلى الجمعة، من 9 صباحًا إلى 5 مساءً.")
+  whatsappNumber String @default("212600000000")
 }
 
 model AuditLog {

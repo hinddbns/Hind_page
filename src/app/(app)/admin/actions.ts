@@ -413,6 +413,31 @@ export async function updateSettings(_prev: ActionState, formData: FormData): Pr
   });
 }
 
+export async function updateWhatsAppNumber(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return runAction(async () => {
+    await requireAdmin();
+
+    const whatsappNumber = readString(formData, "whatsappNumber").replace(/[\s+()-]/g, "");
+
+    if (!/^\d{8,15}$/.test(whatsappNumber)) {
+      throw new AdminActionError(
+        "رقم واتساب غير صالح. أدخل رمز الدولة والرقم بدون + أو مسافات (مثال: 212612345678)."
+      );
+    }
+
+    await prisma.settings.upsert({
+      where: { id: "main" },
+      update: { whatsappNumber },
+      create: { id: "main", whatsappNumber },
+    });
+
+    // The floating WhatsApp button lives in the root layout, so it applies
+    // to every route — revalidate the layout itself rather than one path.
+    revalidatePath("/", "layout");
+    return { ok: true };
+  });
+}
+
 export async function promoteToAdmin(
   userId: string,
   _prev: ActionState,
