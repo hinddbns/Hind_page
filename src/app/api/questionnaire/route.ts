@@ -1,5 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { requireVerifiedSession } from "@/lib/authGuard";
 
 export async function POST(req: Request) {
@@ -14,14 +15,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: { userId_courseId: { userId: session.user.id, courseId } },
-  });
+  const { data: enrollment, error: enrollmentError } = await db
+    .from("Enrollment")
+    .select("status")
+    .eq("userId", session.user.id)
+    .eq("courseId", courseId)
+    .maybeSingle();
+  if (enrollmentError) throw enrollmentError;
   if (enrollment?.status !== "APPROVED") {
     return NextResponse.json({ error: "not_approved" }, { status: 403 });
   }
 
-  const questions = await prisma.question.findMany({ where: { courseId } });
+  const { data: questions, error: questionsError } = await db.from("Question").select("id").eq("courseId", courseId);
+  if (questionsError) throw questionsError;
   const questionIds = new Set(questions.map((q) => q.id));
 
   for (const answer of answers) {
@@ -34,18 +40,29 @@ export async function POST(req: Request) {
       ? JSON.stringify(answer.selectedOptionIds.filter((v: unknown) => typeof v === "string"))
       : null;
 
-    await prisma.questionAnswer.upsert({
-      where: { questionId_userId: { questionId, userId: session.user.id } },
-      update: { textValue, scaleValue, selectedOptionIds, courseId },
-      create: {
+    // Not a plain .upsert(): Supabase's upsert applies the whole payload on conflict too, which
+    // would overwrite an existing row's `id` on every update. Replicating Prisma's exact
+    // update-or-create split (never touching `id` on the update path) explicitly instead.
+    const { data: updated, error: updateError } = await db
+      .from("QuestionAnswer")
+      .update({ textValue, scaleValue, selectedOptionIds, courseId })
+      .eq("questionId", questionId)
+      .eq("userId", session.user.id)
+      .select("id");
+    if (updateError) throw updateError;
+
+    if (!updated || updated.length === 0) {
+      const { error: insertError } = await db.from("QuestionAnswer").insert({
+        id: randomUUID(),
         questionId,
         userId: session.user.id,
         courseId,
         textValue,
         scaleValue,
         selectedOptionIds,
-      },
-    });
+      });
+      if (insertError) throw insertError;
+    }
   }
 
   return NextResponse.json({ ok: true });

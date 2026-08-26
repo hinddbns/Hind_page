@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { randomUUID } from "node:crypto";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { requireVerifiedSession } from "@/lib/authGuard";
@@ -21,21 +22,25 @@ export async function GET(req: Request) {
     targetUserId = session.user.id;
   }
 
-  const messages = await prisma.message.findMany({
-    where: { userId: targetUserId },
-    orderBy: { createdAt: "asc" },
-  });
+  const { data: messages, error: messagesError } = await db
+    .from("Message")
+    .select("*")
+    .eq("userId", targetUserId)
+    .order("createdAt", { ascending: true });
+  if (messagesError) throw messagesError;
 
   if (session.user.role === "ADMIN") {
-    await prisma.user.update({
-      where: { id: targetUserId },
-      data: { messagesReadByAdminAt: new Date() },
-    });
+    const { error } = await db
+      .from("User")
+      .update({ messagesReadByAdminAt: new Date().toISOString() })
+      .eq("id", targetUserId);
+    if (error) throw error;
   } else {
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { messagesReadByUserAt: new Date() },
-    });
+    const { error } = await db
+      .from("User")
+      .update({ messagesReadByUserAt: new Date().toISOString() })
+      .eq("id", session.user.id);
+    if (error) throw error;
   }
 
   return NextResponse.json({ messages });
@@ -61,23 +66,35 @@ export async function POST(req: Request) {
     if (!targetUserId) {
       return NextResponse.json({ error: "user_id_required" }, { status: 400 });
     }
-    const message = await prisma.message.create({
-      data: { userId: targetUserId, sender: "ADMIN", body: text },
-    });
+    const { data: message, error } = await db
+      .from("Message")
+      .insert({ id: randomUUID(), userId: targetUserId, sender: "ADMIN", body: text })
+      .select()
+      .single();
+    if (error) throw error;
     return NextResponse.json({ message });
   }
 
-  const isFirstMessage = (await prisma.message.count({ where: { userId: session.user.id } })) === 0;
+  const { count, error: countError } = await db
+    .from("Message")
+    .select("*", { count: "exact", head: true })
+    .eq("userId", session.user.id);
+  if (countError) throw countError;
+  const isFirstMessage = (count ?? 0) === 0;
 
-  const message = await prisma.message.create({
-    data: { userId: session.user.id, sender: "USER", body: text },
-  });
+  const { data: message, error: createError } = await db
+    .from("Message")
+    .insert({ id: randomUUID(), userId: session.user.id, sender: "USER", body: text })
+    .select()
+    .single();
+  if (createError) throw createError;
 
   if (isFirstMessage) {
     const { t } = await getT();
-    await prisma.message.create({
-      data: { userId: session.user.id, sender: "SYSTEM", body: t.messages.autoReply },
-    });
+    const { error: autoReplyError } = await db
+      .from("Message")
+      .insert({ id: randomUUID(), userId: session.user.id, sender: "SYSTEM", body: t.messages.autoReply });
+    if (autoReplyError) throw autoReplyError;
   }
 
   return NextResponse.json({ message });

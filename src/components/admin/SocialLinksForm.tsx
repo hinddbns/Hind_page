@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
-import type { SocialPlatform, SocialSurface } from "@prisma/client";
+import type { Enums } from "@/lib/supabase/database.types";
 import type { ActionState } from "@/app/(app)/admin/actions";
+
+type SocialPlatform = Enums<"SocialPlatform">;
+type SocialSurface = Enums<"SocialSurface">;
 import { useLocale } from "@/i18n/LocaleProvider";
 import { useToastActionState } from "@/lib/useToastActionState";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";

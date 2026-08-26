@@ -9,7 +9,7 @@ import {
   MailCheck,
   CheckCircle2,
 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import CourseCard from "@/components/CourseCard";
@@ -19,10 +19,13 @@ export const metadata = { title: "مساحة الأمهات والأستاذات
 export default async function ParentsEnseignantsPage() {
   const { t } = await getT();
 
-  const courses = await prisma.course.findMany({
-    where: { published: true, audience: "PARENT_TEACHER" },
-    orderBy: { createdAt: "asc" },
-  });
+  const { data: courses, error } = await db
+    .from("Course")
+    .select("*")
+    .eq("published", true)
+    .eq("audience", "PARENT_TEACHER")
+    .order("createdAt", { ascending: true });
+  if (error) throw error;
 
   const steps = [
     { icon: MailCheck, title: t.commentCaMarche.step1Title, text: t.commentCaMarche.step1Text },

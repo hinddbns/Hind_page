@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import CourseCard from "@/components/CourseCard";
 
@@ -7,10 +7,12 @@ export const metadata = { title: "دوراتنا" };
 export default async function CoursListPage() {
   const { t } = await getT();
 
-  const courses = await prisma.course.findMany({
-    where: { published: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const { data: courses, error } = await db
+    .from("Course")
+    .select("*")
+    .eq("published", true)
+    .order("createdAt", { ascending: true });
+  if (error) throw error;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { randomUUID } from "node:crypto";
+import { db, pgTimestampToDate } from "@/lib/supabase/db";
 import {
   getApprovedEnrollment,
   getLessonsWithAccess,
@@ -44,7 +45,12 @@ export async function POST(
   }
 
   const { lessonId } = await params;
-  const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+  const { data: lesson, error: lessonError } = await db
+    .from("Lesson")
+    .select("*")
+    .eq("id", lessonId)
+    .maybeSingle();
+  if (lessonError) throw lessonError;
   if (!lesson) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
@@ -54,13 +60,15 @@ export async function POST(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const courseWithLessons = await prisma.course.findUnique({
-    where: { id: lesson.courseId },
-    include: {
-      lessons: { orderBy: { order: "asc" } },
-      questions: { include: { options: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } },
-    },
-  });
+  const { data: courseWithLessons, error: courseError } = await db
+    .from("Course")
+    .select("*, lessons:Lesson(*), questions:Question(*, options:QuestionOption(*))")
+    .eq("id", lesson.courseId)
+    .order("order", { referencedTable: "lessons", ascending: true })
+    .order("order", { referencedTable: "questions", ascending: true })
+    .order("order", { referencedTable: "questions.options", ascending: true })
+    .maybeSingle();
+  if (courseError) throw courseError;
   if (!courseWithLessons) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
@@ -81,9 +89,13 @@ export async function POST(
   }
 
   const body = await req.json().catch(() => null);
-  const existing = await prisma.lessonProgress.findUnique({
-    where: { userId_lessonId: { userId: session.user.id, lessonId } },
-  });
+  const { data: existing, error: existingError } = await db
+    .from("LessonProgress")
+    .select("*")
+    .eq("userId", session.user.id)
+    .eq("lessonId", lessonId)
+    .maybeSingle();
+  if (existingError) throw existingError;
 
   if (!lesson.videoPath) {
     const event = typeof body?.event === "string" ? body.event : "";
@@ -91,20 +103,38 @@ export async function POST(
       return NextResponse.json({ error: "invalid_request" }, { status: 400 });
     }
 
-    const now = new Date();
-    const progress = await prisma.lessonProgress.upsert({
-      where: { userId_lessonId: { userId: session.user.id, lessonId } },
-      create: {
+    if (existing?.completed) {
+      return NextResponse.json({ ok: true, completed: existing.completed });
+    }
+
+    const now = new Date().toISOString();
+    if (existing) {
+      const { data, error } = await db
+        .from("LessonProgress")
+        .update({ completed: true, completedAt: now, updatedAt: now })
+        .eq("userId", session.user.id)
+        .eq("lessonId", lessonId)
+        .select()
+        .single();
+      if (error) throw error;
+      return NextResponse.json({ ok: true, completed: data.completed });
+    }
+
+    const { data, error } = await db
+      .from("LessonProgress")
+      .insert({
+        id: randomUUID(),
         userId: session.user.id,
         lessonId,
         courseId: lesson.courseId,
         completed: true,
         completedAt: now,
-      },
-      update: existing?.completed ? {} : { completed: true, completedAt: now },
-    });
-
-    return NextResponse.json({ ok: true, completed: progress.completed });
+        updatedAt: now,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return NextResponse.json({ ok: true, completed: data.completed });
   }
 
   const reportedPosition =
@@ -132,7 +162,7 @@ export async function POST(
   // instantly "complete" a short video.
   const baseFurthest = existing?.furthestSeconds ?? 0;
   const elapsedSeconds = existing
-    ? Math.max(MIN_ELAPSED_SECONDS, (now.getTime() - existing.updatedAt.getTime()) / 1000)
+    ? Math.max(MIN_ELAPSED_SECONDS, (now.getTime() - pgTimestampToDate(existing.updatedAt).getTime()) / 1000)
     : MIN_ELAPSED_SECONDS;
   const allowed = baseFurthest + elapsedSeconds * RATE_MULTIPLIER;
   let newFurthest = Math.max(baseFurthest, Math.min(reportedPosition, allowed));
@@ -147,26 +177,63 @@ export async function POST(
     (duration === null || newFurthest >= duration - ENDED_GRACE_SECONDS);
   const completed = wasCompleted || reachedByPercent || reachedByEnded;
 
-  const progress = await prisma.lessonProgress.upsert({
-    where: { userId_lessonId: { userId: session.user.id, lessonId } },
-    create: {
-      userId: session.user.id,
-      lessonId,
-      courseId: lesson.courseId,
-      furthestSeconds: Math.round(newFurthest),
-      lastPositionSeconds: Math.round(lastPosition),
-      durationSeconds: duration !== null ? Math.round(duration) : null,
-      completed,
-      completedAt: completed ? now : null,
-    },
-    update: {
-      furthestSeconds: Math.round(newFurthest),
-      lastPositionSeconds: Math.round(lastPosition),
-      durationSeconds: duration !== null ? Math.round(duration) : undefined,
-      completed,
-      completedAt: completed && !wasCompleted ? now : undefined,
-    },
-  });
+  // Prisma's upsert had distinct create/update payloads (notably `undefined` on
+  // update to mean "keep existing"). Since `existing` is already loaded, every
+  // column is resolved to its final value here, so one payload serves both the
+  // INSERT and the UPDATE branch.
+  const resolved = {
+    furthestSeconds: Math.round(newFurthest),
+    lastPositionSeconds: Math.round(lastPosition),
+    durationSeconds: duration !== null ? Math.round(duration) : null,
+    completed,
+    completedAt: completed
+      ? wasCompleted && existing
+        ? existing.completedAt
+        : now.toISOString()
+      : null,
+    updatedAt: now.toISOString(),
+  };
+
+  let progress;
+  if (existing) {
+    const { data, error } = await db
+      .from("LessonProgress")
+      .update(resolved)
+      .eq("userId", session.user.id)
+      .eq("lessonId", lessonId)
+      .select()
+      .single();
+    if (error) throw error;
+    progress = data;
+  } else {
+    const insertRes = await db
+      .from("LessonProgress")
+      .insert({
+        id: randomUUID(),
+        userId: session.user.id,
+        lessonId,
+        courseId: lesson.courseId,
+        ...resolved,
+      })
+      .select()
+      .single();
+    if (insertRes.error) {
+      // A concurrent request created the row between our read and this write —
+      // fall back to an update, matching how Prisma's upsert resolved the race.
+      if (insertRes.error.code !== "23505") throw insertRes.error;
+      const { data, error } = await db
+        .from("LessonProgress")
+        .update(resolved)
+        .eq("userId", session.user.id)
+        .eq("lessonId", lessonId)
+        .select()
+        .single();
+      if (error) throw error;
+      progress = data;
+    } else {
+      progress = insertRes.data;
+    }
+  }
 
   return NextResponse.json({
     ok: true,

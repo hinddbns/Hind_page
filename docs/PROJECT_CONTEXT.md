@@ -57,11 +57,11 @@ workspace has zero real courses yet).
 | Framework | **Next.js 16** (App Router, Turbopack), **React 19** |
 | Language | **TypeScript**, strict mode |
 | Styling | **Tailwind CSS v4** (`@theme inline` tokens in `globals.css`, no config file) |
-| Database | **Postgres (Supabase)** via **Prisma 6** — pooled `DATABASE_URL` for runtime, session-pooler `DIRECT_URL` for migrations |
-| Auth | **Supabase Auth** (`@supabase/ssr`), email+password with a 6-digit OTP email-confirmation gate. Credentials, verification, and password reset are owned entirely by Supabase (`auth.users`), not Prisma — see `ARCHITECTURE.md` § Auth & session. |
+| Database | **Postgres (Supabase)**, accessed exclusively via the server-only service-role client `src/lib/supabase/db.ts` (`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`). Prisma was the ORM through mid-2026 and has been fully removed; `prisma/migrations/` is retained as schema history only. |
+| Auth | **Supabase Auth** (`@supabase/ssr`), email+password with a 6-digit OTP email-confirmation gate. Credentials, verification, and password reset are owned entirely by Supabase (`auth.users`), not the application DB — see `ARCHITECTURE.md` § Auth & session. |
 | Icons | **lucide-react**, exclusively |
 | Fonts | **Tajawal** (Google Font, via `next/font/google`) — the only typeface in the app |
-| Dev seed | `tsx prisma/seed.ts` (creates 1 admin + 3 example courses + demo videos) |
+| Dev seed | None. Sign up through the app, then promote a `User` row to `role = ADMIN` directly in Supabase. |
 | Linting | **ESLint 9**, `eslint-config-next` |
 | Testing | **None.** No test framework, no CI. Verification is manual (see `CONTRIBUTING.md`). |
 | File storage (receipts) | **Supabase Storage**, private `receipts` bucket, same project as the
@@ -75,8 +75,9 @@ workspace has zero real courses yet).
 
 Full dependency list: `package.json`. Notably minimal — no state-management library, no
 data-fetching library (SWR/React Query/tRPC), no UI component library, no CSS-in-JS. Data
-fetching is `async` Server Components calling `prisma` directly; the only client-side data
-fetching is a few `fetch()` calls in client components for messaging/polling.
+fetching is `async` Server Components calling the Supabase `db` client
+(`src/lib/supabase/db.ts`) directly; the only client-side data fetching is a few `fetch()`
+calls in client components for messaging/polling.
 
 ---
 
@@ -123,8 +124,8 @@ Naming conventions for why.
 | `/ados` | `ados/page.tsx` | Adolescent-workspace landing page (gold/`accent`-toned): hero photo, mission statement + "why this space" story + 3 goals, 3 "why this space" cards, how-it-works, a course grid filtered to `audience: ADOLESCENT`, 2 real testimonials, final CTA. | Fully built; course grid is empty (honest "coming soon" state) since no adolescent courses exist yet. |
 | `/parents-enseignants` | `parents-enseignants/page.tsx` | Parents/teachers-workspace landing page (olive-toned): hero photo, mission statement + "why this space" story + 3 goals, "pour qui" (mothers / teachers / general self-development) cards, how-it-works, course grid filtered to `audience: PARENT_TEACHER`, 3 real testimonials, final CTA. | Fully built and populated — this is where all 3 seeded example courses currently live. |
 | `/connexion` | `connexion/page.tsx` | Login. Client component, `supabase.auth.signInWithPassword(...)`, then `router.push`. Shows a generic error for a wrong password; an unconfirmed account routes straight to `/verification-email` instead. Reads an optional `?workspace=ADOLESCENT\|PARENT_TEACHER` search param (via `src/lib/authTheme.ts`) to show a gold/olive space badge and a "welcome back to your space" subtitle instead of the generic one — purely cosmetic continuity, doesn't affect auth logic. | Fully built. |
-| `/inscription` | `inscription/page.tsx` | Sign-up. Collects name/email/phone(optional)/date-of-birth(optional)/profile-category(mother, teacher, adolescent, other)/password+confirm. Client-side mismatch check, then `supabase.auth.signUp(...)` (form fields carried in `user_metadata`), then routes to `/verification-email` — no session exists yet and no Prisma row is created until the OTP is confirmed. Same `?workspace=` param as `/connexion`: for `ADOLESCENT` it pre-selects the "مراهق(ة)" category (still changeable) and applies the gold theme; for `PARENT_TEACHER` it applies the olive theme without pre-selecting a category (ambiguous between mother/teacher/other). Every entry point on `/ados` and `/parents-enseignants` (hero CTA, final CTA, `Nav`, `Footer`) links here with the matching `workspace` value already set; links from the neutral hub stay bare. | Fully built. |
-| `/verification-email` | `verification-email/page.tsx` | 6-digit OTP entry right after sign-up (or after an unconfirmed login attempt). Calls `supabase.auth.verifyOtp(...)`, then `POST /api/auth/create-profile` to create the Prisma profile row, then routes to `/tableau-de-bord`. Countdown + resend with cooldown. | Fully built. |
+| `/inscription` | `inscription/page.tsx` | Sign-up. Collects name/email/phone(optional)/date-of-birth(optional)/profile-category(mother, teacher, adolescent, other)/password+confirm. Client-side mismatch check, then `supabase.auth.signUp(...)` (form fields carried in `user_metadata`), then routes to `/verification-email` — no session exists yet and no `User` row is created until the OTP is confirmed. Same `?workspace=` param as `/connexion`: for `ADOLESCENT` it pre-selects the "مراهق(ة)" category (still changeable) and applies the gold theme; for `PARENT_TEACHER` it applies the olive theme without pre-selecting a category (ambiguous between mother/teacher/other). Every entry point on `/ados` and `/parents-enseignants` (hero CTA, final CTA, `Nav`, `Footer`) links here with the matching `workspace` value already set; links from the neutral hub stay bare. | Fully built. |
+| `/verification-email` | `verification-email/page.tsx` | 6-digit OTP entry right after sign-up (or after an unconfirmed login attempt). Calls `supabase.auth.verifyOtp(...)`, then `POST /api/auth/create-profile` to create the `User` profile row, then routes to `/tableau-de-bord`. Countdown + resend with cooldown. | Fully built. |
 | `/mot-de-passe-oublie` | `mot-de-passe-oublie/page.tsx` | Password-reset request: `supabase.auth.resetPasswordForEmail(...)`. Always shows the same "check your email" success state regardless of whether the address has an account, to avoid enumeration. | Fully built. |
 | `/reinitialiser-mot-de-passe` | `reinitialiser-mot-de-passe/page.tsx` | Password-reset confirmation, reached from the emailed link. Establishes the recovery session (handles a few possible URL shapes Supabase may use), then `supabase.auth.updateUser({ password })`. | Fully built. |
 
@@ -312,7 +313,19 @@ single-coach, single-server-instance, zero external infrastructure. Deploying to
 (serverless) made that untenable: a local SQLite file doesn't persist across invocations. Moved
 to Supabase Postgres instead of standing up separate infrastructure, since it's a managed
 Postgres with a connection pooler built for exactly this (many short-lived serverless
-connections). Two connection strings are used deliberately: `DATABASE_URL` (transaction pooler,
+connections).
+
+**Update — Prisma removed (mid-2026).** The application no longer uses Prisma or a raw
+Postgres connection string at all: all data access now goes through the Supabase JS client
+(`src/lib/supabase/db.ts`, service-role, PostgREST over HTTPS). `DATABASE_URL` and `DIRECT_URL`
+have been deleted from `.env`, `package.json` no longer depends on `prisma`/`@prisma/client`,
+and `prisma/schema.prisma` / `prisma.config.ts` / `src/lib/prisma.ts` / `prisma/seed.ts` are
+gone. `prisma/migrations/` is kept as schema history; new schema changes are made directly in
+Supabase. **The rest of this section is retained as historical record of the SQLite→Postgres
+move and the Prisma-CLI connectivity issues encountered then — it no longer describes how the
+app runs.**
+
+Two connection strings were used deliberately at the time: `DATABASE_URL` (transaction pooler,
 port 6543, `?pgbouncer=true` to disable prepared-statement caching) for the app's runtime
 queries, and `DIRECT_URL` (session pooler, port 5432) for `prisma migrate`/`db execute` — the
 project's true direct-connection host is IPv6-only, which isn't reachable from every network, so
@@ -400,13 +413,13 @@ metadata correctness, and direct-linkability for no benefit.
   the single highest-leverage gap if the codebase keeps growing.
 - **Toggle-button-group styling is copy-pasted** in ~4 places (profile-category pickers, admin
   filter tabs) rather than extracted into one shared component.
-- **`Record<string, ...>` maps keyed by a Prisma enum's string values are easy to under-cover** —
+- **`Record<string, ...>` maps keyed by an enum's string values are easy to under-cover** —
   this already happened once (a category-label map missing the `ADOLESCENT` case, found during
   documentation review and fixed) and could happen again if `ProfileCategory` or
   `CourseAudience` gains another value without grepping for every such map.
-- **`ProfileCategory` union type is redeclared by hand** in several client components
-  (`"MOTHER" | "TEACHER" | "ADOLESCENT" | "OTHER"`) instead of importing the Prisma-generated
-  type — works today, but two definitions can drift if the enum changes.
+- **Enum union types are aliased locally** in a few files via
+  `type X = Enums<"X">` (from `src/lib/supabase/database.types.ts`) rather than one shared
+  re-export — fine, since they all resolve to the same generated source.
 - **Placeholder content**: coach photo, social media URLs, bank details, testimonials all need
   real data before public launch (full list in `ROADMAP.md`).
 - **Favicon fidelity**: the favicon/apple-icon are the full portrait-orientation logo

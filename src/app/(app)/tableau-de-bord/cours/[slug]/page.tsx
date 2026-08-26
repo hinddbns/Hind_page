@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CheckCircle2, Lock, PartyPopper, PlayCircle } from "lucide-react";
 import { getAppUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import { interpolate } from "@/i18n/config";
 import QuestionnaireForm from "@/components/QuestionnaireForm";
@@ -33,9 +33,12 @@ export default async function CourseOverviewPage({
   const needsQuestionnaire = !isAdmin && course.questionnaireEnabled && course.questions.length > 0;
 
   if (needsQuestionnaire) {
-    const existingAnswers = await prisma.questionAnswer.findMany({
-      where: { userId: user.id, courseId: course.id },
-    });
+    const { data: existingAnswers, error: existingAnswersError } = await db
+      .from("QuestionAnswer")
+      .select("*")
+      .eq("userId", user.id)
+      .eq("courseId", course.id);
+    if (existingAnswersError) throw existingAnswersError;
 
     if (existingAnswers.length < course.questions.length) {
       const answersByQuestion: Record<

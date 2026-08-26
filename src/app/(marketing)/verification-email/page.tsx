@@ -75,7 +75,7 @@ function VerificationForm() {
 
     // Only reachable once verifyOtp has established a confirmed session —
     // signUp() itself grants none while confirmation is pending, so the
-    // Prisma profile row can't be created any earlier than this.
+    // profile row can't be created any earlier than this.
     await fetch("/api/auth/create-profile", { method: "POST" });
 
     setLoading(false);

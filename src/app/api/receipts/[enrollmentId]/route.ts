@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import path from "node:path";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { downloadReceipt } from "@/lib/receiptStorage";
 import { requireVerifiedSession } from "@/lib/authGuard";
 
@@ -19,7 +19,8 @@ export async function GET(
   if (response) return response;
 
   const { enrollmentId } = await params;
-  const enrollment = await prisma.enrollment.findUnique({ where: { id: enrollmentId } });
+  const { data: enrollment, error } = await db.from("Enrollment").select("*").eq("id", enrollmentId).maybeSingle();
+  if (error) throw error;
   if (!enrollment) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }

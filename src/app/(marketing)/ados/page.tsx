@@ -10,7 +10,7 @@ import {
   UploadCloud,
   MailCheck,
 } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import CourseCard from "@/components/CourseCard";
@@ -20,10 +20,13 @@ export const metadata = { title: "مساحة الشباب والمراهقين" 
 export default async function AdosPage() {
   const { t } = await getT();
 
-  const courses = await prisma.course.findMany({
-    where: { published: true, audience: "ADOLESCENT" },
-    orderBy: { createdAt: "asc" },
-  });
+  const { data: courses, error } = await db
+    .from("Course")
+    .select("*")
+    .eq("published", true)
+    .eq("audience", "ADOLESCENT")
+    .order("createdAt", { ascending: true });
+  if (error) throw error;
 
   const cards = [
     { icon: Sparkles, title: t.ados.card1Title, text: t.ados.card1Text },

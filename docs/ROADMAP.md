@@ -9,8 +9,8 @@ scheduled; it's organized by how blocking it is for a real public launch.
 These aren't bugs — the app works correctly — but the content/config is still placeholder and
 **must** be replaced before this goes in front of real customers:
 
-- **Real social media URLs**: social links are now admin-managed (`/admin/parametres`, see
-  `SocialLink`/`SocialLinkAssignment` in `prisma/schema.prisma`) instead of hardcoded — but no
+- **Real social media URLs**: social links are now admin-managed (`/admin/parametres`, backed
+  by the `SocialLink`/`SocialLinkAssignment` tables) instead of hardcoded — but no
   real links have been entered yet for any platform/surface, so every public footer currently
   renders empty. Needs the owner to add her actual Instagram/Facebook/YouTube/TikTok/WhatsApp
   URLs through the admin UI, choosing which of Global/Parents/Adolescents each one targets.
@@ -106,11 +106,15 @@ means it can't say more than that regardless of transport).
   (60/min/user — generous headroom over the ~12/min legitimate heartbeat cadence; this is
   volume/DoS protection, not the forgery defense, which is the rate-limited `furthestSeconds` math
   already in that route).
-- **RLS: explicitly reviewed, not needed.** The app never exposes a Supabase anon/publishable key
-  to the browser — all database access goes through server-side Prisma using the full connection
-  string, the same trust model as any server-side Postgres app. Supabase RLS matters for the
-  PostgREST/client-SDK direct-access pattern, which this app doesn't use anywhere. Revisit only if
-  that changes.
+- **RLS: explicitly reviewed, not needed.** All application database access goes through the
+  server-only **service-role** Supabase client (`src/lib/supabase/db.ts`), which bypasses RLS
+  by design — the same trust model as any server-side Postgres app. The service-role key has no
+  `NEXT_PUBLIC_` prefix and is never imported by a `"use client"` module, so it is never bundled
+  into browser code; the browser only ever gets the anon key, which is used solely for Supabase
+  **Auth**, not data. RLS matters for a browser-side PostgREST/anon-key data-access pattern,
+  which this app does not use. Revisit only if that changes. (Note: the Prisma→Supabase
+  migration changed the *mechanism* — PostgREST over HTTPS instead of a raw pooled connection —
+  but not this trust boundary.)
 - **Public course search: still deferred.** 3 published courses total as of 2026-08-23 — nowhere
   near enough to justify search/filter UI. Revisit once the catalog actually grows (the admin
   side already has search/filter/bulk actions, built when that volume justified it — see
@@ -137,7 +141,7 @@ the landing-page *description* of them exists — none has actual functionality 
 - **Individual consultations** (استشارات فردية) — currently just a labeled card on the hub; no
   booking/scheduling flow exists anywhere in the app.
 - **Books & articles** (كتب ومقالات) — no content model, no page. Would need a new `Article` (or
-  similar) Prisma model + admin CRUD + a public listing/detail page if built out, following the
+  similar) table + admin CRUD + a public listing/detail page if built out, following the
   same pattern as `Course`.
 - **Guardian-mediated enrollment for minors** — explicitly considered and deferred: adolescents
   currently self-enroll exactly like adult users (same receipt-upload flow). A more realistic

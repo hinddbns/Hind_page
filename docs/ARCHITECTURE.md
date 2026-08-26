@@ -12,16 +12,15 @@ structure, routing, data flow, and the mechanical "how it's wired together" deta
   `node_modules/next/dist/docs/` before using an App Router API you're not 100% sure about.**
 - **TypeScript**, strict mode.
 - **Tailwind CSS v4** — configured via `@theme inline` in `globals.css`, not a `tailwind.config.js`.
-- **Prisma 6** + **Postgres (Supabase)** — moved off SQLite to support serverless deployment
-  (Vercel). `DATABASE_URL` is the Supabase **transaction pooler** (port 6543, `pgbouncer=true`)
-  for app runtime queries; `DIRECT_URL` is the **session pooler** (port 5432) used only by
-  migration commands. The project's direct-connection host is IPv6-only and unreachable from
-  networks without IPv6 egress, so the session pooler stands in for it — see
-  `docs/PROJECT_CONTEXT.md` § Database for why, and the connectivity caveats around
-  `prisma migrate` commands specifically.
+- **Postgres (Supabase)** — moved off SQLite to support serverless deployment (Vercel). The
+  application's only data-access path is the server-only, service-role Supabase client in
+  `src/lib/supabase/db.ts` (`SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`). Prisma was removed
+  once every runtime call site had been migrated to that client; the SQL under
+  `prisma/migrations/` is retained purely as schema history. Schema changes are now applied
+  directly in Supabase.
 - **Supabase Auth** (`@supabase/ssr`), email+password with a 6-digit OTP email-confirmation gate.
   `auth.users` (Supabase's own table) is the sole authority for credentials, email verification,
-  and password reset; the Prisma `User` table holds only application profile data (name, phone,
+  and password reset; the `User` table holds only application profile data (name, phone,
   category, role) keyed on the same `id`. See "Auth & session" below.
 - **No test framework, no CI configured.** Verification today is manual: `tsc --noEmit`,
   `eslint`, `npm run build`, and manual browser click-through (see `CONTRIBUTING.md`).
@@ -30,9 +29,8 @@ structure, routing, data flow, and the mechanical "how it's wired together" deta
 
 ```
 prisma/
-  schema.prisma          Data model (see below)
-  seed.ts                 Seeds one admin + 3 example courses + demo videos
-  migrations/              One migration per schema change, applied in order
+  migrations/              Historical SQL migration history (schema reference only — Prisma
+                          itself has been removed; schema changes are applied in Supabase)
 scripts/
   gen_test_videos.py      Generates the tiny placeholder demo/lesson videos used by seed.ts
 src/
@@ -74,7 +72,7 @@ src/
 
     api/                    Route Handlers (REST-ish JSON/form endpoints, not used for admin
                              mutations — those are Server Actions in admin/actions.ts)
-      auth/create-profile/    Creates the Prisma User row right after a Supabase signup is
+      auth/create-profile/    Creates the application User row right after a Supabase signup is
                                email-confirmed (sign-up itself is client-side, straight to
                                Supabase Auth — see "Auth & session" below)
       enrollments/            Receipt upload (POST), withdraw (DELETE)
@@ -88,7 +86,9 @@ src/
     admin/                   Components used only inside /admin
 
   lib/
-    prisma.ts                Singleton PrismaClient (global-cached in dev to survive HMR)
+    supabase/db.ts           Server-only service-role Supabase client — the app's data-access
+                             layer (replaced Prisma); also pgTimestampToDate() + atomic-op RPC wrappers
+    supabase/database.types.ts  Generated types for the Supabase schema (Tables<>, Enums<>)
     site.ts                  Brand config: name, tagline, logo, bank details, social links, WhatsApp
     workspace.ts             workspaceFromCategory(): ProfileCategory -> "ADOLESCENT" | "PARENT_TEACHER"
     format.ts                formatPrice()
@@ -162,26 +162,26 @@ who bookmarked it; it's a safe no-op page, not dead code that breaks.
 ## Auth & session
 
 **Supabase Auth** (`@supabase/ssr`) is the sole authority for credentials, email verification,
-and password reset — `auth.users` (Supabase's own table, not Prisma) stores the password hash,
-confirmation status, and OTP/reset tokens. The Prisma `User` table holds only application profile
+and password reset — `auth.users` (Supabase's own table) stores the password hash,
+confirmation status, and OTP/reset tokens. The application `User` table holds only profile
 data (`name`, `phone`, `dateOfBirth`, `profileCategory`, `role`) and is keyed on the **same id**
 as the matching `auth.users` row (`User.id = authUser.id`, not a separate FK — Supabase's id is
-authoritative). There is no `passwordHash` column and no custom OTP/reset-token tables in Prisma
-any more; that's Supabase's job now. (This replaced an earlier NextAuth v5 + bcrypt + custom-OTP
+authoritative). There is no `passwordHash` column and no custom OTP/reset-token tables in the
+application schema any more; that's Supabase's job now. (This replaced an earlier NextAuth v5 + bcrypt + custom-OTP
 system in full — see `docs/PROJECT_CONTEXT.md` § Development Decisions if you find a reference to
 that older design anywhere and aren't sure whether it's still accurate.)
 
 - **Sign-up** (`/inscription`, client component): calls `supabase.auth.signUp({ email, password,
-  options: { data: { name, phone, dateOfBirth, profileCategory } } })` directly — no Prisma write
-  happens here. Supabase requires email confirmation, so `signUp()` grants **no session** while
+  options: { data: { name, phone, dateOfBirth, profileCategory } } })` directly — no application-DB
+  write happens here. Supabase requires email confirmation, so `signUp()` grants **no session** while
   confirmation is pending; the client then routes to `/verification-email?email=...`.
 - **Email verification (OTP gate)**: `/verification-email` calls
   `supabase.auth.verifyOtp({ email, token, type: "signup" })` with the 6-digit code Supabase
   emailed. Only once that succeeds does a session exist — at which point the page calls
   `POST /api/auth/create-profile`, which reads the now-authenticated Supabase user (id, email via
   `getUser()`, never trusted from the request body) and the `user_metadata` set at sign-up time,
-  and creates the one-time Prisma `User` row (`id` copied from `authUser.id`). This is the only
-  place a Prisma `User` row gets created — until this call succeeds, the person has a confirmed
+  and creates the one-time `User` row (`id` copied from `authUser.id`). This is the only
+  place a `User` row gets created — until this call succeeds, the person has a confirmed
   Supabase identity but no application profile (see the "verified-but-no-profile" case in
   `getAppUser()` below).
 - **Login** (`/connexion`): `supabase.auth.signInWithPassword({ email, password })`. An
@@ -201,10 +201,11 @@ that older design anywhere and aren't sure whether it's still accurate.)
 - **Session reads**: `getAppUser()` (`src/lib/session.ts`) is the single choke point every Server
   Component/Route Handler uses — the equivalent of the old `auth()`. It always calls
   `supabase.auth.getUser()` (never `getSession()`), which revalidates identity against Supabase's
-  servers rather than trusting a client-modifiable cookie payload, then does **one indexed Prisma
-  lookup** (`select: { name, role, profileCategory }`) for the application data Supabase's own
-  session doesn't know about. Wrapped in React's `cache()` since a layout and its page routinely
-  both call it in the same request. If the Supabase user exists but has no matching Prisma row
+  servers rather than trusting a client-modifiable cookie payload, then does **one indexed
+  lookup** (`select("name, role, profileCategory")` via `src/lib/supabase/db.ts`) for the
+  application data Supabase's own session doesn't know about. Wrapped in React's `cache()` since
+  a layout and its page routinely both call it in the same request. If the Supabase user exists
+  but has no matching `User` row
   yet (confirmed via `verifyOtp` but `create-profile` hasn't run — shouldn't happen in the normal
   client flow, since the client always calls it immediately after `verifyOtp` succeeds, but is
   reachable via direct API use), `getAppUser()` returns `null`, i.e. treated as logged out.
@@ -232,7 +233,10 @@ that older design anywhere and aren't sure whether it's still accurate.)
   created account, a Supabase project-setting change) that could produce a session before
   confirmation.
 
-## Data model (`prisma/schema.prisma`)
+## Data model
+
+(Table/column reference. The historical `prisma/migrations/` SQL is the schema of record;
+generated Supabase types live in `src/lib/supabase/database.types.ts`.)
 
 `User` — `id` matches the corresponding Supabase `auth.users.id` (see "Auth & session" above);
 this table holds application profile data only, not credentials. `profileCategory`
@@ -302,13 +306,14 @@ traffic at this app's scale doesn't need anything more. Keys are typically `"<ro
 for authenticated routes or `"<route>:<ip>"` for public ones.
 
 **NULL-handling pitfall (already hit once, now fixed in two places)**: `profileCategory` is
-nullable. A Prisma filter like `{ profileCategory: { not: "ADOLESCENT" } }` does **not** match
-rows where the column is `NULL` (standard SQL three-valued-logic behavior) — it silently
-undercounts. The correct pattern, used in `admin/utilisateurs/page.tsx` and `admin/page.tsx`, is:
+nullable. A "not ADOLESCENT" filter (`.neq("profileCategory", "ADOLESCENT")`, or the old
+Prisma `{ not: "ADOLESCENT" }`) does **not** match rows where the column is `NULL` (standard
+SQL three-valued-logic behavior) — it silently undercounts. The correct pattern, used in
+`admin/utilisateurs/page.tsx` and `admin/page.tsx`, is an explicit OR that includes NULL:
 ```ts
-{ OR: [{ profileCategory: null }, { profileCategory: { in: ["MOTHER", "TEACHER", "OTHER"] } }] }
+.or("profileCategory.is.null,profileCategory.in.(MOTHER,TEACHER,OTHER)")
 ```
-If you add another "everyone except ADOLESCENT" filter anywhere, use this pattern, not `not:`.
+If you add another "everyone except ADOLESCENT" filter anywhere, use this pattern, not a bare `neq`.
 
 ## Server Actions vs. API Routes — the deliberate split
 

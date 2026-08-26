@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAppUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { formatPrice } from "@/lib/format";
 import { getT } from "@/i18n/server";
 import { getAuthTheme, authQueryString } from "@/lib/authTheme";
@@ -15,10 +15,13 @@ export default async function CourseDetailPage({
   const { slug } = await params;
   const { t } = await getT();
 
-  const course = await prisma.course.findUnique({
-    where: { slug },
-    include: { lessons: { orderBy: { order: "asc" } } },
-  });
+  const { data: course, error: courseError } = await db
+    .from("Course")
+    .select("*, lessons:Lesson(*)")
+    .eq("slug", slug)
+    .order("order", { referencedTable: "lessons", ascending: true })
+    .maybeSingle();
+  if (courseError) throw courseError;
 
   if (!course || !course.published) notFound();
 
@@ -32,11 +35,17 @@ export default async function CourseDetailPage({
       ? "/ados"
       : "/parents-enseignants";
 
-  const enrollment = user
-    ? await prisma.enrollment.findUnique({
-        where: { userId_courseId: { userId: user.id, courseId: course.id } },
-      })
-    : null;
+  let enrollment: { id: string; status: "PENDING" | "APPROVED" | "REJECTED"; receiptNote: string | null } | null = null;
+  if (user) {
+    const { data, error } = await db
+      .from("Enrollment")
+      .select("id, status, receiptNote")
+      .eq("userId", user.id)
+      .eq("courseId", course.id)
+      .maybeSingle();
+    if (error) throw error;
+    enrollment = data;
+  }
 
   const authTheme = getAuthTheme(course.audience);
   const authQuery = authQueryString(course.audience);

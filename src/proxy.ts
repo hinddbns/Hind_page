@@ -4,9 +4,9 @@ import { updateSupabaseSession } from "@/lib/supabase/middleware";
 
 // Role-specific redirects (e.g. bouncing a non-admin away from /admin) are
 // deliberately NOT done here — Next 16 documents Proxy as an optimistic
-// check, not a full authorization solution, and role lives in Prisma, not
-// the Supabase session token. admin/layout.tsx (which does a real Prisma
-// lookup via getAppUser()) is the actual authority for that; this file only
+// check, not a full authorization solution, and role lives in the app
+// database, not the Supabase session token. admin/layout.tsx (which does a
+// real DB lookup via getAppUser()) is the actual authority for that; this file only
 // handles "logged in" and "verified", both readable straight off the
 // Supabase auth user with no extra query.
 export default async function proxy(req: NextRequest) {

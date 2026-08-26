@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import QuestionForm from "@/components/QuestionForm";
 import ConfirmActionForm from "@/components/admin/ConfirmActionForm";
@@ -21,10 +21,14 @@ export default async function AdminQuestionnairePage({
   const { id } = await params;
   const { t } = await getT();
 
-  const course = await prisma.course.findUnique({
-    where: { id },
-    include: { questions: { include: { options: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } } },
-  });
+  const { data: course, error: courseError } = await db
+    .from("Course")
+    .select("*, questions:Question(*, options:QuestionOption(*))")
+    .eq("id", id)
+    .order("order", { referencedTable: "questions", ascending: true })
+    .order("order", { referencedTable: "questions.options", ascending: true })
+    .maybeSingle();
+  if (courseError) throw courseError;
   if (!course) notFound();
 
   return (

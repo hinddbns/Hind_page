@@ -4,9 +4,15 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
-import type { QuestionType, SocialPlatform, SocialSurface } from "@prisma/client";
+import type { Enums } from "@/lib/supabase/database.types";
 import { getAppUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import {
+  db,
+  createQuestionWithOptions,
+  createSocialLinkWithAssignments,
+  deleteCourseIfNoEnrollments,
+  updateQuestionWithOptions,
+} from "@/lib/supabase/db";
 import {
   ALLOWED_VIDEO_TYPES,
   DEMO_VIDEOS_DIR,
@@ -19,6 +25,10 @@ import { matchesFileSignature } from "@/lib/fileSignature";
 import { recordAuditLog } from "@/lib/auditLog";
 import { sendEmail } from "@/lib/email";
 import { enrollmentApprovedEmail, enrollmentRejectedEmail } from "@/lib/emailTemplates";
+
+type QuestionType = Enums<"QuestionType">;
+type SocialPlatform = Enums<"SocialPlatform">;
+type SocialSurface = Enums<"SocialSurface">;
 
 export type ActionState = { error?: string; ok?: boolean };
 
@@ -72,10 +82,12 @@ async function runAction(fn: () => Promise<ActionState>): Promise<ActionState> {
 }
 
 async function notifyEnrollmentStatus(enrollmentId: string, status: "APPROVED" | "REJECTED") {
-  const enrollment = await prisma.enrollment.findUnique({
-    where: { id: enrollmentId },
-    include: { user: true, course: true },
-  });
+  const { data: enrollment, error } = await db
+    .from("Enrollment")
+    .select("*, user:User(*), course:Course(*)")
+    .eq("id", enrollmentId)
+    .maybeSingle();
+  if (error) throw error;
   if (!enrollment) return;
 
   const emailContent =
@@ -94,10 +106,11 @@ export async function reviewEnrollment(
 ): Promise<ActionState> {
   return runAction(async () => {
     const session = await requireAdmin();
-    await prisma.enrollment.update({
-      where: { id: enrollmentId },
-      data: { status, reviewedAt: new Date() },
-    });
+    const { error } = await db
+      .from("Enrollment")
+      .update({ status, reviewedAt: new Date().toISOString() })
+      .eq("id", enrollmentId);
+    if (error) throw error;
     await recordAuditLog({
       actorId: session.user.id,
       action: status === "APPROVED" ? "ENROLLMENT_APPROVED" : "ENROLLMENT_REJECTED",
@@ -122,10 +135,11 @@ export async function reviewEnrollmentsBulk(
     if (ids.length === 0) {
       throw new AdminActionError("لم يتم تحديد أي طلب.");
     }
-    await prisma.enrollment.updateMany({
-      where: { id: { in: ids } },
-      data: { status, reviewedAt: new Date() },
-    });
+    const { error } = await db
+      .from("Enrollment")
+      .update({ status, reviewedAt: new Date().toISOString() })
+      .in("id", ids);
+    if (error) throw error;
     for (const enrollmentId of ids) {
       await recordAuditLog({
         actorId: session.user.id,
@@ -162,25 +176,30 @@ export async function createCourse(_prev: ActionState, formData: FormData): Prom
       return { error: "المعرّف (slug) يجب أن يحتوي فقط على حروف لاتينية صغيرة وأرقام وشرطات." };
     }
 
-    const existingSlug = await prisma.course.findUnique({ where: { slug } });
+    const { data: existingSlug, error: existingSlugError } = await db
+      .from("Course")
+      .select("id")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (existingSlugError) throw existingSlugError;
     if (existingSlug) {
       return { error: "هذا المعرّف (slug) مستخدم بالفعل. اختر معرّفًا آخر." };
     }
 
     const demoVideoFilename = await saveVideoIfPresent(formData, "demoVideoFile", DEMO_VIDEOS_DIR);
 
-    await prisma.course.create({
-      data: {
-        title,
-        slug,
-        summary,
-        description,
-        price: Math.round(price),
-        audience,
-        demoVideoUrl: demoVideoUrl || undefined,
-        demoVideoPath: demoVideoFilename ? `${DEMO_VIDEOS_PUBLIC_PREFIX}/${demoVideoFilename}` : undefined,
-      },
+    const { error: createError } = await db.from("Course").insert({
+      id: randomUUID(),
+      title,
+      slug,
+      summary,
+      description,
+      price: Math.round(price),
+      audience,
+      demoVideoUrl: demoVideoUrl || undefined,
+      demoVideoPath: demoVideoFilename ? `${DEMO_VIDEOS_PUBLIC_PREFIX}/${demoVideoFilename}` : undefined,
     });
+    if (createError) throw createError;
 
     revalidatePath("/admin/cours");
     revalidatePath("/cours");
@@ -209,7 +228,8 @@ export async function updateCourse(
       return { error: "حقول غير صالحة." };
     }
 
-    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    const { data: course, error: courseError } = await db.from("Course").select("*").eq("id", courseId).maybeSingle();
+    if (courseError) throw courseError;
     if (!course) return { error: "الدورة غير موجودة." };
 
     const demoVideoFilename = await saveVideoIfPresent(formData, "demoVideoFile", DEMO_VIDEOS_DIR);
@@ -217,9 +237,9 @@ export async function updateCourse(
       await deleteFileQuietly(DEMO_VIDEOS_DIR, path.basename(course.demoVideoPath ?? ""));
     }
 
-    await prisma.course.update({
-      where: { id: courseId },
-      data: {
+    const { error: updateError } = await db
+      .from("Course")
+      .update({
         title,
         summary,
         description,
@@ -229,8 +249,9 @@ export async function updateCourse(
         demoVideoPath: demoVideoFilename
           ? `${DEMO_VIDEOS_PUBLIC_PREFIX}/${demoVideoFilename}`
           : course.demoVideoPath,
-      },
-    });
+      })
+      .eq("id", courseId);
+    if (updateError) throw updateError;
 
     revalidatePath("/admin/cours");
     revalidatePath(`/admin/cours/${courseId}`);
@@ -248,7 +269,8 @@ export async function toggleCoursePublished(
 ): Promise<ActionState> {
   return runAction(async () => {
     await requireAdmin();
-    await prisma.course.update({ where: { id: courseId }, data: { published } });
+    const { error } = await db.from("Course").update({ published }).eq("id", courseId);
+    if (error) throw error;
     revalidatePath("/admin/cours");
     revalidatePath("/cours");
     revalidatePath("/");
@@ -264,13 +286,15 @@ export async function deleteCourse(
   return runAction(async () => {
     await requireAdmin();
 
-    const course = await prisma.course.findUnique({
-      where: { id: courseId },
-      include: { lessons: true, _count: { select: { enrollments: true } } },
-    });
+    const { data: course, error: courseError } = await db
+      .from("Course")
+      .select("*, lessons:Lesson(*), enrollments:Enrollment(count)")
+      .eq("id", courseId)
+      .maybeSingle();
+    if (courseError) throw courseError;
     if (!course) return { ok: true };
 
-    if (course._count.enrollments > 0) {
+    if ((course.enrollments[0]?.count ?? 0) > 0) {
       throw new AdminActionError(
         "لا يمكن حذف هذه الدورة لوجود طلبات تسجيل و/أو دفعات لعملاء مرتبطة بها. استخدم «إلغاء النشر» لإخفائها عن الزوار الجدد مع الاحتفاظ بسجلات العملاء."
       );
@@ -279,11 +303,11 @@ export async function deleteCourse(
     // Guard the actual delete with the same condition at the database level, so a
     // brand-new enrollment created after the check above (but before this runs)
     // can't be silently wiped out by a race — the delete only takes effect if the
-    // course still has zero enrollments at this exact moment.
-    const result = await prisma.course.deleteMany({
-      where: { id: courseId, enrollments: { none: {} } },
-    });
-    if (result.count === 0) {
+    // course still has zero enrollments at this exact moment. This is the atomic
+    // Postgres function from Phase 1 (delete_course_if_no_enrollments), not a
+    // second select-then-delete that could itself race.
+    const { deleted } = await deleteCourseIfNoEnrollments(courseId);
+    if (!deleted) {
       throw new AdminActionError(
         "لا يمكن حذف هذه الدورة لوجود طلبات تسجيل و/أو دفعات لعملاء مرتبطة بها. استخدم «إلغاء النشر» لإخفائها عن الزوار الجدد مع الاحتفاظ بسجلات العملاء."
       );
@@ -320,16 +344,16 @@ export async function addLesson(
 
     const videoFilename = await saveVideoIfPresent(formData, "videoFile", VIDEOS_DIR);
 
-    await prisma.lesson.create({
-      data: {
-        courseId,
-        title,
-        content,
-        videoUrl: videoUrl || undefined,
-        videoPath: videoFilename || undefined,
-        order: Number.isFinite(order) ? Math.round(order) : 0,
-      },
+    const { error } = await db.from("Lesson").insert({
+      id: randomUUID(),
+      courseId,
+      title,
+      content,
+      videoUrl: videoUrl || undefined,
+      videoPath: videoFilename || undefined,
+      order: Number.isFinite(order) ? Math.round(order) : 0,
     });
+    if (error) throw error;
 
     revalidatePath(`/admin/cours/${courseId}`);
     revalidatePath(`/tableau-de-bord/cours`);
@@ -355,7 +379,8 @@ export async function updateLesson(
       return { error: "حقول غير صالحة." };
     }
 
-    const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+    const { data: lesson, error: lessonError } = await db.from("Lesson").select("*").eq("id", lessonId).maybeSingle();
+    if (lessonError) throw lessonError;
     if (!lesson) return { error: "الدرس غير موجود." };
 
     const videoFilename = await saveVideoIfPresent(formData, "videoFile", VIDEOS_DIR);
@@ -363,16 +388,17 @@ export async function updateLesson(
       await deleteFileQuietly(VIDEOS_DIR, lesson.videoPath);
     }
 
-    await prisma.lesson.update({
-      where: { id: lessonId },
-      data: {
+    const { error: updateError } = await db
+      .from("Lesson")
+      .update({
         title,
         content,
         videoUrl: videoUrl || null,
         videoPath: videoFilename || lesson.videoPath,
         order: Number.isFinite(order) ? Math.round(order) : lesson.order,
-      },
-    });
+      })
+      .eq("id", lessonId);
+    if (updateError) throw updateError;
 
     revalidatePath(`/admin/cours/${courseId}`);
     return { ok: true };
@@ -387,9 +413,11 @@ export async function deleteLesson(
 ): Promise<ActionState> {
   return runAction(async () => {
     await requireAdmin();
-    const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+    const { data: lesson, error: lessonError } = await db.from("Lesson").select("*").eq("id", lessonId).maybeSingle();
+    if (lessonError) throw lessonError;
     if (lesson) await deleteFileQuietly(VIDEOS_DIR, lesson.videoPath);
-    await prisma.lesson.delete({ where: { id: lessonId } });
+    const { error: deleteError } = await db.from("Lesson").delete().eq("id", lessonId);
+    if (deleteError) throw deleteError;
     revalidatePath(`/admin/cours/${courseId}`);
     return { ok: true };
   });
@@ -401,11 +429,8 @@ export async function updateSettings(_prev: ActionState, formData: FormData): Pr
 
     const availability = readString(formData, "availability");
 
-    await prisma.settings.upsert({
-      where: { id: "main" },
-      update: { availability },
-      create: { id: "main", availability },
-    });
+    const { error } = await db.from("Settings").upsert({ id: "main", availability }, { onConflict: "id" });
+    if (error) throw error;
 
     revalidatePath("/admin/parametres");
     revalidatePath("/tableau-de-bord/messages");
@@ -425,11 +450,8 @@ export async function updateWhatsAppNumber(_prev: ActionState, formData: FormDat
       );
     }
 
-    await prisma.settings.upsert({
-      where: { id: "main" },
-      update: { whatsappNumber },
-      create: { id: "main", whatsappNumber },
-    });
+    const { error } = await db.from("Settings").upsert({ id: "main", whatsappNumber }, { onConflict: "id" });
+    if (error) throw error;
 
     // The floating WhatsApp button lives in the root layout, so it applies
     // to every route — revalidate the layout itself rather than one path.
@@ -445,7 +467,8 @@ export async function promoteToAdmin(
 ): Promise<ActionState> {
   return runAction(async () => {
     const session = await requireAdmin();
-    await prisma.user.update({ where: { id: userId }, data: { role: "ADMIN" } });
+    const { error } = await db.from("User").update({ role: "ADMIN" }).eq("id", userId);
+    if (error) throw error;
     await recordAuditLog({
       actorId: session.user.id,
       action: "USER_PROMOTED",
@@ -470,12 +493,17 @@ export async function demoteToUser(
       return { error: "لا يمكنك إزالة صلاحيات المسؤول عن نفسك." };
     }
 
-    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
-    if (adminCount <= 1) {
+    const { count: adminCount, error: countError } = await db
+      .from("User")
+      .select("*", { count: "exact", head: true })
+      .eq("role", "ADMIN");
+    if (countError) throw countError;
+    if ((adminCount ?? 0) <= 1) {
       return { error: "لا يمكن إزالة آخر حساب مسؤول متبقٍ." };
     }
 
-    await prisma.user.update({ where: { id: userId }, data: { role: "USER" } });
+    const { error: updateError } = await db.from("User").update({ role: "USER" }).eq("id", userId);
+    if (updateError) throw updateError;
     await recordAuditLog({
       actorId: session.user.id,
       action: "USER_DEMOTED",
@@ -496,7 +524,8 @@ export async function toggleQuestionnaire(
 ): Promise<ActionState> {
   return runAction(async () => {
     await requireAdmin();
-    await prisma.course.update({ where: { id: courseId }, data: { questionnaireEnabled: enabled } });
+    const { error } = await db.from("Course").update({ questionnaireEnabled: enabled }).eq("id", courseId);
+    if (error) throw error;
     revalidatePath(`/admin/cours/${courseId}/questionnaire`);
     revalidatePath(`/admin/cours/${courseId}`);
     revalidatePath(`/tableau-de-bord/cours`);
@@ -570,16 +599,11 @@ export async function createQuestion(
       scale = { scaleMin: null, scaleMax: null, scaleMinLabel: null, scaleMaxLabel: null };
     }
 
-    await prisma.question.create({
-      data: {
-        courseId,
-        type,
-        text,
-        order: Number.isFinite(order) ? Math.round(order) : 0,
-        ...scale,
-        options: options.length ? { create: options } : undefined,
-      },
-    });
+    await createQuestionWithOptions(
+      courseId,
+      { type, text, order: Number.isFinite(order) ? Math.round(order) : 0, ...scale },
+      options
+    );
 
     revalidatePath(`/admin/cours/${courseId}/questionnaire`);
     return { ok: true };
@@ -621,18 +645,11 @@ export async function updateQuestion(
       scale = { scaleMin: null, scaleMax: null, scaleMinLabel: null, scaleMaxLabel: null };
     }
 
-    await prisma.questionOption.deleteMany({ where: { questionId } });
-
-    await prisma.question.update({
-      where: { id: questionId },
-      data: {
-        type,
-        text,
-        order: Number.isFinite(order) ? Math.round(order) : 0,
-        ...scale,
-        options: options.length ? { create: options } : undefined,
-      },
-    });
+    await updateQuestionWithOptions(
+      questionId,
+      { type, text, order: Number.isFinite(order) ? Math.round(order) : 0, ...scale },
+      options
+    );
 
     revalidatePath(`/admin/cours/${courseId}/questionnaire`);
     return { ok: true };
@@ -647,7 +664,8 @@ export async function deleteQuestion(
 ): Promise<ActionState> {
   return runAction(async () => {
     await requireAdmin();
-    await prisma.question.delete({ where: { id: questionId } });
+    const { error } = await db.from("Question").delete().eq("id", questionId);
+    if (error) throw error;
     revalidatePath(`/admin/cours/${courseId}/questionnaire`);
     return { ok: true };
   });
@@ -686,23 +704,18 @@ export async function createSocialLink(
       throw new AdminActionError("يجب اختيار نطاق واحد على الأقل.");
     }
 
-    const conflicts = await prisma.socialLinkAssignment.findMany({
-      where: { platform, surface: { in: surfaces } },
-    });
+    const { data: conflicts, error: conflictsError } = await db
+      .from("SocialLinkAssignment")
+      .select("*")
+      .eq("platform", platform)
+      .in("surface", surfaces);
+    if (conflictsError) throw conflictsError;
     if (conflicts.length > 0) {
       const labels = conflicts.map((c) => SOCIAL_SURFACE_LABEL_AR[c.surface]).join("، ");
       throw new AdminActionError(`هذا النطاق مخصص بالفعل لرابط آخر لنفس المنصة: ${labels}.`);
     }
 
-    await prisma.socialLink.create({
-      data: {
-        platform,
-        url,
-        assignments: {
-          create: surfaces.map((surface) => ({ platform, surface })),
-        },
-      },
-    });
+    await createSocialLinkWithAssignments(platform, url, surfaces);
 
     revalidateSocialLinkSurfaces();
     return { ok: true };
@@ -716,7 +729,8 @@ export async function deleteSocialLink(
 ): Promise<ActionState> {
   return runAction(async () => {
     await requireAdmin();
-    await prisma.socialLink.delete({ where: { id: linkId } });
+    const { error } = await db.from("SocialLink").delete().eq("id", linkId);
+    if (error) throw error;
     revalidateSocialLinkSurfaces();
     return { ok: true };
   });

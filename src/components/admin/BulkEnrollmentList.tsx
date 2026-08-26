@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Prisma } from "@prisma/client";
+import type { Tables } from "@/lib/supabase/database.types";
 import type { Dictionary } from "@/i18n/dictionaries/ar";
 import { interpolate } from "@/i18n/config";
 import { formatPrice } from "@/lib/format";
@@ -9,7 +9,11 @@ import { reviewEnrollment, reviewEnrollmentsBulk } from "@/app/(app)/admin/actio
 import ConfirmActionForm from "@/components/admin/ConfirmActionForm";
 import ReceiptPreviewButton from "@/components/admin/ReceiptPreviewButton";
 
-type EnrollmentRow = Prisma.EnrollmentGetPayload<{ include: { user: true; course: true } }>;
+type EnrollmentRow = Omit<Tables<"Enrollment">, "createdAt"> & {
+  createdAt: Date;
+  user: Tables<"User">;
+  course: Tables<"Course">;
+};
 
 export default function BulkEnrollmentList({
   t,

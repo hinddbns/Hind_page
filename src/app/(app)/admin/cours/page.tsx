@@ -1,11 +1,18 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { formatPrice } from "@/lib/format";
 import { getT } from "@/i18n/server";
 import { createCourse, deleteCourse, toggleCoursePublished } from "../actions";
 import CourseForm from "@/components/admin/CourseForm";
 import ConfirmActionForm from "@/components/admin/ConfirmActionForm";
 import AdminSearchForm from "@/components/admin/AdminSearchForm";
+
+// Prisma's `contains` escapes LIKE wildcards so the search term is matched
+// literally — reproduce that here, since a bare `.like()` would otherwise
+// treat a `%` or `_` typed by the admin as a pattern instead of literal text.
+function escapeLikePattern(value: string) {
+  return value.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
 
 export default async function AdminCoursPage({
   searchParams,
@@ -17,14 +24,18 @@ export default async function AdminCoursPage({
   const activeAudience = audienceParam === "ADOLESCENT" || audienceParam === "PARENT_TEACHER" ? audienceParam : undefined;
   const searchQuery = q?.trim();
 
-  const courses = await prisma.course.findMany({
-    where: {
-      ...(activeAudience ? { audience: activeAudience } : {}),
-      ...(searchQuery ? { title: { contains: searchQuery } } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { lessons: true, enrollments: true } } },
-  });
+  let coursesQuery = db
+    .from("Course")
+    .select("*, lessons:Lesson(count), enrollments:Enrollment(count)")
+    .order("createdAt", { ascending: false });
+  if (activeAudience) coursesQuery = coursesQuery.eq("audience", activeAudience);
+  if (searchQuery) coursesQuery = coursesQuery.like("title", `%${escapeLikePattern(searchQuery)}%`);
+  const { data: coursesData, error: coursesError } = await coursesQuery;
+  if (coursesError) throw coursesError;
+  const courses = coursesData.map((c) => ({
+    ...c,
+    _count: { lessons: c.lessons[0]?.count ?? 0, enrollments: c.enrollments[0]?.count ?? 0 },
+  }));
 
   const tabs: { value: "ADOLESCENT" | "PARENT_TEACHER" | undefined; label: string }[] = [
     { value: undefined, label: t.admin.filterAll },

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { formatPrice } from "@/lib/format";
 import { getT } from "@/i18n/server";
 import { addLesson, deleteLesson, updateCourse, updateLesson } from "../../actions";
@@ -16,10 +16,13 @@ export default async function AdminCourseDetailPage({
   const { id } = await params;
   const { t } = await getT();
 
-  const course = await prisma.course.findUnique({
-    where: { id },
-    include: { lessons: { orderBy: { order: "asc" } } },
-  });
+  const { data: course, error: courseError } = await db
+    .from("Course")
+    .select("*, lessons:Lesson(*)")
+    .eq("id", id)
+    .order("order", { referencedTable: "lessons", ascending: true })
+    .maybeSingle();
+  if (courseError) throw courseError;
   if (!course) notFound();
 
   return (

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAppUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import ChatPanel from "@/components/ChatPanel";
 
@@ -11,11 +11,12 @@ export default async function UserMessagesPage() {
 
   const { t } = await getT();
 
-  const settings = await prisma.settings.upsert({
-    where: { id: "main" },
-    update: {},
-    create: { id: "main" },
-  });
+  const { data: settings, error } = await db
+    .from("Settings")
+    .upsert({ id: "main" }, { onConflict: "id" })
+    .select()
+    .single();
+  if (error) throw error;
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">

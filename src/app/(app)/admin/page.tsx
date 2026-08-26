@@ -1,23 +1,32 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 
 export default async function AdminOverviewPage() {
   const { t } = await getT();
 
-  const [pendingCount, userCount, courseCount, approvedCount] = await Promise.all([
-    prisma.enrollment.count({ where: { status: "PENDING" } }),
-    prisma.user.count({ where: { role: "USER" } }),
-    prisma.course.count(),
-    prisma.enrollment.count({ where: { status: "APPROVED" } }),
+  const [pendingCountRes, userCountRes, courseCountRes, approvedCountRes] = await Promise.all([
+    db.from("Enrollment").select("*", { count: "exact", head: true }).eq("status", "PENDING"),
+    db.from("User").select("*", { count: "exact", head: true }).eq("role", "USER"),
+    db.from("Course").select("*", { count: "exact", head: true }),
+    db.from("Enrollment").select("*", { count: "exact", head: true }).eq("status", "APPROVED"),
   ]);
+  if (pendingCountRes.error) throw pendingCountRes.error;
+  if (userCountRes.error) throw userCountRes.error;
+  if (courseCountRes.error) throw courseCountRes.error;
+  if (approvedCountRes.error) throw approvedCountRes.error;
+  const pendingCount = pendingCountRes.count ?? 0;
+  const userCount = userCountRes.count ?? 0;
+  const courseCount = courseCountRes.count ?? 0;
+  const approvedCount = approvedCountRes.count ?? 0;
 
-  const recentPending = await prisma.enrollment.findMany({
-    where: { status: "PENDING" },
-    include: { user: true, course: true },
-    orderBy: { createdAt: "asc" },
-    take: 5,
-  });
+  const { data: recentPending, error: recentPendingError } = await db
+    .from("Enrollment")
+    .select("*, user:User(*), course:Course(*)")
+    .eq("status", "PENDING")
+    .order("createdAt", { ascending: true })
+    .limit(5);
+  if (recentPendingError) throw recentPendingError;
 
   const stats = [
     { label: t.admin.pendingRequests, value: pendingCount, href: "/admin/demandes" },
@@ -26,19 +35,65 @@ export default async function AdminOverviewPage() {
     { label: t.admin.coursesCount, value: courseCount, href: "/admin/cours" },
   ];
 
-  const [parentPending, parentApproved, parentCourses, parentUsers, adoPending, adoApproved, adoCourses, adoUsers] =
-    await Promise.all([
-      prisma.enrollment.count({ where: { status: "PENDING", course: { audience: "PARENT_TEACHER" } } }),
-      prisma.enrollment.count({ where: { status: "APPROVED", course: { audience: "PARENT_TEACHER" } } }),
-      prisma.course.count({ where: { audience: "PARENT_TEACHER" } }),
-      prisma.user.count({
-        where: { role: "USER", OR: [{ profileCategory: null }, { profileCategory: { in: ["MOTHER", "TEACHER", "OTHER"] } }] },
-      }),
-      prisma.enrollment.count({ where: { status: "PENDING", course: { audience: "ADOLESCENT" } } }),
-      prisma.enrollment.count({ where: { status: "APPROVED", course: { audience: "ADOLESCENT" } } }),
-      prisma.course.count({ where: { audience: "ADOLESCENT" } }),
-      prisma.user.count({ where: { role: "USER", profileCategory: "ADOLESCENT" } }),
-    ]);
+  const [
+    parentPendingRes,
+    parentApprovedRes,
+    parentCoursesRes,
+    parentUsersRes,
+    adoPendingRes,
+    adoApprovedRes,
+    adoCoursesRes,
+    adoUsersRes,
+  ] = await Promise.all([
+    db
+      .from("Enrollment")
+      .select("*, course:Course!inner(audience)", { count: "exact", head: true })
+      .eq("status", "PENDING")
+      .eq("course.audience", "PARENT_TEACHER"),
+    db
+      .from("Enrollment")
+      .select("*, course:Course!inner(audience)", { count: "exact", head: true })
+      .eq("status", "APPROVED")
+      .eq("course.audience", "PARENT_TEACHER"),
+    db.from("Course").select("*", { count: "exact", head: true }).eq("audience", "PARENT_TEACHER"),
+    db
+      .from("User")
+      .select("*", { count: "exact", head: true })
+      .eq("role", "USER")
+      .or("profileCategory.is.null,profileCategory.in.(MOTHER,TEACHER,OTHER)"),
+    db
+      .from("Enrollment")
+      .select("*, course:Course!inner(audience)", { count: "exact", head: true })
+      .eq("status", "PENDING")
+      .eq("course.audience", "ADOLESCENT"),
+    db
+      .from("Enrollment")
+      .select("*, course:Course!inner(audience)", { count: "exact", head: true })
+      .eq("status", "APPROVED")
+      .eq("course.audience", "ADOLESCENT"),
+    db.from("Course").select("*", { count: "exact", head: true }).eq("audience", "ADOLESCENT"),
+    db.from("User").select("*", { count: "exact", head: true }).eq("role", "USER").eq("profileCategory", "ADOLESCENT"),
+  ]);
+  for (const r of [
+    parentPendingRes,
+    parentApprovedRes,
+    parentCoursesRes,
+    parentUsersRes,
+    adoPendingRes,
+    adoApprovedRes,
+    adoCoursesRes,
+    adoUsersRes,
+  ]) {
+    if (r.error) throw r.error;
+  }
+  const parentPending = parentPendingRes.count ?? 0;
+  const parentApproved = parentApprovedRes.count ?? 0;
+  const parentCourses = parentCoursesRes.count ?? 0;
+  const parentUsers = parentUsersRes.count ?? 0;
+  const adoPending = adoPendingRes.count ?? 0;
+  const adoApproved = adoApprovedRes.count ?? 0;
+  const adoCourses = adoCoursesRes.count ?? 0;
+  const adoUsers = adoUsersRes.count ?? 0;
 
   const byWorkspace = [
     {

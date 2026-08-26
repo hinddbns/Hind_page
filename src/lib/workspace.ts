@@ -1,4 +1,6 @@
-import type { ProfileCategory } from "@prisma/client";
+import type { Enums } from "@/lib/supabase/database.types";
+
+type ProfileCategory = Enums<"ProfileCategory">;
 
 export type Workspace = "ADOLESCENT" | "PARENT_TEACHER";
 

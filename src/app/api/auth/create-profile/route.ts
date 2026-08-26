@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 
 const VALID_CATEGORIES = new Set(["MOTHER", "TEACHER", "ADOLESCENT", "OTHER"]);
 
-// Creates the Prisma application-profile row once a Supabase Auth signup is
+// Creates the application-profile (`User`) row once a Supabase Auth signup is
 // email-confirmed (called from /verification-email right after verifyOtp
 // succeeds — signUp() itself establishes no session while confirmation is
 // pending, so this can't run any earlier). The identity (id, email) and the
@@ -22,7 +22,12 @@ export async function POST() {
     return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
   }
 
-  const existing = await prisma.user.findUnique({ where: { id: authUser.id } });
+  const { data: existing, error: existingError } = await db
+    .from("User")
+    .select("id, email")
+    .eq("id", authUser.id)
+    .maybeSingle();
+  if (existingError) throw existingError;
   if (existing) {
     return NextResponse.json({ id: existing.id, email: existing.email });
   }
@@ -37,22 +42,27 @@ export async function POST() {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
 
-  let dateOfBirth: Date | undefined;
+  // Supabase's client wants an ISO string for a timestamp column, not a Date object (unlike
+  // Prisma) — still parsed as a Date first purely to validate the input.
+  let dateOfBirth: string | undefined;
   if (dateOfBirthRaw) {
     const parsed = new Date(dateOfBirthRaw);
     if (Number.isNaN(parsed.getTime())) {
       return NextResponse.json({ error: "invalid_date_of_birth" }, { status: 400 });
     }
-    dateOfBirth = parsed;
+    dateOfBirth = parsed.toISOString();
   }
 
   const profileCategory = VALID_CATEGORIES.has(profileCategoryRaw)
     ? (profileCategoryRaw as "MOTHER" | "TEACHER" | "ADOLESCENT" | "OTHER")
     : undefined;
 
-  const user = await prisma.user.create({
-    data: { id: authUser.id, name, email: authUser.email, phone, dateOfBirth, profileCategory },
-  });
+  const { data: user, error: createError } = await db
+    .from("User")
+    .insert({ id: authUser.id, name, email: authUser.email, phone, dateOfBirth, profileCategory })
+    .select("id, email")
+    .single();
+  if (createError) throw createError;
 
   return NextResponse.json({ id: user.id, email: user.email });
 }

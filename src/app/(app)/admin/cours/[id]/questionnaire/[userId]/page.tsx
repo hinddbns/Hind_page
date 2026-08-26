@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 
 export default async function AdminQuestionnaireResponsesPage({
@@ -11,18 +11,27 @@ export default async function AdminQuestionnaireResponsesPage({
   const { id, userId } = await params;
   const { t } = await getT();
 
-  const [course, user] = await Promise.all([
-    prisma.course.findUnique({
-      where: { id },
-      include: { questions: { include: { options: true }, orderBy: { order: "asc" } } },
-    }),
-    prisma.user.findUnique({ where: { id: userId } }),
+  const [courseResult, userResult] = await Promise.all([
+    db
+      .from("Course")
+      .select("*, questions:Question(*, options:QuestionOption(*))")
+      .eq("id", id)
+      .order("order", { referencedTable: "questions", ascending: true })
+      .maybeSingle(),
+    db.from("User").select("*").eq("id", userId).maybeSingle(),
   ]);
+  if (courseResult.error) throw courseResult.error;
+  if (userResult.error) throw userResult.error;
+  const course = courseResult.data;
+  const user = userResult.data;
   if (!course || !user) notFound();
 
-  const answers = await prisma.questionAnswer.findMany({
-    where: { userId, courseId: id },
-  });
+  const { data: answers, error: answersError } = await db
+    .from("QuestionAnswer")
+    .select("*")
+    .eq("userId", userId)
+    .eq("courseId", id);
+  if (answersError) throw answersError;
   const answersByQuestion = new Map(answers.map((a) => [a.questionId, a]));
 
   return (

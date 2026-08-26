@@ -1,6 +1,8 @@
 import Link from "next/link";
-import type { Prisma, ProfileCategory } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import type { Enums } from "@/lib/supabase/database.types";
+import { db, pgTimestampToDate } from "@/lib/supabase/db";
+
+type ProfileCategory = Enums<"ProfileCategory">;
 import { getT } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries/ar";
 import AdminSearchForm from "@/components/admin/AdminSearchForm";
@@ -30,21 +32,29 @@ export default async function AdminUsersPage({
   const activeWorkspace = workspaceParam === "ADOLESCENT" || workspaceParam === "PARENT_TEACHER" ? workspaceParam : undefined;
   const searchQuery = q?.trim();
 
-  const conditions: Prisma.UserWhereInput[] = [];
+  let query = db
+    .from("User")
+    .select("*, enrollments:Enrollment(count)")
+    .order("createdAt", { ascending: false });
   if (activeWorkspace === "ADOLESCENT") {
-    conditions.push({ profileCategory: "ADOLESCENT" });
+    query = query.eq("profileCategory", "ADOLESCENT");
   } else if (activeWorkspace === "PARENT_TEACHER") {
-    conditions.push({ OR: [{ profileCategory: null }, { profileCategory: { in: ["MOTHER", "TEACHER", "OTHER"] } }] });
+    query = query.or("profileCategory.is.null,profileCategory.in.(MOTHER,TEACHER,OTHER)");
   }
-  if (searchQuery) {
-    conditions.push({ OR: [{ name: { contains: searchQuery } }, { email: { contains: searchQuery } }] });
-  }
+  const { data, error } = await query;
+  if (error) throw error;
 
-  const users = await prisma.user.findMany({
-    where: conditions.length > 0 ? { AND: conditions } : undefined,
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { enrollments: true } } },
-  });
+  // Prisma's default `contains` is a case-sensitive literal-substring match, so
+  // String.includes reproduces it exactly, without LIKE-wildcard escaping.
+  const users = (
+    searchQuery
+      ? data.filter((u) => u.name.includes(searchQuery) || u.email.includes(searchQuery))
+      : data
+  ).map((u) => ({
+    ...u,
+    createdAt: pgTimestampToDate(u.createdAt),
+    _count: { enrollments: u.enrollments[0]?.count ?? 0 },
+  }));
 
   const tabs: { value: "ADOLESCENT" | "PARENT_TEACHER" | undefined; label: string }[] = [
     { value: undefined, label: t.admin.filterAll },

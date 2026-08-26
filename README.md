@@ -96,18 +96,17 @@ Ouvrez [http://localhost:3000](http://localhost:3000).
 
 ## Base de données
 
-SQLite via Prisma (fichier `prisma/dev.db`, ignoré par git).
+Postgres hébergé par Supabase. L'application y accède exclusivement via le client
+serveur `src/lib/supabase/db.ts` (clé service-role, jamais exposée au navigateur).
+Variables requises dans `.env` : `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
-```bash
-npx prisma migrate dev   # applique le schéma
-npm run seed             # crée un compte admin + 3 cours d'exemple, avec vidéos de test
-```
+Le schéma est géré directement dans Supabase. L'historique SQL des migrations
+antérieures reste disponible dans `prisma/migrations/` à titre de référence.
 
-Identifiants admin par défaut (définis dans `.env`, à changer avant mise en production, ou via
-`/profil` une fois connecté) :
-
-- Email : `admin@example.com`
-- Mot de passe : `ChangeMoi123!`
+Aucun compte n'est pré-créé : inscrivez-vous via l'application (`/inscription`,
+avec vérification e-mail par OTP), puis promouvez le compte au rôle `ADMIN`
+directement dans la base.
 
 ## Sécurité
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAppUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { formatPrice } from "@/lib/format";
 import { getT, interpolate } from "@/i18n/server";
 import { getCourseProgressSummary } from "@/lib/lessonAccess";
@@ -24,11 +24,12 @@ export default async function CoursesPage() {
     REJECTED: "bg-danger/10 text-danger border-danger/30",
   };
 
-  const enrollments = await prisma.enrollment.findMany({
-    where: { userId: user.id },
-    include: { course: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const { data: enrollments, error: enrollmentsError } = await db
+    .from("Enrollment")
+    .select("*, course:Course(*)")
+    .eq("userId", user.id)
+    .order("createdAt", { ascending: false });
+  if (enrollmentsError) throw enrollmentsError;
 
   const progressByCourseId = new Map(
     await Promise.all(
@@ -39,14 +40,18 @@ export default async function CoursesPage() {
   );
 
   const audience = user.workspace === "ADOLESCENT" ? "ADOLESCENT" : "PARENT_TEACHER";
-  const availableCourses = await prisma.course.findMany({
-    where: {
-      published: true,
-      audience,
-      id: { notIn: enrollments.map((e) => e.courseId) },
-    },
-    orderBy: { createdAt: "asc" },
+  const enrolledCourseIds = enrollments.map((e) => e.courseId);
+  // Prisma's `notIn: []` excludes nothing (matches every row) — an empty
+  // Postgres `not in (...)` list needs the filter omitted entirely to match
+  // that, since `.not("id", "in", "()")` would otherwise behave differently.
+  let availableCoursesQuery = db.from("Course").select("*").eq("published", true).eq("audience", audience);
+  if (enrolledCourseIds.length > 0) {
+    availableCoursesQuery = availableCoursesQuery.not("id", "in", `(${enrolledCourseIds.join(",")})`);
+  }
+  const { data: availableCourses, error: availableCoursesError } = await availableCoursesQuery.order("createdAt", {
+    ascending: true,
   });
+  if (availableCoursesError) throw availableCoursesError;
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">

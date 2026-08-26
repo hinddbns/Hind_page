@@ -9,24 +9,20 @@ version has real API differences from older training data; check
 1. Read the relevant existing file(s) fully before editing — this codebase has consistent,
    repeated patterns (see below), and the fastest way to introduce an inconsistency is to write
    a new component/route without looking at 2-3 existing siblings first.
-2. If the change touches the schema, plan the migration name and run
-   `npx prisma migrate dev --name <descriptive_name>` — never hand-edit `migrations/`.
-3. If a dev server (`npm run dev`) is already running when you need to run
-   `npx prisma migrate dev` or `npx prisma generate`, it may hold a lock on the Prisma client's
-   native binary on Windows (`EPERM` renaming `query_engine-windows.dll.node`). Ask the user to
-   stop their dev server rather than killing it yourself.
+2. If the change touches the schema, apply it in Supabase (SQL editor or the dashboard), then
+   regenerate `src/lib/supabase/database.types.ts` from the live schema. Prisma has been
+   removed — there is no `prisma migrate` step and no `schema.prisma`. `prisma/migrations/`
+   remains only as historical SQL reference.
 
 ## Coding conventions
 
 - **TypeScript strict mode** — no `any` without a specific reason; prefer deriving types from
-  Prisma (`import type { ProfileCategory } from "@prisma/client"`) over redefining unions by
-  hand. Several components currently redeclare `"MOTHER" | "TEACHER" | "ADOLESCENT" | "OTHER"`
-  locally instead of importing the Prisma type — don't propagate this, prefer the import in new
-  code (see Known Issues in PROJECT_CONTEXT.md).
+  the generated Supabase schema types (`Tables<"User">`, `Enums<"ProfileCategory">` from
+  `src/lib/supabase/database.types.ts`) over redefining unions by hand.
 - **Server Components by default.** Only add `"use client"` when the component needs state,
   effects, event handlers, or browser-only APIs. Data fetching happens directly in `async`
-  Server Components via `prisma.*` calls — there is no data-fetching library (no SWR/React
-  Query/tRPC).
+  Server Components via the Supabase `db` client (`src/lib/supabase/db.ts`) — there is no
+  data-fetching library (no SWR/React Query/tRPC).
 - **`params`/`searchParams` are `Promise`s** in this Next.js version — always `await params`
   before destructuring, in both `page.tsx` and `layout.tsx` files with dynamic segments.
 - **No default exports named generically** — every component file's default export matches its
@@ -47,7 +43,7 @@ version has real API differences from older training data; check
   (`about`, `hub`, `ados`, `admin`, `receipt`, `questionnaire`, ...) — check
   `src/i18n/dictionaries/ar.ts`'s top-level keys before creating a new namespace; there's likely
   already one that fits.
-- **Prisma models/enums**: PascalCase models, SCREAMING_SNAKE-ish enum values matching how they
+- **DB tables/enums**: PascalCase table names, SCREAMING_SNAKE-ish enum values matching how they
   read as constants (`PARENT_TEACHER`, `SINGLE_CHOICE`).
 - **Component prop types are inlined**, not extracted to a separate `type Props = {...}` — see
   any component in `src/components/`. Keep this pattern for consistency rather than introducing
@@ -138,7 +134,7 @@ Every change in this project has been verified this way; keep doing it:
 
 ## What to avoid changing without a clear reason
 
-- Don't switch away from Postgres/Supabase, or restructure the Prisma schema's relations, without
+- Don't switch away from Postgres/Supabase, or restructure the schema's relations, without
   understanding why it's set up this way (Vercel serverless deployment forced the move off
   SQLite) — see `docs/PROJECT_CONTEXT.md` § "Why Postgres/Supabase".
 - Don't introduce a second styling approach (CSS modules, a component library, styled-jsx)

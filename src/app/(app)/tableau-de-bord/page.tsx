@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAppUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { formatPrice } from "@/lib/format";
 import { getT, interpolate } from "@/i18n/server";
 import CoachReminder from "@/components/CoachReminder";
@@ -15,10 +15,12 @@ export default async function DashboardPage() {
   const { t } = await getT();
   const coursesHref = "/tableau-de-bord/cours";
 
-  const me = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { profileCategory: true },
-  });
+  const { data: me, error: meError } = await db
+    .from("User")
+    .select("profileCategory")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (meError) throw meError;
 
   const STATUS_LABEL: Record<string, string> = {
     PENDING: t.dashboard.statusPending,
@@ -31,11 +33,12 @@ export default async function DashboardPage() {
     REJECTED: "bg-danger/10 text-danger border-danger/30",
   };
 
-  const enrollments = await prisma.enrollment.findMany({
-    where: { userId: user.id },
-    include: { course: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const { data: enrollments, error: enrollmentsError } = await db
+    .from("Enrollment")
+    .select("*, course:Course(*)")
+    .eq("userId", user.id)
+    .order("createdAt", { ascending: false });
+  if (enrollmentsError) throw enrollmentsError;
 
   const progressByCourseId = new Map(
     await Promise.all(

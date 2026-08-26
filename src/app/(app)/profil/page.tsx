@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getAppUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import PasswordChangeForm from "@/components/PasswordChangeForm";
 import PersonalInfoForm from "@/components/PersonalInfoForm";
@@ -11,10 +11,13 @@ export default async function ProfilPage() {
 
   const { t } = await getT();
 
-  const user = await prisma.user.findUnique({ where: { id: appUser.id } });
+  const { data: user, error } = await db.from("User").select("*").eq("id", appUser.id).maybeSingle();
+  if (error) throw error;
   if (!user) redirect("/connexion");
 
-  const dateOfBirthValue = user.dateOfBirth ? user.dateOfBirth.toISOString().slice(0, 10) : "";
+  // Supabase returns timestamp columns as ISO-ish strings, not Date objects (unlike Prisma) —
+  // already in a form the leading 10 characters can be sliced from directly.
+  const dateOfBirthValue = user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : "";
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-16">

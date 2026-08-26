@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import AdminSearchForm from "@/components/admin/AdminSearchForm";
 
@@ -12,10 +12,11 @@ export default async function AdminMessagesInboxPage({
   const { q } = await searchParams;
   const searchQuery = q?.trim().toLowerCase();
 
-  const allMessages = await prisma.message.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { user: true },
-  });
+  const { data: allMessages, error: messagesError } = await db
+    .from("Message")
+    .select("*, user:User(*)")
+    .order("createdAt", { ascending: false });
+  if (messagesError) throw messagesError;
 
   const seen = new Set<string>();
   const allConversations = [];
@@ -76,7 +77,7 @@ export default async function AdminMessagesInboxPage({
                   </div>
                 </div>
                 <span className="whitespace-nowrap text-xs text-ink-soft/70">
-                  {m.createdAt.toLocaleDateString("ar-MA")}
+                  {new Date(m.createdAt).toLocaleDateString("ar-MA")}
                 </span>
               </Link>
             );

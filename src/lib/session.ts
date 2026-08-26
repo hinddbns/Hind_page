@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { workspaceFromCategory } from "@/lib/workspace";
 
 export type AppUser = {
@@ -15,7 +15,7 @@ export type AppUser = {
 // The Supabase-Auth equivalent of NextAuth's auth() — always uses getUser()
 // (never getSession()) so identity is revalidated against Supabase's servers
 // rather than trusted from a client-modifiable cookie payload. Does one
-// indexed Prisma lookup per call for role/workspace, since Supabase's own
+// indexed lookup per call for role/workspace, since Supabase's own
 // session JWT only knows about auth identity, not application data — see
 // the "Session/authorization flow" tradeoff note in the migration plan.
 // Wrapped in React's cache() because both a layout and its page routinely
@@ -30,11 +30,13 @@ export const getAppUser = cache(async (): Promise<AppUser | null> => {
 
   if (!authUser) return null;
 
-  const profile = await prisma.user.findUnique({
-    where: { id: authUser.id },
-    select: { name: true, role: true, profileCategory: true },
-  });
+  const { data: profile, error } = await db
+    .from("User")
+    .select("name, role, profileCategory")
+    .eq("id", authUser.id)
+    .maybeSingle();
 
+  if (error) throw error;
   if (!profile) return null;
 
   return {

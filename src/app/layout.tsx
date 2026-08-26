@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import ToastViewport from "@/components/ToastViewport";
 import ar from "@/i18n/dictionaries/ar";
@@ -27,10 +27,8 @@ export default async function RootLayout({
   // A plain read, not upsert() — this runs on every page load site-wide, and
   // the "main" row already exists from the first admin/parametres visit, so
   // there's no need to issue a write on every request just to guarantee it.
-  const settings = await prisma.settings.findUnique({
-    where: { id: "main" },
-    select: { whatsappNumber: true },
-  });
+  const { data: settings, error } = await db.from("Settings").select("whatsappNumber").eq("id", "main").maybeSingle();
+  if (error) throw error;
 
   return (
     <html lang="ar" dir="rtl" className={`${tajawal.variable} h-full antialiased`}>

@@ -1,43 +1,49 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { requireVerifiedSession } from "@/lib/authGuard";
+
+const EPOCH = new Date(0).toISOString();
 
 export async function GET() {
   const { session, response } = await requireVerifiedSession();
   if (response) return response;
 
   if (session.user.role === "ADMIN") {
-    const users = await prisma.user.findMany({
-      where: { role: "USER" },
-      select: { id: true, messagesReadByAdminAt: true },
-    });
+    const { data: users, error: usersError } = await db
+      .from("User")
+      .select("id, messagesReadByAdminAt")
+      .eq("role", "USER");
+    if (usersError) throw usersError;
 
     let count = 0;
     for (const u of users) {
-      count += await prisma.message.count({
-        where: {
-          userId: u.id,
-          sender: "USER",
-          createdAt: { gt: u.messagesReadByAdminAt ?? new Date(0) },
-        },
-      });
+      const { count: userUnread, error: countError } = await db
+        .from("Message")
+        .select("*", { count: "exact", head: true })
+        .eq("userId", u.id)
+        .eq("sender", "USER")
+        .gt("createdAt", u.messagesReadByAdminAt ?? EPOCH);
+      if (countError) throw countError;
+      count += userUnread ?? 0;
     }
 
     return NextResponse.json({ count });
   }
 
-  const me = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { messagesReadByUserAt: true },
-  });
+  const { data: me, error: meError } = await db
+    .from("User")
+    .select("messagesReadByUserAt")
+    .eq("id", session.user.id)
+    .maybeSingle();
+  if (meError) throw meError;
 
-  const count = await prisma.message.count({
-    where: {
-      userId: session.user.id,
-      sender: { in: ["ADMIN", "SYSTEM"] },
-      createdAt: { gt: me?.messagesReadByUserAt ?? new Date(0) },
-    },
-  });
+  const { count, error: countError } = await db
+    .from("Message")
+    .select("*", { count: "exact", head: true })
+    .eq("userId", session.user.id)
+    .in("sender", ["ADMIN", "SYSTEM"])
+    .gt("createdAt", me?.messagesReadByUserAt ?? EPOCH);
+  if (countError) throw countError;
 
-  return NextResponse.json({ count });
+  return NextResponse.json({ count: count ?? 0 });
 }

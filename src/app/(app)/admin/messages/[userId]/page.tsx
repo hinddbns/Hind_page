@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import ChatPanel from "@/components/ChatPanel";
 
@@ -12,7 +12,8 @@ export default async function AdminMessageThreadPage({
   const { userId } = await params;
   const { t } = await getT();
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  const { data: user, error } = await db.from("User").select("*").eq("id", userId).maybeSingle();
+  if (error) throw error;
   if (!user) notFound();
 
   return (

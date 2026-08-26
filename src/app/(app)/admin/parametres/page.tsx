@@ -1,5 +1,7 @@
-import type { SocialPlatform } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import type { Enums } from "@/lib/supabase/database.types";
+import { db } from "@/lib/supabase/db";
+
+type SocialPlatform = Enums<"SocialPlatform">;
 import { getT } from "@/i18n/server";
 import { updateSettings, updateWhatsAppNumber, createSocialLink, deleteSocialLink } from "../actions";
 import SettingsForm from "@/components/admin/SettingsForm";
@@ -20,22 +22,25 @@ const AUDIT_ACTION_LABEL_KEY = {
 export default async function AdminSettingsPage() {
   const { t } = await getT();
 
-  const settings = await prisma.settings.upsert({
-    where: { id: "main" },
-    update: {},
-    create: { id: "main" },
-  });
+  const { data: settings, error: settingsError } = await db
+    .from("Settings")
+    .upsert({ id: "main" }, { onConflict: "id" })
+    .select()
+    .single();
+  if (settingsError) throw settingsError;
 
-  const logs = await prisma.auditLog.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 30,
-    include: { actor: { select: { name: true } } },
-  });
+  const { data: logs, error: logsError } = await db
+    .from("AuditLog")
+    .select("*, actor:User(name)")
+    .order("createdAt", { ascending: false })
+    .limit(30);
+  if (logsError) throw logsError;
 
-  const socialLinks = await prisma.socialLink.findMany({
-    include: { assignments: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const { data: socialLinks, error: socialLinksError } = await db
+    .from("SocialLink")
+    .select("*, assignments:SocialLinkAssignment(*)")
+    .order("createdAt", { ascending: true });
+  if (socialLinksError) throw socialLinksError;
 
   const platformLabel: Record<SocialPlatform, string> = {
     INSTAGRAM: t.admin.socialPlatformInstagram,
@@ -102,7 +107,7 @@ export default async function AdminSettingsPage() {
                     {labelKey ? t.admin[labelKey] : log.action}
                   </span>
                   <span className="text-xs text-ink-soft">
-                    {log.createdAt.toLocaleString("ar-MA")}
+                    {new Date(log.createdAt).toLocaleString("ar-MA")}
                   </span>
                 </li>
               );

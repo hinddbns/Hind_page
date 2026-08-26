@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
+import { db, pgTimestampToDate } from "@/lib/supabase/db";
 import { getT } from "@/i18n/server";
 import AdminSearchForm from "@/components/admin/AdminSearchForm";
 import BulkEnrollmentList from "@/components/admin/BulkEnrollmentList";
@@ -20,22 +20,29 @@ export default async function AdminDemandesPage({
     REJECTED: t.admin.statusRejected,
   };
 
-  const enrollments = await prisma.enrollment.findMany({
-    where: {
-      ...(activeAudience ? { course: { audience: activeAudience } } : {}),
-      ...(searchQuery
-        ? {
-            OR: [
-              { user: { name: { contains: searchQuery } } },
-              { user: { email: { contains: searchQuery } } },
-              { course: { title: { contains: searchQuery } } },
-            ],
-          }
-        : {}),
-    },
-    include: { user: true, course: true },
-    orderBy: [{ status: "asc" }, { createdAt: "asc" }],
-  });
+  let query = db
+    .from("Enrollment")
+    .select("*, user:User!inner(*), course:Course!inner(*)")
+    .order("status", { ascending: true })
+    .order("createdAt", { ascending: true });
+  if (activeAudience) query = query.eq("course.audience", activeAudience);
+  const { data, error } = await query;
+  if (error) throw error;
+
+  // Prisma's default `contains` is a case-sensitive literal-substring match, so
+  // String.includes reproduces it exactly. The search is kept in application
+  // code because it ORs across two different embedded relations (user, course),
+  // which PostgREST cannot express in a single request.
+  const enrollments = (
+    searchQuery
+      ? data.filter(
+          (e) =>
+            e.user.name.includes(searchQuery) ||
+            e.user.email.includes(searchQuery) ||
+            e.course.title.includes(searchQuery)
+        )
+      : data
+  ).map((e) => ({ ...e, createdAt: pgTimestampToDate(e.createdAt) }));
 
   const tabs: { value: "ADOLESCENT" | "PARENT_TEACHER" | undefined; label: string }[] = [
     { value: undefined, label: t.admin.filterAll },

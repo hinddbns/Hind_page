@@ -190,26 +190,29 @@ answer "where am I / what's next" at a glance.
   JSX, ever, even for "just one small string."
 - Comments are rare and explain *why*, never *what* — match the codebase's existing near-zero
   comment density.
-- Prefer importing Prisma-generated types (`import type { ProfileCategory } from
-  "@prisma/client"`) over hand-redeclaring the same union — the codebase has some pre-existing
-  hand-redeclarations that are tolerated debt, not a pattern to copy forward.
+- Prefer deriving types from the generated Supabase schema types (`Tables<"User">`,
+  `Enums<"ProfileCategory">` from `src/lib/supabase/database.types.ts`) over hand-redeclaring
+  the same shape/union. A few files alias these locally (`type ProfileCategory =
+  Enums<"ProfileCategory">`), which is fine — they all resolve to the same generated source.
 
 ## Architecture principles
 
 - **Server Actions for `/admin` mutations, Route Handlers for everything else.** This split is
   deliberate (see `docs/ARCHITECTURE.md`) — do not blur it for a new feature "because it's
   easier."
-- **Supabase Auth owns credentials/verification/reset; Prisma holds only profile data.**
-  `getAppUser()` (`src/lib/session.ts`) does a live, cached-per-request Prisma lookup for role/
-  workspace on every call rather than trusting a snapshotted token, so a promotion/demotion or
-  category change is live on the user's very next request — there is no re-login-to-refresh
-  tradeoff here (unlike the NextAuth-era JWT session this replaced). Don't add a caching layer on
-  top of it "for performance" without a measured reason; the lookup is one indexed query.
-- **Postgres via Supabase (moved off SQLite 2026-08-21 for Vercel deployment).** Don't add a
-  second database or an ORM abstraction "for flexibility." See `docs/PROJECT_CONTEXT.md` §
-  "Why Postgres/Supabase" for the connection-string setup (pooled `DATABASE_URL` for runtime,
-  session-pooler `DIRECT_URL` for migrations) and a documented `prisma migrate` hang to avoid
-  re-debugging from scratch.
+- **Supabase Auth owns credentials/verification/reset; the app DB holds only profile data.**
+  `getAppUser()` (`src/lib/session.ts`) does a live, cached-per-request lookup (via the Supabase
+  `db` client) for role/workspace on every call rather than trusting a snapshotted token, so a
+  promotion/demotion or category change is live on the user's very next request — there is no
+  re-login-to-refresh tradeoff here (unlike the NextAuth-era JWT session this replaced). Don't
+  add a caching layer on top of it "for performance" without a measured reason; the lookup is
+  one indexed query.
+- **Postgres via Supabase (moved off SQLite 2026-08-21 for Vercel deployment; Prisma removed
+  mid-2026).** All data access goes through the server-only service-role client
+  `src/lib/supabase/db.ts` (PostgREST over HTTPS). Don't add a second database, an ORM
+  abstraction, or reintroduce a raw connection string "for flexibility." Atomic multi-row
+  operations that PostgREST can't express in one request use Postgres RPCs — see the wrappers in
+  `db.ts` and `prisma/migrations/2026082612*–14*` for the existing ones before adding another.
 - **No state-management library, no data-fetching library.** Component-local `useState` +
   server-fetched data has been sufficient for every feature so far. If you think you need Redux
   or React Query, first check whether the actual problem is that data should be fetched in a
@@ -343,20 +346,21 @@ to object storage, now that serverless (Vercel) deployment is real, not hypothet
 
 ## Known pitfalls
 
-- **Prisma `{ field: { not: X } }` on a nullable column silently excludes `NULL` rows** (SQL
-  three-valued logic) — this already caused a real undercounting bug once. Use
-  `{ OR: [{ field: null }, { field: { in: [...] } }] }` instead whenever "not X" should include
-  "unset."
+- **A "not X" filter on a nullable column silently excludes `NULL` rows** (SQL three-valued
+  logic) — this already caused a real undercounting bug once. With the Supabase client, a bare
+  `.neq("field", X)` has this problem; use
+  `.or("field.is.null,field.in.(A,B,C)")` whenever "not X" should include "unset."
 - **`params`/`searchParams` are `Promise`s** in this Next.js version — `await` them, always, in
   both pages and layouts.
-- **`npx prisma migrate dev`/`generate` can fail with `EPERM`** on Windows if a dev server is
-  currently running (it locks the native query-engine binary) — ask the user to stop their dev
-  server rather than killing their process yourself.
+- **Timestamp columns come back from PostgREST without a zone marker** (`timestamp without time
+  zone` → `"2026-08-25T18:33:43.797"`). `new Date()` would parse those in the server's local
+  zone; use `pgTimestampToDate()` from `src/lib/supabase/db.ts` so the instant stays correct
+  regardless of host TZ.
 - **Enum-keyed `Record<string, ...>` lookup maps are easy to under-cover.** This already happened
   once (a category-label map missing the `ADOLESCENT` case). Whenever `ProfileCategory` or
   `CourseAudience` gains a value, grep for every map keyed by that enum and check all of them.
-- **A Supabase-confirmed user with no matching Prisma `User` row is treated as logged out.**
-  `getAppUser()` returns `null` if the Prisma lookup misses, even when `supabase.auth.getUser()`
+- **A Supabase-confirmed user with no matching `User` row is treated as logged out.**
+  `getAppUser()` returns `null` if the `User` lookup misses, even when `supabase.auth.getUser()`
   succeeds — this is the normal state for the brief window between `verifyOtp()` succeeding and
   `POST /api/auth/create-profile` completing (the client always calls both in sequence, but if
   you're testing/scripting against Supabase Auth directly, don't forget the second step or
@@ -392,8 +396,9 @@ to object storage, now that serverless (Vercel) deployment is real, not hypothet
 2. Find the closest existing analogous page/component in the actual codebase and read it fully
    — mirror its pattern (Server Action vs. Route Handler choice, form-feedback pattern, styling)
    rather than inventing a new approach.
-3. Check `prisma/schema.prisma` directly if the feature touches data — it's the ground truth,
-   more reliable than remembering a field name from documentation.
+3. Check `src/lib/supabase/database.types.ts` directly if the feature touches data — it's the
+   generated ground truth for tables/columns/enums, more reliable than remembering a field name
+   from documentation. (`prisma/migrations/` holds the equivalent SQL as historical reference.)
 4. Implement, adding dictionary keys for every new string as you go (not as a cleanup pass
    after).
 5. Verify: `tsc --noEmit` → `eslint` → `npm run build` → manual browser click-through. Use a
@@ -407,8 +412,9 @@ to object storage, now that serverless (Vercel) deployment is real, not hypothet
 1. **`AGENTS.md`** (auto-loaded via the `@AGENTS.md` import at the top of this file) — this
    Next.js version has real API differences from older training data.
 2. **`docs/PROJECT_CONTEXT.md`** — the map of the entire project.
-3. **`prisma/schema.prisma`** — ground truth for the data model, faster and more reliable than
-   any prose description of it.
+3. **`src/lib/supabase/database.types.ts`** — generated ground truth for the data model
+   (tables/columns/enums), faster and more reliable than any prose description of it. The
+   historical SQL under `prisma/migrations/` says the same thing in DDL form.
 4. **`src/i18n/dictionaries/ar.ts`** — check before adding any new string; the right namespace
    probably already exists.
 5. Whichever existing file is the closest sibling to what you're building (a similar page, a

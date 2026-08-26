@@ -3,7 +3,7 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import path from "node:path";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { VIDEOS_DIR } from "@/lib/uploads";
 import { getApprovedEnrollment, getLessonsWithAccess, isQuestionnaireComplete } from "@/lib/lessonAccess";
 import { requireVerifiedSession } from "@/lib/authGuard";
@@ -23,7 +23,12 @@ export async function GET(
   if (response) return response;
 
   const { lessonId } = await params;
-  const lesson = await prisma.lesson.findUnique({ where: { id: lessonId } });
+  const { data: lesson, error: lessonError } = await db
+    .from("Lesson")
+    .select("*")
+    .eq("id", lessonId)
+    .maybeSingle();
+  if (lessonError) throw lessonError;
   if (!lesson || !lesson.videoPath) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
@@ -37,13 +42,15 @@ export async function GET(
     // A course/direct-URL fetch of a video that isn't unlocked yet — the lesson
     // page itself redirects away from this, but this is the actual byte
     // source, so it has to enforce the same lock independently.
-    const course = await prisma.course.findUnique({
-      where: { id: lesson.courseId },
-      include: {
-        lessons: { orderBy: { order: "asc" } },
-        questions: { include: { options: { orderBy: { order: "asc" } } }, orderBy: { order: "asc" } },
-      },
-    });
+    const { data: course, error: courseError } = await db
+      .from("Course")
+      .select("*, lessons:Lesson(*), questions:Question(*, options:QuestionOption(*))")
+      .eq("id", lesson.courseId)
+      .order("order", { referencedTable: "lessons", ascending: true })
+      .order("order", { referencedTable: "questions", ascending: true })
+      .order("order", { referencedTable: "questions.options", ascending: true })
+      .maybeSingle();
+    if (courseError) throw courseError;
     if (!course) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }

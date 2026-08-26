@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PartyPopper } from "lucide-react";
 import { getAppUser } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/supabase/db";
 import { formatPrice } from "@/lib/format";
 import { getT, interpolate } from "@/i18n/server";
 import { demoteToUser, promoteToAdmin } from "../../actions";
@@ -24,10 +24,13 @@ export default async function AdminUserDetailPage({
   const { t } = await getT();
   const currentUser = await getAppUser();
 
-  const user = await prisma.user.findUnique({
-    where: { id },
-    include: { enrollments: { include: { course: true }, orderBy: { createdAt: "desc" } } },
-  });
+  const { data: user, error: userError } = await db
+    .from("User")
+    .select("*, enrollments:Enrollment(*, course:Course(*))")
+    .eq("id", id)
+    .order("createdAt", { referencedTable: "enrollments", ascending: false })
+    .maybeSingle();
+  if (userError) throw userError;
   if (!user) notFound();
 
   const isSelf = currentUser?.id === user.id;
@@ -74,7 +77,7 @@ export default async function AdminUserDetailPage({
           {user.dateOfBirth && (
             <>
               <dt className="font-medium text-ink">{t.auth.dateOfBirth}</dt>
-              <dd>{user.dateOfBirth.toLocaleDateString("ar-MA")}</dd>
+              <dd>{new Date(user.dateOfBirth).toLocaleDateString("ar-MA")}</dd>
             </>
           )}
           {user.profileCategory && (
@@ -86,7 +89,7 @@ export default async function AdminUserDetailPage({
           <dt className="font-medium text-ink">{t.admin.colRole}</dt>
           <dd>{user.role === "ADMIN" ? t.profil.roleAdmin : t.profil.roleUser}</dd>
           <dt className="font-medium text-ink">{t.admin.colJoined}</dt>
-          <dd>{user.createdAt.toLocaleDateString("ar-MA")}</dd>
+          <dd>{new Date(user.createdAt).toLocaleDateString("ar-MA")}</dd>
         </dl>
 
         <div className="mt-4 flex flex-wrap gap-3">
