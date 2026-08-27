@@ -6,7 +6,6 @@ type CourseCardData = {
   id: string;
   slug: string;
   title: string;
-  summary: string;
   description: string;
   price: number;
   demoVideoUrl: string | null;
@@ -71,7 +70,7 @@ export default function CourseCard({
       </Link>
       <div className="flex flex-1 flex-col p-6">
         <h3 className="font-serif text-xl text-ink">{course.title}</h3>
-        <p className="mt-3 flex-1 text-sm text-ink-soft">{course.summary}</p>
+        <p className="mt-3 flex-1 text-sm text-ink-soft line-clamp-3">{course.description}</p>
         <div className="mt-6 flex items-center justify-between">
           <span className={`font-serif text-lg ${colors.price}`}>{formatPrice(course.price)}</span>
           <Link

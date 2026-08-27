@@ -85,7 +85,7 @@ export default async function AdminCoursPage({
           >
             <div className="min-w-0">
               <p className="font-medium text-ink">{course.title}</p>
-              <p className="mt-1 line-clamp-1 text-sm text-ink-soft">{course.summary}</p>
+              <p className="mt-1 line-clamp-1 text-sm text-ink-soft">{course.description}</p>
               <p className="mt-1 text-sm text-ink-soft">
                 {formatPrice(course.price)} · {course._count.lessons} {t.courses.lessonsCount} ·{" "}
                 {course._count.enrollments} {t.admin.requestsCount}

@@ -17,7 +17,6 @@ export default function CourseForm({
   mode: "create" | "edit";
   initial?: {
     title: string;
-    summary: string;
     description: string;
     price: number;
     demoVideoUrl: string | null;
@@ -34,7 +33,7 @@ export default function CourseForm({
     if (mode === "create") {
       formRef.current?.reset();
     } else {
-      // Edit mode: collapse the panel back to its summary state now that
+      // Edit mode: collapse the panel back to its closed state now that
       // the save is confirmed by the server — never on validation/server
       // error, since this only runs when the action actually succeeded.
       setOpen(false);
@@ -114,17 +113,6 @@ export default function CourseForm({
               <option value="PARENT_TEACHER">{t.admin.audienceParentTeacher}</option>
               <option value="ADOLESCENT">{t.admin.audienceAdolescent}</option>
             </select>
-          </div>
-
-          <div className={mode === "edit" ? "sm:col-span-2" : ""}>
-            <label htmlFor={`${uid}-summary`} className="mb-1 block text-sm font-medium text-ink">{t.admin.summaryLabel}</label>
-            <input
-              id={`${uid}-summary`}
-              name="summary"
-              required
-              defaultValue={initial?.summary}
-              className="w-full rounded-lg border border-primary-light px-3 py-2 text-sm outline-none focus:border-primary"
-            />
           </div>
 
           <div className="sm:col-span-2">

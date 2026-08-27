@@ -23,7 +23,7 @@ export default function CoachReminder({
       <CoachAvatar size={64} />
       <div>
         <p className="font-serif text-lg text-ink">{site.name}</p>
-        <p className="text-xs text-ink-soft">{t.about.role}</p>
+        <p className="text-xs text-ink-soft">{t.about.roleTitle}</p>
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">{personalText}</p>
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-soft">
           <span>

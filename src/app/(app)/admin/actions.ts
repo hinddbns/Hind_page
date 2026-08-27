@@ -162,14 +162,13 @@ export async function createCourse(_prev: ActionState, formData: FormData): Prom
 
     const title = readString(formData, "title");
     const slug = readString(formData, "slug");
-    const summary = readString(formData, "summary");
     const description = readString(formData, "description");
     const demoVideoUrl = readString(formData, "demoVideoUrl");
     const price = Number(formData.get("price") ?? 0);
     const audienceRaw = readString(formData, "audience");
     const audience = audienceRaw === "ADOLESCENT" ? "ADOLESCENT" : "PARENT_TEACHER";
 
-    if (!title || !slug || !summary || !description || !Number.isFinite(price)) {
+    if (!title || !slug || !description || !Number.isFinite(price)) {
       return { error: "حقول غير صالحة." };
     }
     if (!/^[a-z0-9-]+$/.test(slug)) {
@@ -192,7 +191,6 @@ export async function createCourse(_prev: ActionState, formData: FormData): Prom
       id: randomUUID(),
       title,
       slug,
-      summary,
       description,
       price: Math.round(price),
       audience,
@@ -217,14 +215,13 @@ export async function updateCourse(
     await requireAdmin();
 
     const title = readString(formData, "title");
-    const summary = readString(formData, "summary");
     const description = readString(formData, "description");
     const demoVideoUrl = readString(formData, "demoVideoUrl");
     const price = Number(formData.get("price") ?? 0);
     const audienceRaw = readString(formData, "audience");
     const audience = audienceRaw === "ADOLESCENT" ? "ADOLESCENT" : "PARENT_TEACHER";
 
-    if (!title || !summary || !description || !Number.isFinite(price)) {
+    if (!title || !description || !Number.isFinite(price)) {
       return { error: "حقول غير صالحة." };
     }
 
@@ -241,7 +238,6 @@ export async function updateCourse(
       .from("Course")
       .update({
         title,
-        summary,
         description,
         price: Math.round(price),
         audience,

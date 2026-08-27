@@ -44,7 +44,6 @@ const ar = {
   about: {
     sectionTitle: "من هي {siteName}؟",
     roleTitle: "مدربة وعي معتمدة",
-    role: "مدربة وعي معتمدة من مؤسسة صناع القرار الدولية",
     messageTitle: "رسالتي",
     messageText:
       "نرافقك بحب في رحلة لفهم نفسك، واكتشاف حكمتك الداخلية، لتعيش بسلام مع ذاتك، والآخرين.",
@@ -413,7 +412,6 @@ const ar = {
     audienceParentTeacher: "الأمهات والأستاذات",
     filterAll: "الكل",
     titleLabel: "العنوان",
-    summaryLabel: "ملخص قصير",
     descriptionLabel: "الوصف الكامل",
     slugLabel: "المعرّف (slug، بدون مسافات)",
     priceLabel: "السعر (درهم)",

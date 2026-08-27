@@ -59,7 +59,6 @@ export default async function AdminCourseDetailPage({
 
         <div className="mt-4">
           <p className="font-serif text-lg text-ink">{course.title}</p>
-          <p className="mt-1 text-sm text-ink-soft">{course.summary}</p>
           <p className="mt-2 whitespace-pre-line text-sm text-ink-soft">{course.description}</p>
         </div>
 
@@ -87,7 +86,6 @@ export default async function AdminCourseDetailPage({
           mode="edit"
           initial={{
             title: course.title,
-            summary: course.summary,
             description: course.description,
             price: course.price,
             demoVideoUrl: course.demoVideoUrl,

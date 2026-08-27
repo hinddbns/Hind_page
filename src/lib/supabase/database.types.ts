@@ -92,7 +92,6 @@ export type Database = {
           published: boolean
           questionnaireEnabled: boolean
           slug: string
-          summary: string
           title: string
         }
         Insert: {
@@ -106,7 +105,6 @@ export type Database = {
           published?: boolean
           questionnaireEnabled?: boolean
           slug: string
-          summary: string
           title: string
         }
         Update: {
@@ -120,7 +118,6 @@ export type Database = {
           published?: boolean
           questionnaireEnabled?: boolean
           slug?: string
-          summary?: string
           title?: string
         }
         Relationships: []
