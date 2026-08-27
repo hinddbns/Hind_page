@@ -92,8 +92,16 @@ async function notifyEnrollmentStatus(enrollmentId: string, status: "APPROVED" |
 
   const emailContent =
     status === "APPROVED"
-      ? enrollmentApprovedEmail({ name: enrollment.user.name, courseTitle: enrollment.course.title })
-      : enrollmentRejectedEmail({ name: enrollment.user.name, courseTitle: enrollment.course.title });
+      ? enrollmentApprovedEmail({
+          name: enrollment.user.name,
+          courseTitle: enrollment.course.title,
+          courseSlug: enrollment.course.slug,
+        })
+      : enrollmentRejectedEmail({
+          name: enrollment.user.name,
+          courseTitle: enrollment.course.title,
+          courseSlug: enrollment.course.slug,
+        });
 
   await sendEmail({ to: enrollment.user.email, ...emailContent });
 }
