@@ -47,8 +47,8 @@ src/
       parents-enseignants/page.tsx
       connexion/page.tsx
       inscription/page.tsx
-      mot-de-passe-oublie/page.tsx     Password-reset request (Supabase resetPasswordForEmail)
-      reinitialiser-mot-de-passe/page.tsx  Password-reset confirmation (Supabase updateUser)
+      mot-de-passe-oublie/page.tsx     Password-reset request — emails a 6-digit code (Supabase resetPasswordForEmail)
+      reinitialiser-mot-de-passe/page.tsx  Recovery-OTP entry → new password (Supabase verifyOtp type:"recovery" → updateUser)
       verification-email/page.tsx     6-digit OTP entry, shown right after sign-up
 
     (app)/                  Route group: authenticated app shell
@@ -189,11 +189,16 @@ that older design anywhere and aren't sure whether it's still accurate.)
   generic error, since an unconfirmed account can't establish a session at all under Supabase
   Auth (this differs from the old NextAuth flow, which used to let an unverified session through
   and gate it downstream).
-- **Password reset**: `/mot-de-passe-oublie` calls `supabase.auth.resetPasswordForEmail(email, {
-  redirectTo: .../reinitialiser-mot-de-passe })`; `/reinitialiser-mot-de-passe` establishes the
-  recovery session from whichever URL shape Supabase used (`token_hash`, `code`, or an
-  already-parsed hash fragment — it tries all three) and then calls
-  `supabase.auth.updateUser({ password })`. Changing your password while logged in
+- **Password reset (OTP-based)**: `/mot-de-passe-oublie` calls
+  `supabase.auth.resetPasswordForEmail(email)` (no `redirectTo` — the flow uses no clickable
+  link) and redirects to `/reinitialiser-mot-de-passe?email=…`. That page collects the 6-digit
+  recovery code from the email, verifies it with
+  `supabase.auth.verifyOtp({ email, token, type: "recovery" })` — which establishes the
+  short-lived recovery session — then calls `supabase.auth.updateUser({ password })`. It has
+  three steps (`otp` → `password` → `done`) plus a countdown + resend-with-cooldown, mirroring
+  `/verification-email`. **The Supabase "Reset Password" email template must render `{{ .Token }}`**
+  (dashboard-managed — see `ROADMAP.md`), otherwise the user receives no visible code. Changing
+  your password while logged in
   (`PasswordChangeForm`, on `/profil`) re-authenticates with the current password first via
   `signInWithPassword` before calling `updateUser`, since `updateUser()` alone only requires an
   active session — without the re-auth check, anyone with a live (e.g. shared-device) session

@@ -67,7 +67,21 @@ These aren't bugs — the app works correctly — but the content/config is stil
 
 Password reset and sign-up OTP confirmation are both owned by Supabase Auth as of the 2026-08
 migration off NextAuth — Supabase sends those emails itself (through Resend as the project's
-configured SMTP provider), not through this app's `sendEmail()`/`emailTemplates.ts`. What this
+configured SMTP provider), not through this app's `sendEmail()`/`emailTemplates.ts`.
+
+> **Manual dashboard step for the OTP-based password reset (2026-08-27).** The reset flow no
+> longer uses a clickable link — `/reinitialiser-mot-de-passe` expects the user to type a
+> 6-digit code. Supabase's default **Authentication → Email Templates → "Reset Password"**
+> template only renders `{{ .ConfirmationURL }}`, so it must be edited **in the Supabase
+> dashboard** (this project has no `supabase/` config dir — templates are dashboard-only) to
+> prominently display `{{ .Token }}` and explain the code is entered on the website. Until that
+> edit is made, recovery emails arrive with no visible code and the flow cannot be completed.
+> Suggested body: a short line such as "رمز إعادة تعيين كلمة المرور:" followed by
+> `{{ .Token }}` in a large weight, plus "أدخلي هذا الرمز في الموقع لإتمام إعادة التعيين. تنتهي
+> صلاحيته خلال ساعة." The link/`{{ .ConfirmationURL }}` markup should be removed so users aren't
+> offered a dead path.
+
+What this
 app's own email pipeline still sends: enrollment-approved/rejected notifications (V2 Phase 8,
 2026-08-23), routed through one shared function, `sendEmail()` in `src/lib/email.ts`, via Resend.
 Their branded HTML + plain-text templates live in `src/lib/emailTemplates.ts` (shared RTL layout,
@@ -82,9 +96,9 @@ still open**: the real production `EMAIL_FROM` (a verified sending domain) — b
 "real domain not chosen yet" gap as the rest of the launch content, see § Blocking a real public
 launch. Once a domain exists: verify it in Resend, set `EMAIL_FROM` and `RESEND_API_KEY` in
 Vercel's environment variables — no code changes needed. This isn't a placeholder that fakes
-success; the app just doesn't claim to have sent anything it hasn't (the "check your email" copy
-on the forgot-password page reads the same either way, since the no-enumeration requirement
-means it can't say more than that regardless of transport).
+success; the app just doesn't claim to have sent anything it hasn't (the forgot-password page
+redirects to the OTP-entry screen regardless of whether the address has an account, since the
+no-enumeration requirement means it can't reveal more than that regardless of transport).
 
 ## Known gaps worth closing (not launch-blocking, but real)
 

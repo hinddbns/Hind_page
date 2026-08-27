@@ -233,12 +233,16 @@ const ar = {
     forgotPassword: "نسيت كلمة المرور؟",
 
     forgotPasswordTitle: "استعادة كلمة المرور",
-    forgotPasswordSubtitle: "أدخل بريدك الإلكتروني وسنرسل لك رابطًا لإعادة تعيين كلمة المرور.",
-    sendResetLink: "إرسال رابط الاستعادة",
+    forgotPasswordSubtitle: "أدخل بريدك الإلكتروني وسنرسل لك رمزًا مكوّنًا من 6 أرقام لإعادة تعيين كلمة المرور.",
+    sendResetCode: "إرسال الرمز",
     sending: "جارٍ الإرسال...",
-    resetLinkSentTitle: "تحقق من بريدك الإلكتروني",
-    resetLinkSentBody: "إذا كان هذا البريد الإلكتروني مرتبطًا بحساب لدينا، فسنرسل إليه رابط استعادة كلمة المرور.",
     backToLogin: "← العودة إلى تسجيل الدخول",
+
+    resetCodeTitle: "أدخل رمز الاستعادة",
+    resetCodeSubtitle: "أرسلنا رمزًا مكونًا من 6 أرقام إلى {email}. أدخليه هنا لمتابعة تعيين كلمة مرور جديدة.",
+    resetCodeLabel: "رمز الاستعادة",
+    resetCodeInvalidOrExpired: "الرمز غير صحيح أو منتهي الصلاحية. اطلبي رمزًا جديدًا.",
+    resetSessionExpired: "انتهت جلسة الاستعادة. يمكنك طلب رمز جديد.",
 
     resetPasswordTitle: "تعيين كلمة مرور جديدة",
     resetPasswordSubtitle: "اختر كلمة مرور جديدة لحسابك.",
@@ -247,8 +251,8 @@ const ar = {
     resetting: "جارٍ التعيين...",
     resetSuccessTitle: "تم تعيين كلمة المرور",
     resetSuccessBody: "يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.",
-    resetInvalidToken: "رابط الاستعادة غير صالح أو منتهي الصلاحية. يمكنك طلب رابط جديد.",
-    resetRequestNew: "طلب رابط جديد",
+    resetInvalidToken: "تعذّر تعيين كلمة المرور. قد تكون جلسة الاستعادة انتهت — اطلبي رمزًا جديدًا وحاولي مرة أخرى.",
+    resetRequestNew: "طلب رمز جديد",
 
     verifyEmailTitle: "تحقق من بريدك الإلكتروني",
     verifyEmailSubtitle: "أرسلنا رمزًا مكونًا من 6 أرقام إلى {email}",

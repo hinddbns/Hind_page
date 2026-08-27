@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -9,84 +9,133 @@ import { site } from "@/lib/site";
 import PasswordInput from "@/components/PasswordInput";
 import { createClient } from "@/lib/supabase/client";
 
+const OTP_TTL_SECONDS = 10 * 60;
+const RESEND_COOLDOWN_SECONDS = 60;
+
+function formatTime(totalSeconds: number) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 function ResetPasswordForm() {
   const { t } = useLocale();
   const params = useSearchParams();
+  const email = params.get("email") || "";
 
-  const [ready, setReady] = useState(false);
-  const [invalid, setInvalid] = useState(false);
+  const [step, setStep] = useState<"otp" | "password" | "done">("otp");
+
+  const [code, setCode] = useState("");
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(OTP_TTL_SECONDS);
+  const [cooldown, setCooldown] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [pwdError, setPwdError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // Supabase's reset-password email link establishes the recovery session
-    // via one of a few possible URL shapes depending on project settings —
-    // handle each so this page works regardless of exactly which one fires.
-    async function establishRecoverySession() {
-      const supabase = createClient();
-      const tokenHash = params.get("token_hash");
-      const code = params.get("code");
+    inputRef.current?.focus();
+  }, []);
 
-      if (tokenHash) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
-        setInvalid(!!verifyError);
-      } else if (code) {
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        setInvalid(!!exchangeError);
-      } else {
-        // No query param — either @supabase/ssr already parsed a hash-based
-        // token on client init, or the link was invalid/already used.
-        const { data } = await supabase.auth.getSession();
-        setInvalid(!data.session);
-      }
-      setReady(true);
-    }
-    establishRecoverySession();
-  }, [params]);
+  useEffect(() => {
+    if (secondsLeft <= 0) return;
+    const id = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [secondsLeft]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setInterval(() => setCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(id);
+  }, [cooldown]);
+
+  function handleCodeChange(value: string) {
+    setCode(value.replace(/\D/g, "").slice(0, 6));
+  }
+
+  async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
+    setOtpError(null);
+    if (code.length !== 6) return;
+
+    setVerifying(true);
+    const supabase = createClient();
+    // The recovery OTP establishes a short-lived recovery session; only then
+    // does updateUser({ password }) below have the rights to change it.
+    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "recovery" });
+    setVerifying(false);
+
+    if (error) {
+      setOtpError(t.auth.resetCodeInvalidOrExpired);
+      setCode("");
+      inputRef.current?.focus();
+      return;
+    }
+
+    setStep("password");
+  }
+
+  async function handleResend() {
+    setResendMessage(null);
+    setOtpError(null);
+    setResendLoading(true);
+    const supabase = createClient();
+    await supabase.auth.resetPasswordForEmail(email);
+    setResendLoading(false);
+    setResendMessage(t.auth.verifyEmailResendSuccess);
+    setSecondsLeft(OTP_TTL_SECONDS);
+    setCooldown(RESEND_COOLDOWN_SECONDS);
+    setCode("");
+    inputRef.current?.focus();
+  }
+
+  async function handleSetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setPwdError(null);
 
     if (newPassword !== confirmPassword) {
-      setError(t.auth.errorPasswordMismatch);
+      setPwdError(t.auth.errorPasswordMismatch);
       return;
     }
     if (newPassword.length < 8) {
-      setError(t.auth.errorPasswordTooShort);
+      setPwdError(t.auth.errorPasswordTooShort);
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-    setLoading(false);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSaving(false);
 
-    if (updateError) {
-      setError(t.auth.resetInvalidToken);
+    if (error) {
+      setPwdError(t.auth.resetInvalidToken);
       return;
     }
 
-    setSuccess(true);
+    setStep("done");
   }
 
-  if (!ready) return null;
-
-  if (invalid) {
+  if (!email) {
     return (
       <div className="mt-8 text-center">
-        <p className="text-sm text-danger">{t.auth.resetInvalidToken}</p>
-        <Link href="/mot-de-passe-oublie" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
+        <p className="text-sm text-danger">{t.auth.resetSessionExpired}</p>
+        <Link
+          href="/mot-de-passe-oublie"
+          className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
+        >
           {t.auth.resetRequestNew}
         </Link>
       </div>
     );
   }
 
-  if (success) {
+  if (step === "done") {
     return (
       <div className="mt-8 text-center">
         <h1 className="font-serif text-2xl text-ink">{t.auth.resetSuccessTitle}</h1>
@@ -98,49 +147,122 @@ function ResetPasswordForm() {
     );
   }
 
+  if (step === "password") {
+    return (
+      <>
+        <h1 className="mt-6 font-serif text-3xl text-ink">{t.auth.resetPasswordTitle}</h1>
+        <p className="mt-2 text-sm text-ink-soft">{t.auth.resetPasswordSubtitle}</p>
+
+        <form onSubmit={handleSetPassword} className="mt-8 flex flex-col gap-4">
+          <div>
+            <label htmlFor="reset-new-password" className="mb-1 block text-sm font-medium text-ink">
+              {t.auth.newPassword}
+            </label>
+            <PasswordInput
+              id="reset-new-password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={setNewPassword}
+            />
+          </div>
+          <div>
+            <label htmlFor="reset-confirm-password" className="mb-1 block text-sm font-medium text-ink">
+              {t.auth.confirmPassword}
+            </label>
+            <PasswordInput
+              id="reset-confirm-password"
+              required
+              minLength={8}
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+            />
+          </div>
+
+          {pwdError && (
+            <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{pwdError}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="mt-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-cream transition hover:bg-primary-dark disabled:opacity-60"
+          >
+            {saving ? t.auth.resetting : t.auth.resetPassword}
+          </button>
+        </form>
+      </>
+    );
+  }
+
   return (
     <>
-      <h1 className="mt-6 font-serif text-3xl text-ink">{t.auth.resetPasswordTitle}</h1>
-      <p className="mt-2 text-sm text-ink-soft">{t.auth.resetPasswordSubtitle}</p>
+      <h1 className="mt-6 font-serif text-3xl text-ink">{t.auth.resetCodeTitle}</h1>
+      <p className="mt-2 text-sm text-ink-soft">{t.auth.resetCodeSubtitle.replace("{email}", email)}</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
+      <form onSubmit={handleVerify} className="mt-8 flex flex-col gap-4">
         <div>
-          <label htmlFor="reset-new-password" className="mb-1 block text-sm font-medium text-ink">
-            {t.auth.newPassword}
+          <label htmlFor="reset-otp-code" className="mb-1 block text-sm font-medium text-ink">
+            {t.auth.resetCodeLabel}
           </label>
-          <PasswordInput
-            id="reset-new-password"
+          <input
+            ref={inputRef}
+            id="reset-otp-code"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
+            maxLength={6}
             required
-            minLength={8}
-            autoComplete="new-password"
-            value={newPassword}
-            onChange={setNewPassword}
+            value={code}
+            onChange={(e) => handleCodeChange(e.target.value)}
+            onPaste={(e) => {
+              e.preventDefault();
+              handleCodeChange(e.clipboardData.getData("text"));
+            }}
+            className="w-full rounded-lg border border-primary-light bg-white px-4 py-3 text-center text-2xl tracking-[0.5em] text-ink outline-none focus:border-primary"
           />
-        </div>
-        <div>
-          <label htmlFor="reset-confirm-password" className="mb-1 block text-sm font-medium text-ink">
-            {t.auth.confirmPassword}
-          </label>
-          <PasswordInput
-            id="reset-confirm-password"
-            required
-            minLength={8}
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={setConfirmPassword}
-          />
+          {secondsLeft > 0 && (
+            <p className="mt-1 text-xs text-ink-soft">
+              {t.auth.verifyEmailExpiresIn.replace("{time}", formatTime(secondsLeft))}
+            </p>
+          )}
         </div>
 
-        {error && <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{error}</p>}
+        {otpError && (
+          <p role="alert" className="rounded-lg bg-danger/10 px-4 py-2 text-sm text-danger">{otpError}</p>
+        )}
+        {resendMessage && !otpError && (
+          <p role="status" className="rounded-lg bg-success/10 px-4 py-2 text-sm text-success">{resendMessage}</p>
+        )}
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={verifying || code.length !== 6}
           className="mt-2 rounded-full bg-primary px-5 py-3 text-sm font-medium text-cream transition hover:bg-primary-dark disabled:opacity-60"
         >
-          {loading ? t.auth.resetting : t.auth.resetPassword}
+          {verifying ? t.auth.verifyEmailVerifying : t.auth.verifyEmailVerify}
         </button>
       </form>
+
+      <button
+        type="button"
+        onClick={handleResend}
+        disabled={resendLoading || cooldown > 0}
+        className="mx-auto mt-6 block text-center text-sm font-medium text-primary hover:underline disabled:cursor-not-allowed disabled:text-ink-soft disabled:no-underline"
+      >
+        {resendLoading
+          ? t.auth.verifyEmailResending
+          : cooldown > 0
+            ? t.auth.verifyEmailResendCooldown.replace("{seconds}", String(cooldown))
+            : t.auth.verifyEmailResend}
+      </button>
+
+      <Link href="/connexion" className="mt-4 text-center text-sm font-medium text-primary hover:underline">
+        {t.auth.backToLogin}
+      </Link>
     </>
   );
 }
