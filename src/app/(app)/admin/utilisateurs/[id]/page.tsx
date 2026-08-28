@@ -5,9 +5,10 @@ import { getAppUser } from "@/lib/session";
 import { db } from "@/lib/supabase/db";
 import { formatPrice } from "@/lib/format";
 import { getT, interpolate } from "@/i18n/server";
-import { demoteToUser, promoteToAdmin } from "../../actions";
+import { demoteToUser, promoteToAdmin, suspendUser, unsuspendUser } from "../../actions";
 import ConfirmActionForm from "@/components/admin/ConfirmActionForm";
 import { getCourseProgressSummary } from "@/lib/lessonAccess";
+import { isAccountSuspended } from "@/lib/suspension";
 
 const STATUS_STYLE: Record<string, string> = {
   PENDING: "border-accent/40 bg-accent/10 text-ink",
@@ -34,6 +35,7 @@ export default async function AdminUserDetailPage({
   if (!user) notFound();
 
   const isSelf = currentUser?.id === user.id;
+  const suspended = await isAccountSuspended(user.id);
 
   const progressByEnrollmentId = new Map(
     await Promise.all(
@@ -88,6 +90,18 @@ export default async function AdminUserDetailPage({
           )}
           <dt className="font-medium text-ink">{t.admin.colRole}</dt>
           <dd>{user.role === "ADMIN" ? t.profil.roleAdmin : t.profil.roleUser}</dd>
+          <dt className="font-medium text-ink">{t.admin.accountStatus}</dt>
+          <dd>
+            <span
+              className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                suspended
+                  ? "border-danger/30 bg-danger/10 text-danger"
+                  : "border-success/30 bg-success/10 text-success"
+              }`}
+            >
+              {suspended ? t.admin.accountSuspended : t.admin.accountActive}
+            </span>
+          </dd>
           <dt className="font-medium text-ink">{t.admin.colJoined}</dt>
           <dd>{new Date(user.createdAt).toLocaleDateString("ar-MA")}</dd>
         </dl>
@@ -118,6 +132,26 @@ export default async function AdminUserDetailPage({
               className="rounded-full border border-danger/30 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"
             />
           ) : null}
+
+          {!isSelf &&
+            (suspended ? (
+              <ConfirmActionForm
+                action={unsuspendUser.bind(null, user.id)}
+                successMessage={t.admin.userUnsuspendedSuccess}
+                label={t.admin.unsuspendAccount}
+                pendingLabel={t.admin.saving}
+                className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:border-primary hover:text-primary"
+              />
+            ) : (
+              <ConfirmActionForm
+                action={suspendUser.bind(null, user.id)}
+                confirmMessage={t.admin.confirmSuspend}
+                successMessage={t.admin.userSuspendedSuccess}
+                label={t.admin.suspendAccount}
+                pendingLabel={t.admin.saving}
+                className="rounded-full border border-danger/30 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10"
+              />
+            ))}
         </div>
       </div>
 

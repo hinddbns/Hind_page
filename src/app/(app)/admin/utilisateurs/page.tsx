@@ -6,6 +6,7 @@ type ProfileCategory = Enums<"ProfileCategory">;
 import { getT } from "@/i18n/server";
 import type { Dictionary } from "@/i18n/dictionaries/ar";
 import AdminSearchForm from "@/components/admin/AdminSearchForm";
+import { getSuspendedUserIds } from "@/lib/suspension";
 
 function categoryLabel(t: Dictionary, category: ProfileCategory | null) {
   switch (category) {
@@ -43,6 +44,8 @@ export default async function AdminUsersPage({
   }
   const { data, error } = await query;
   if (error) throw error;
+
+  const suspendedIds = await getSuspendedUserIds();
 
   // Prisma's default `contains` is a case-sensitive literal-substring match, so
   // String.includes reproduces it exactly, without LIKE-wildcard escaping.
@@ -107,6 +110,15 @@ export default async function AdminUsersPage({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                  suspendedIds.has(u.id)
+                    ? "border-danger/30 bg-danger/10 text-danger"
+                    : "border-success/30 bg-success/10 text-success"
+                }`}
+              >
+                {suspendedIds.has(u.id) ? t.admin.accountSuspendedShort : t.admin.accountActiveShort}
+              </span>
               {u.role === "ADMIN" && (
                 <span className="rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-xs font-medium text-secondary-dark">
                   {t.profil.roleAdmin}

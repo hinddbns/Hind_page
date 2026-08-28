@@ -25,6 +25,7 @@ import { matchesFileSignature } from "@/lib/fileSignature";
 import { recordAuditLog } from "@/lib/auditLog";
 import { sendEmail } from "@/lib/email";
 import { enrollmentApprovedEmail, enrollmentRejectedEmail } from "@/lib/emailTemplates";
+import { SUSPEND_BAN_DURATION, RESTORE_BAN_DURATION } from "@/lib/suspension";
 
 type QuestionType = Enums<"QuestionType">;
 type SocialPlatform = Enums<"SocialPlatform">;
@@ -511,6 +512,67 @@ export async function demoteToUser(
     await recordAuditLog({
       actorId: session.user.id,
       action: "USER_DEMOTED",
+      targetType: "User",
+      targetId: userId,
+    });
+    revalidatePath("/admin/utilisateurs");
+    revalidatePath(`/admin/utilisateurs/${userId}`);
+    return { ok: true };
+  });
+}
+
+export async function suspendUser(
+  userId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  return runAction(async () => {
+    const session = await requireAdmin();
+
+    if (session.user.id === userId) {
+      return { error: "لا يمكنك تعليق حسابك الخاص." };
+    }
+
+    const { data: target, error: targetError } = await db
+      .from("User")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (targetError) throw targetError;
+    if (!target) return { error: "المستخدم غير موجود." };
+
+    // Suspension is a Supabase Auth ban only — no change to public.User (role
+    // included), enrollments, progress, messages or uploads — so it is fully
+    // reversible by unsuspendUser below.
+    const { error } = await db.auth.admin.updateUserById(userId, { ban_duration: SUSPEND_BAN_DURATION });
+    if (error) throw error;
+
+    await recordAuditLog({
+      actorId: session.user.id,
+      action: "USER_SUSPENDED",
+      targetType: "User",
+      targetId: userId,
+    });
+    revalidatePath("/admin/utilisateurs");
+    revalidatePath(`/admin/utilisateurs/${userId}`);
+    return { ok: true };
+  });
+}
+
+export async function unsuspendUser(
+  userId: string,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  return runAction(async () => {
+    const session = await requireAdmin();
+
+    const { error } = await db.auth.admin.updateUserById(userId, { ban_duration: RESTORE_BAN_DURATION });
+    if (error) throw error;
+
+    await recordAuditLog({
+      actorId: session.user.id,
+      action: "USER_UNSUSPENDED",
       targetType: "User",
       targetId: userId,
     });
