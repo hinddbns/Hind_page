@@ -57,6 +57,30 @@ export async function POST() {
     ? (profileCategoryRaw as "MOTHER" | "TEACHER" | "ADOLESCENT" | "OTHER")
     : undefined;
 
+  // A `User` row may already hold this email under a different id — a leftover
+  // from a since-deleted Auth account, since removing an `auth.users` row does
+  // not cascade to `User`. Supabase Auth guarantees the email now belongs to
+  // `authUser`, so re-home that row onto the current id (the FKs are
+  // ON UPDATE CASCADE) rather than let the insert hit the `email` UNIQUE
+  // constraint — which would 500 and leave the account with no profile row,
+  // so `getAppUser()` returns null and the dashboard never renders.
+  const { data: staleByEmail, error: staleByEmailError } = await db
+    .from("User")
+    .select("id")
+    .eq("email", authUser.email)
+    .maybeSingle();
+  if (staleByEmailError) throw staleByEmailError;
+  if (staleByEmail && staleByEmail.id !== authUser.id) {
+    const { data: reclaimed, error: reclaimError } = await db
+      .from("User")
+      .update({ id: authUser.id, name, phone, dateOfBirth, profileCategory })
+      .eq("email", authUser.email)
+      .select("id, email")
+      .single();
+    if (reclaimError) throw reclaimError;
+    return NextResponse.json({ id: reclaimed.id, email: reclaimed.email });
+  }
+
   const { data: user, error: createError } = await db
     .from("User")
     .insert({ id: authUser.id, name, email: authUser.email, phone, dateOfBirth, profileCategory })
