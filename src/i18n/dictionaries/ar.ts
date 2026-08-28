@@ -277,6 +277,7 @@ const ar = {
     hello: "مرحبًا {name}",
     subtitle: "هذه حالة دوراتك.",
     noEnrollments: "لم تطلب بعد الوصول إلى أي دورة.",
+    dashboardEmptyTitle: "ابدأ رحلتك التعليمية",
     discoverCourses: "اكتشف الدورات",
     accessMore: "+ طلب الوصول إلى دورة أخرى",
     view: "عرض",

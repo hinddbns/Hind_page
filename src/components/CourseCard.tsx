@@ -44,11 +44,14 @@ export default function CourseCard({
   ctaLabel,
   demoLabel,
   variant = "primary",
+  statusBadge,
 }: {
   course: CourseCardData;
   ctaLabel: string;
   demoLabel: string;
   variant?: keyof typeof VARIANTS;
+  /** Optional availability/status pill shown above the title (e.g. "متاح للاشتراك"). */
+  statusBadge?: string;
 }) {
   const hasDemo = course.demoVideoUrl || course.demoVideoPath;
   const colors = VARIANTS[variant];
@@ -69,6 +72,11 @@ export default function CourseCard({
         )}
       </Link>
       <div className="flex flex-1 flex-col p-6">
+        {statusBadge && (
+          <span className="mb-2 w-fit rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent-dark">
+            {statusBadge}
+          </span>
+        )}
         <h3 className="font-serif text-xl text-ink">{course.title}</h3>
         <p className="mt-3 flex-1 text-sm text-ink-soft line-clamp-3">{course.description}</p>
         <div className="mt-6 flex items-center justify-between">

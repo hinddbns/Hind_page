@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAppUser } from "@/lib/session";
 import { db } from "@/lib/supabase/db";
-import { formatPrice } from "@/lib/format";
-import { getT, interpolate } from "@/i18n/server";
+import { getT } from "@/i18n/server";
+import CourseCard from "@/components/CourseCard";
+import EnrolledCourseCard from "@/components/EnrolledCourseCard";
 import { getCourseProgressSummary } from "@/lib/lessonAccess";
 
 export default async function CoursesPage() {
@@ -12,17 +12,6 @@ export default async function CoursesPage() {
   if (user.role === "ADMIN") redirect("/admin");
 
   const { t } = await getT();
-
-  const STATUS_LABEL: Record<string, string> = {
-    PENDING: t.dashboard.statusPending,
-    APPROVED: t.dashboard.statusApproved,
-    REJECTED: t.dashboard.statusRejected,
-  };
-  const STATUS_STYLE: Record<string, string> = {
-    PENDING: "bg-accent/10 text-ink border-accent/40",
-    APPROVED: "bg-success/10 text-success border-success/30",
-    REJECTED: "bg-danger/10 text-danger border-danger/30",
-  };
 
   const { data: enrollments, error: enrollmentsError } = await db
     .from("Enrollment")
@@ -54,124 +43,51 @@ export default async function CoursesPage() {
   if (availableCoursesError) throw availableCoursesError;
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-16">
+    <div className="mx-auto max-w-4xl px-6 py-10 md:py-14">
       <h1 className="font-serif text-3xl text-ink">{t.dashboard.coursesPageTitle}</h1>
-      <p className="mt-2 text-ink-soft">{t.dashboard.coursesPageSubtitle}</p>
+      <p className="mt-1.5 text-ink-soft">{t.dashboard.coursesPageSubtitle}</p>
 
       <section className="mt-10">
         <h2 className="font-serif text-xl text-ink">{t.dashboard.myCoursesTitle}</h2>
         <p className="mt-1 text-sm text-ink-soft">{t.dashboard.myCoursesSubtitle}</p>
 
         {enrollments.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-primary-light/50 bg-white p-8 text-center">
-            <p className="text-ink-soft">{t.dashboard.noEnrollments}</p>
+          <div className="mt-4 rounded-2xl border border-primary-light/60 bg-white px-6 py-10 text-center">
+            <p className="text-sm text-ink-soft">{t.dashboard.noEnrollments}</p>
           </div>
         ) : (
-          <div className="mt-4 flex flex-col gap-4">
-            {enrollments.map((e) => {
-              const progress = progressByCourseId.get(e.courseId);
-              const continueHref =
-                progress && !progress.isComplete && progress.currentLessonId
-                  ? `/tableau-de-bord/cours/${e.course.slug}/lecon/${progress.currentLessonId}`
-                  : `/tableau-de-bord/cours/${e.course.slug}`;
-
-              return (
-                <div
-                  key={e.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-primary-light/50 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <h3 className="font-serif text-lg text-ink">{e.course.title}</h3>
-                    <p className="text-sm text-ink-soft">{formatPrice(e.course.price)}</p>
-                    {progress && progress.totalLessons > 0 && (
-                      <div className="mt-3 max-w-xs">
-                        <div className="flex items-center justify-between gap-2 text-xs text-ink-soft">
-                          <span>
-                            {interpolate(t.lessonContent.progressLabel, {
-                              completed: String(progress.completedLessons),
-                              total: String(progress.totalLessons),
-                            })}
-                          </span>
-                          <span>
-                            {interpolate(t.lessonContent.percentComplete, { percent: String(progress.percent) })}
-                          </span>
-                        </div>
-                        <div
-                          className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-cream-dark"
-                          role="progressbar"
-                          aria-valuenow={progress.percent}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-label={t.lessonContent.courseProgressAriaLabel}
-                        >
-                          <div
-                            className="h-full rounded-full bg-primary transition-all"
-                            style={{ width: `${progress.percent}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-medium ${STATUS_STYLE[e.status]}`}
-                    >
-                      {STATUS_LABEL[e.status]}
-                    </span>
-                    {e.status === "APPROVED" ? (
-                      <Link
-                        href={continueHref}
-                        className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-cream hover:bg-primary-dark"
-                      >
-                        {t.dashboard.continueCourse}
-                      </Link>
-                    ) : (
-                      <Link
-                        href={`/cours/${e.course.slug}`}
-                        className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-cream"
-                      >
-                        {t.dashboard.view}
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            {enrollments.map((e) => (
+              <EnrolledCourseCard
+                key={e.id}
+                t={t}
+                course={e.course}
+                status={e.status}
+                progress={progressByCourseId.get(e.courseId)}
+              />
+            ))}
           </div>
         )}
       </section>
 
-      <section className="mt-14">
+      <section className="mt-12">
         <h2 className="font-serif text-xl text-ink">{t.dashboard.availableCoursesTitle}</h2>
         <p className="mt-1 text-sm text-ink-soft">{t.dashboard.availableCoursesSubtitle}</p>
 
         {availableCourses.length === 0 ? (
-          <div className="mt-4 rounded-2xl border border-primary-light/50 bg-cream-dark/40 p-8 text-center">
-            <p className="text-ink-soft">{t.dashboard.noAvailableCourses}</p>
+          <div className="mt-4 rounded-2xl border border-primary-light/60 bg-cream-dark/30 px-6 py-10 text-center">
+            <p className="text-sm text-ink-soft">{t.dashboard.noAvailableCourses}</p>
           </div>
         ) : (
-          <div className="mt-4 flex flex-col gap-4">
+          <div className="mt-5 grid gap-6 sm:grid-cols-2">
             {availableCourses.map((course) => (
-              <div
+              <CourseCard
                 key={course.id}
-                className="flex flex-col gap-3 rounded-2xl border border-primary-light/50 bg-white p-6 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <h3 className="font-serif text-lg text-ink">{course.title}</h3>
-                  <p className="text-sm text-ink-soft">{formatPrice(course.price)}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-xs font-medium text-ink">
-                    {t.dashboard.availableToEnrollBadge}
-                  </span>
-                  <Link
-                    href={`/cours/${course.slug}`}
-                    className="rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary hover:text-cream"
-                  >
-                    {t.dashboard.viewCourseAvailable}
-                  </Link>
-                </div>
-              </div>
+                course={course}
+                ctaLabel={t.dashboard.viewCourseAvailable}
+                demoLabel={t.courses.watchDemo}
+                statusBadge={t.dashboard.availableToEnrollBadge}
+              />
             ))}
           </div>
         )}
