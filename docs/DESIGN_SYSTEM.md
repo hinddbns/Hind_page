@@ -184,7 +184,13 @@ exists.)
 **Circular portrait (free course presenter).** `/cours-gratuit` shows the presenter as a circle
 (`size-24`, `md:size-28` — 96/112 px, `rounded-full`); an inner uniform `scale-[1.8]
 origin-[50%_9%]` wrapper zooms the half-length `personal.webp` onto the face without distortion
-or a separate asset (retune if the photo changes). The booking CTA button uses WhatsApp's dark
-brand green `#075E54` (white text passes WCAG AA; the bright `#25D366` of the small floating icon
-button would not). Otherwise the page uses only the neutral `primary`/`secondary` accents — never
-`accent` (ados) or `olive` (parents).
+or a separate asset (retune if the photo changes).
+
+**Free course palette.** By owner decision (the free course speaks to mothers and teachers),
+`/cours-gratuit` reuses the mothers & teachers space's palette rather than the neutral one:
+`bg-parents-bg` page, `bg-parents-bg-alt` + `border-olive-light` footer, `bg-olive-dark text-cream`
+label pill (same as that page's hero badge), `shadow-olive/*`, `border-olive-light/*` dividers and
+`text-olive-dark` presenter description. The booking CTA uses the space's button shape on
+`bg-olive-dark` rather than `bg-olive`: cream on olive is ~4.4:1, just under WCAG AA for 16px text,
+while olive-dark is ~6.7:1. It never uses `accent` (ados). The shared `SocialLinks` icons and the
+global floating WhatsApp button keep their own styling, exactly as on `/parents-enseignants`.

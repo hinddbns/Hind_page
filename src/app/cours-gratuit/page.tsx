@@ -85,7 +85,7 @@ export default async function FreeCoursePage() {
       {preview && (
         <div
           role="status"
-          className="mb-8 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-primary-light bg-primary-light/30 px-4 py-3 text-sm text-primary-dark"
+          className="mb-8 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-olive-light bg-olive-light/40 px-4 py-3 text-sm text-olive-dark"
         >
           <span>{t.freeCourse.previewBanner}</span>
           <Link href="/admin/cours-gratuit" className="font-medium underline underline-offset-4">
@@ -98,7 +98,7 @@ export default async function FreeCoursePage() {
         {/* The title isn't shown visually, but stays the page's one <h1> for screen readers/SEO. */}
         <h1 className="sr-only">{course.title}</h1>
         {course.eyebrow && (
-          <p className="text-base font-medium text-secondary [text-align-last:center]">{course.eyebrow}</p>
+          <p className="inline-block rounded-full bg-olive-dark px-4 py-1.5 text-base font-medium text-cream">{course.eyebrow}</p>
         )}
         {paragraphs.length > 0 && (
           <div className="mx-auto mt-4 flex max-w-2xl flex-col gap-4 text-base leading-loose text-ink-soft md:text-lg">
@@ -113,7 +113,7 @@ export default async function FreeCoursePage() {
 
       <div className={`mt-8 ${aspect.width}`}>
         {hasVideo ? (
-          <div className={`relative overflow-hidden rounded-2xl bg-black shadow-xl shadow-primary/10 ${aspect.frame}`}>
+          <div className={`relative overflow-hidden rounded-2xl bg-black shadow-lg shadow-olive/10 ${aspect.frame}`}>
             <iframe
               src={buildBunnyEmbedUrl({ libraryId: course.bunnyLibraryId!, videoId: course.bunnyVideoId! })}
               title={interpolate(t.freeCourse.videoTitle, { title: course.title })}
@@ -128,7 +128,7 @@ export default async function FreeCoursePage() {
           // Only an admin preview can reach this branch: a published row always has a video
           // (enforced by isPublishable() and the FreeCourse_publish_complete constraint).
           <div
-            className={`flex items-center justify-center rounded-2xl border border-dashed border-primary-light bg-cream-dark/60 p-6 text-center text-sm text-ink-soft ${aspect.frame}`}
+            className={`flex items-center justify-center rounded-2xl border border-dashed border-olive-light bg-parents-bg-alt/60 p-6 text-center text-sm text-ink-soft ${aspect.frame}`}
           >
             {t.freeCourse.previewNoVideo}
           </div>
@@ -143,13 +143,13 @@ export default async function FreeCoursePage() {
           <p className="mt-1 text-sm text-ink-soft [text-align-last:center] md:text-base">
             {t.freeCourse.ctaSubheading}
           </p>
-          {/* WhatsApp's dark brand green: white text on it passes WCAG AA, unlike the bright
-              #25D366 used for the small floating icon button. */}
+          {/* The mothers space's button style, on its darker olive token: cream text on olive-dark
+              passes WCAG AA, while on plain olive (~4.4:1) it falls just short at this size. */}
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#075E54] px-7 py-3 text-base font-medium text-white shadow-lg shadow-black/10 transition hover:bg-[#054D44]"
+            className="mt-4 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-olive-dark px-7 py-3 text-base font-medium text-cream shadow-lg shadow-olive/20 transition hover:opacity-90"
           >
             <WhatsAppIcon size={22} />
             {t.freeCourse.ctaButton}
@@ -157,7 +157,7 @@ export default async function FreeCoursePage() {
         </section>
       ) : (
         preview && (
-          <p role="note" className="mt-8 rounded-2xl border border-dashed border-primary-light p-4 text-center text-sm text-primary-dark">
+          <p role="note" className="mt-8 rounded-2xl border border-dashed border-olive-light p-4 text-center text-sm text-olive-dark">
             {t.freeCourse.ctaUnavailablePreview}
           </p>
         )
@@ -166,11 +166,11 @@ export default async function FreeCoursePage() {
       {course.showHost && (
         <section
           aria-label={t.freeCourse.hostSectionLabel}
-          className="mx-auto mt-12 flex w-fit max-w-xl items-center gap-4 border-t border-primary-light/40 pt-8"
+          className="mx-auto mt-12 flex w-fit max-w-xl items-center gap-4 border-t border-olive-light/60 pt-8"
         >
           {/* Circular crop; the inner uniform scale zooms the half-length portrait onto the face
               without distorting it. */}
-          <div className="relative size-24 shrink-0 overflow-hidden rounded-full bg-cream-dark md:size-28">
+          <div className="relative size-24 shrink-0 overflow-hidden rounded-full bg-parents-bg-alt ring-2 ring-olive-light md:size-28">
             <div className="absolute inset-0 origin-[50%_9%] scale-[1.8]">
               <Image
                 src={site.coachPhoto}
@@ -183,7 +183,7 @@ export default async function FreeCoursePage() {
           </div>
           <div className="min-w-0">
             <p className="font-medium text-ink">{site.name}</p>
-            <p className="mt-1 whitespace-pre-line text-start text-sm leading-relaxed text-secondary [text-align-last:start]">
+            <p className="mt-1 whitespace-pre-line text-start text-sm leading-relaxed text-olive-dark [text-align-last:start]">
               {course.hostIntro ?? site.tagline}
             </p>
           </div>

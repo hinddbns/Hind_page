@@ -26,7 +26,7 @@ export default function FreeCourseError({
       <button
         type="button"
         onClick={() => unstable_retry()}
-        className="mt-8 rounded-full bg-primary px-6 py-3 text-sm font-medium text-cream transition hover:bg-primary-dark"
+        className="mt-8 rounded-full bg-olive-dark px-6 py-3 text-sm font-medium text-cream shadow-lg shadow-olive/20 transition hover:opacity-90"
       >
         {t.errors.tryAgain}
       </button>
