@@ -26,6 +26,19 @@ import { recordAuditLog } from "@/lib/auditLog";
 import { sendEmail } from "@/lib/email";
 import { enrollmentApprovedEmail, enrollmentRejectedEmail } from "@/lib/emailTemplates";
 import { SUSPEND_BAN_DURATION, RESTORE_BAN_DURATION } from "@/lib/suspension";
+import { parseBunnyReference, type BunnyReferenceError } from "@/lib/bunny";
+import { FREE_COURSE_ID, FREE_COURSE_PATH, fetchFreeCourse } from "@/lib/freeCourse";
+import {
+  FREE_COURSE_LIMITS,
+  getContentProblems,
+  getPublishBlockers,
+  isVideoAspect,
+  normalizeFreeCourseContent,
+  type FreeCourseContentProblem,
+} from "@/lib/freeCourseRules";
+import { getT } from "@/i18n/server";
+import { interpolate } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries/ar";
 
 type QuestionType = Enums<"QuestionType">;
 type SocialPlatform = Enums<"SocialPlatform">;
@@ -798,6 +811,149 @@ export async function deleteSocialLink(
     const { error } = await db.from("SocialLink").delete().eq("id", linkId);
     if (error) throw error;
     revalidateSocialLinkSurfaces();
+    return { ok: true };
+  });
+}
+
+function bunnyReferenceMessage(error: BunnyReferenceError, t: Dictionary) {
+  const messages: Record<BunnyReferenceError, string> = {
+    missing_library_id: t.freeCourseAdmin.errorMissingLibraryId,
+    invalid_library_id: t.freeCourseAdmin.errorInvalidLibraryId,
+    invalid_video_id: t.freeCourseAdmin.errorInvalidVideoId,
+    unsupported_url: t.freeCourseAdmin.errorUnsupportedUrl,
+    library_id_mismatch: t.freeCourseAdmin.errorLibraryIdMismatch,
+  };
+  return messages[error];
+}
+
+function freeCourseContentMessage(problem: FreeCourseContentProblem, t: Dictionary) {
+  const tooLong = (template: string, max: number) => interpolate(template, { max: String(max) });
+  const messages: Record<FreeCourseContentProblem, string> = {
+    titleTooLong: tooLong(t.freeCourseAdmin.errorTitleTooLong, FREE_COURSE_LIMITS.title),
+    eyebrowTooLong: tooLong(t.freeCourseAdmin.errorEyebrowTooLong, FREE_COURSE_LIMITS.eyebrow),
+    introductionTooLong: tooLong(t.freeCourseAdmin.errorIntroductionTooLong, FREE_COURSE_LIMITS.introduction),
+    hostIntroTooLong: tooLong(t.freeCourseAdmin.errorHostIntroTooLong, FREE_COURSE_LIMITS.hostIntro),
+    seoTitleTooLong: tooLong(t.freeCourseAdmin.errorSeoTitleTooLong, FREE_COURSE_LIMITS.seoTitle),
+    seoDescriptionTooLong: tooLong(t.freeCourseAdmin.errorSeoDescriptionTooLong, FREE_COURSE_LIMITS.seoDescription),
+    invalidLibraryId: t.freeCourseAdmin.errorInvalidLibraryId,
+    invalidVideoId: t.freeCourseAdmin.errorInvalidVideoId,
+    invalidVideoAspect: t.freeCourseAdmin.errorInvalidVideoAspect,
+  };
+  return messages[problem];
+}
+
+// Postgres check_violation — the FreeCourse CHECK constraints (lengths, ID formats, publish
+// completeness) backing up the application-level validation above them.
+const PG_CHECK_VIOLATION = "23514";
+
+function revalidateFreeCourse() {
+  revalidatePath("/admin/cours-gratuit");
+  revalidatePath(FREE_COURSE_PATH);
+}
+
+export async function updateFreeCourse(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return runAction(async () => {
+    const session = await requireAdmin();
+    const { t } = await getT();
+
+    const reference = parseBunnyReference(readString(formData, "bunnyReference"), readString(formData, "bunnyLibraryId"));
+    if (!reference.ok) throw new AdminActionError(bunnyReferenceMessage(reference.error, t));
+
+    const videoAspect = readString(formData, "videoAspect");
+    if (!isVideoAspect(videoAspect)) throw new AdminActionError(t.freeCourseAdmin.errorInvalidVideoAspect);
+
+    const content = normalizeFreeCourseContent({
+      title: readString(formData, "title"),
+      eyebrow: readString(formData, "eyebrow"),
+      introduction: String(formData.get("introduction") ?? ""),
+      bunnyLibraryId: reference.libraryId,
+      bunnyVideoId: reference.videoId,
+      videoAspect,
+      showHost: formData.get("showHost") === "on",
+      hostIntro: readString(formData, "hostIntro"),
+      seoTitle: readString(formData, "seoTitle"),
+      seoDescription: readString(formData, "seoDescription"),
+      indexable: formData.get("indexable") === "on",
+    });
+
+    const problems = getContentProblems(content);
+    if (problems.length > 0) throw new AdminActionError(freeCourseContentMessage(problems[0], t));
+
+    const current = await fetchFreeCourse();
+    if (current?.published && getPublishBlockers(content).length > 0) {
+      throw new AdminActionError(t.freeCourseAdmin.errorPublishedIncomplete);
+    }
+
+    const updatedAt = new Date().toISOString();
+    const expectedUpdatedAt = readString(formData, "updatedAt");
+
+    if (!current) {
+      // Only reachable if the migration's seed row was removed — recreate it as a draft.
+      const { error } = await db
+        .from("FreeCourse")
+        .insert({ id: FREE_COURSE_ID, ...content, published: false, updatedAt });
+      if (error?.code === "23505") throw new AdminActionError(t.freeCourseAdmin.errorConflict);
+      if (error?.code === PG_CHECK_VIOLATION) throw new AdminActionError(t.admin.genericError);
+      if (error) throw error;
+    } else {
+      if (!expectedUpdatedAt) throw new AdminActionError(t.freeCourseAdmin.errorConflict);
+      // Optimistic concurrency: the update only applies if nobody saved since this form loaded.
+      const { data, error } = await db
+        .from("FreeCourse")
+        .update({ ...content, updatedAt })
+        .eq("id", FREE_COURSE_ID)
+        .eq("updatedAt", expectedUpdatedAt)
+        .select("id");
+      if (error?.code === PG_CHECK_VIOLATION) throw new AdminActionError(t.freeCourseAdmin.errorPublishedIncomplete);
+      if (error) throw error;
+      if (data.length === 0) throw new AdminActionError(t.freeCourseAdmin.errorConflict);
+    }
+
+    await recordAuditLog({
+      actorId: session.user.id,
+      action: "FREE_COURSE_UPDATED",
+      targetType: "FreeCourse",
+      targetId: FREE_COURSE_ID,
+    });
+    revalidateFreeCourse();
+    return { ok: true };
+  });
+}
+
+export async function setFreeCoursePublished(
+  published: boolean,
+  _prev: ActionState,
+  _formData: FormData
+): Promise<ActionState> {
+  return runAction(async () => {
+    const session = await requireAdmin();
+    const { t } = await getT();
+
+    const current = await fetchFreeCourse();
+    if (!current) throw new AdminActionError(t.freeCourseAdmin.errorMissingRecord);
+    if (published && getPublishBlockers(current).length > 0) {
+      throw new AdminActionError(t.freeCourseAdmin.errorPublishIncomplete);
+    }
+
+    if (current.published !== published) {
+      // updatedAt is deliberately left alone: it versions the *content* for the edit form's
+      // conflict check, so publishing doesn't invalidate (or remount) an open, unsaved form.
+      const { error } = await db
+        .from("FreeCourse")
+        .update({ published, publishedAt: published ? new Date().toISOString() : null })
+        .eq("id", FREE_COURSE_ID);
+      if (error?.code === PG_CHECK_VIOLATION) throw new AdminActionError(t.freeCourseAdmin.errorPublishIncomplete);
+      if (error) throw error;
+
+      await recordAuditLog({
+        actorId: session.user.id,
+        action: published ? "FREE_COURSE_PUBLISHED" : "FREE_COURSE_UNPUBLISHED",
+        targetType: "FreeCourse",
+        targetId: FREE_COURSE_ID,
+      });
+    }
+
+    revalidateFreeCourse();
     return { ok: true };
   });
 }

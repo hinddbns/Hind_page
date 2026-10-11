@@ -17,6 +17,9 @@ const AUDIT_ACTION_LABEL_KEY = {
   ENROLLMENT_REJECTED: "auditActionEnrollmentRejected",
   USER_PROMOTED: "auditActionUserPromoted",
   USER_DEMOTED: "auditActionUserDemoted",
+  FREE_COURSE_UPDATED: "auditActionFreeCourseUpdated",
+  FREE_COURSE_PUBLISHED: "auditActionFreeCoursePublished",
+  FREE_COURSE_UNPUBLISHED: "auditActionFreeCourseUnpublished",
 } as const;
 
 export default async function AdminSettingsPage() {

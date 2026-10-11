@@ -38,6 +38,11 @@ const PLATFORM_META: { key: SocialPlatformKey; label: string; Icon: React.Compon
   { key: "tiktok", label: "TikTok", Icon: Music2 },
 ];
 
+/** Whether `<SocialLinks>` would render anything — lets a caller hide its own heading too. */
+export function hasVisibleSocialLinks(links: SocialLinksMap) {
+  return PLATFORM_META.some(({ key }) => links[key]);
+}
+
 export default function SocialLinks({
   className = "",
   links,

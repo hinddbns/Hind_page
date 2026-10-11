@@ -58,7 +58,10 @@ These aren't bugs — the app works correctly — but the content/config is stil
   Bunny Stream specifically (signed playback URLs, player stays in-app, local video kept as a
   `bunnyVideoId ? Bunny : local` fallback during migration). Needs: a Bunny Stream library created,
   its Library ID, and a Stream API key with permission to create videos and generate signed
-  playback URLs.
+  playback URLs. **Related, but separate:** the standalone free course (`/cours-gratuit`, see
+  `ARCHITECTURE.md` § Free course) already uses Bunny — public, unsigned embeds from a
+  **dedicated public library**, no API key. Keep the lesson library separate (token auth is a
+  library-wide setting); reuse `src/lib/bunny.ts` for parsing, adding signing there for lessons.
 - **Demo videos** (`public/uploads/demos/`) are committed to the repo and served as static
   files — fine at their current tiny placeholder size (~28KB each); revisit if real demo videos
   are large, since they'd bloat the git repo and the deployed bundle.
@@ -135,7 +138,8 @@ no-enumeration requirement means it can't reveal more than that regardless of tr
   PROJECT_CONTEXT.md's "Honest gaps" note).
 - **No automated tests.** Every verification pass in this project so far has been manual
   (`tsc`, `eslint`, `npm run build`, and a throwaway QA account clicking through the browser).
-  There is no unit/integration/e2e test suite. If the codebase keeps growing, this is the single
+  There is no integration/e2e suite — only small `node:test` unit tests for pure helpers
+  (`npm test`, added with the free course). If the codebase keeps growing, this is the single
   highest-leverage investment to reduce regressions — see CONTRIBUTING.md for how manual
   verification is currently done in its place.
 - **Toggle-button-group pattern is duplicated** (profile-category picker in 3 places, admin

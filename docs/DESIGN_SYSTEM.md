@@ -177,6 +177,13 @@ Next's file-convention icons (see `app-icons.md` in the Next docs) — at 16×16
 the fine linework compresses into a soft blob; a purpose-cropped square version would render
 sharper if that's ever revisited.
 
-`CoachPortrait.tsx` is a **placeholder** (gradient blob + initial letter) standing in for a real
-photo of the coach — this is a known temporary state, not a finished design choice (see
-PROJECT_CONTEXT.md § Known Issues).
+Real coach photos are in `public/` (`personal.webp`, `me.png`, `coach-work.jpg`) and referenced
+via `site.ts`. (An older `CoachPortrait.tsx` placeholder described in earlier docs no longer
+exists.)
+
+**Arch portrait (free course byline).** `/cours-gratuit` shows a small portrait (72×90 px mobile,
+88×110 px from `md:`) cropped as an arch — `rounded-t-full rounded-b-2xl` — echoing the logo's
+arch motif; an inner `scale-[1.7] origin-[50%_5%]` wrapper zooms `personal.webp` onto head and
+shoulders without a separate asset. It's intentionally the only place this shape is used: a
+quiet signature for the standalone page, not a general card style. That page uses only the
+neutral `primary`/`secondary` accents — never `accent` (ados) or `olive` (parents).

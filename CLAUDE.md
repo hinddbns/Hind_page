@@ -296,7 +296,9 @@ Don't "complete" these without being asked — they were scoped out deliberately
 - Rate limiting beyond the login endpoint.
 - Per-workspace bank details or WhatsApp number (one shared set serves both, by explicit
   decision).
-- Any automated test suite (verification is manual today — see `docs/CONTRIBUTING.md`).
+- Any app-wide automated test suite (verification is manual today — see `docs/CONTRIBUTING.md`).
+  The one exception, approved 2026-10-11: small `node:test` unit tests for pure helpers
+  (`npm test`, via the existing `tsx`), no test framework.
 - Booking/scheduling for individual consultations, and a books/articles content type — both are
   described on the hub's "خدماتنا" section as *offerings*, with zero functionality behind them.
 
@@ -379,8 +381,11 @@ to object storage, now that serverless (Vercel) deployment is real, not hypothet
 - Wiring a new admin button directly to a raw form submit instead of `ConfirmActionForm`.
 - Adding a new admin Server Action that throws a raw `Error` instead of `AdminActionError`
   wrapped in `runAction()`.
-- Calling a task "done" without running `tsc --noEmit`, `eslint`, and `npm run build` — there is
-  no test suite catching you otherwise.
+- Calling a task "done" without running `npm test`, `tsc --noEmit`, `eslint`, and `npm run build`
+  — beyond a few pure-helper unit tests, there is no test suite catching you otherwise.
+- Hardcoding free-course content (`/cours-gratuit`) in code or the dictionary — it lives in the
+  `FreeCourse` table and is edited at `/admin/cours-gratuit`; drafts are only ever shown to
+  admins via `getFreeCourseForViewer()` (see `docs/ARCHITECTURE.md` § Free course).
 - Leaving throwaway QA accounts, test enrollments, or test uploads in the database after manual
   verification. Every session's history has ended with a clean DB; don't be the exception.
 - Inventing plausible-looking fake content (a fake Instagram handle, a fake bank RIB, a fake

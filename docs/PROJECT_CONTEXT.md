@@ -63,7 +63,7 @@ workspace has zero real courses yet).
 | Fonts | **Tajawal** (Google Font, via `next/font/google`) — the only typeface in the app |
 | Dev seed | None. Sign up through the app, then promote a `User` row to `role = ADMIN` directly in Supabase. |
 | Linting | **ESLint 9**, `eslint-config-next` |
-| Testing | **None.** No test framework, no CI. Verification is manual (see `CONTRIBUTING.md`). |
+| Testing | No test framework, no CI. Small `node:test` unit tests for pure helpers only (`npm test`, via the existing `tsx`); everything else is verified manually (see `CONTRIBUTING.md`). |
 | File storage (receipts) | **Supabase Storage**, private `receipts` bucket, same project as the
   database. Accessed only server-side via the service-role key — see `ARCHITECTURE.md` § File
   uploads & serving. |
@@ -136,6 +136,12 @@ Naming conventions for why.
 | `/cours` | `cours/page.tsx` | Flat, unfiltered catalog of every published course. **Legacy** — no longer linked from the public nav (superseded by the two workspace-specific catalogs) but still functional; kept as a safe fallback. See `ROADMAP.md` for the open question of whether to retire it fully. | Functional, low-priority to revisit. |
 | `/cours/[slug]` | `cours/[slug]/page.tsx` | Public course detail: demo video (public preview), lesson list (titles only if not enrolled), and the enrollment/receipt-upload UI (`UploadReceiptForm`). The "back to catalog" link routes to `/ados` or `/parents-enseignants` based on the course's own `audience`, not the visitor's login state. | Fully built. |
 
+### Standalone free course (`cours-gratuit/`, own minimal layout)
+
+| Route | File | Purpose | Status |
+|---|---|---|---|
+| `/cours-gratuit` | `cours-gratuit/page.tsx` | Public, login-free page for **one free video** (Bunny Stream embed): logo, title, video, introduction, subtle arch-portrait byline, Global social links, minimal footer. No site nav, no audience links, in no catalog. Content comes from the `FreeCourse` table; drafts 404 for everyone except admins (preview banner). Not a `Course` row. See `ARCHITECTURE.md` § Free course. | Built; needs the migration applied, then Bunny setup and real content before publishing. |
+
 ### Authenticated app (route group `(app)`)
 
 | Route | File | Purpose | Status |
@@ -150,6 +156,7 @@ Naming conventions for why.
 | `/admin/cours/[id]` | `admin/cours/[id]/page.tsx` | Single course: read-only overview, edit form (`CourseForm`), lesson list with edit (`LessonForm`) + delete, add-lesson form. | Fully built. |
 | `/admin/cours/[id]/questionnaire` | `.../questionnaire/page.tsx` | Questionnaire builder for one course: on/off toggle (with a warning if questions exist but it's off), question list with edit/delete (`QuestionForm`), add-question form. | Fully built. |
 | `/admin/cours/[id]/questionnaire/[userId]` | `.../[userId]/page.tsx` | Read-only view of one user's answers to one course's questionnaire. | Fully built. |
+| `/admin/cours-gratuit` | `admin/cours-gratuit/page.tsx` | Free-course management: status card (draft/published badge, public URL + copy, preview link, publish/unpublish with confirmation, list of what still blocks publishing) and one `FreeCourseForm` (content, Bunny reference + aspect, host byline, SEO + indexing toggle — off by default). | Fully built. |
 | `/admin/utilisateurs` | `admin/utilisateurs/page.tsx` | User list: workspace filter tabs, category column, link to detail. | Fully built. |
 | `/admin/utilisateurs/[id]` | `.../[id]/page.tsx` | User detail: info, promote/demote (self-demotion and last-admin-demotion both blocked server-side), enrollment list with links to questionnaire responses. | Fully built. |
 | `/admin/messages` | `admin/messages/page.tsx` | Inbox: one row per user with any messages, unread dot, last-message preview. | Fully built. |
@@ -217,6 +224,7 @@ All in `src/components/` unless noted. Every prop type is inlined at the compone
 | `CourseForm.tsx` | Create/edit course: title, slug (create-only), price, audience selector, description, demo video (file or URL). Self-managed open/close state (a button, not `<details>`, so it survives the server-driven re-render after a successful save). Uses `useId()` for label association. | `admin/cours`, `admin/cours/[id]` | `action`, `mode: "create" \| "edit"`, `initial?`, `defaultOpen?` |
 | `LessonForm.tsx` | Add/edit lesson: title, order, video (file or URL), content. Same self-managed open/close + `useActionState` pattern as `CourseForm`. | `admin/cours/[id]` | `action`, `mode: "add" \| "edit"`, `initial?`, `defaultOpen?` |
 | `SettingsForm.tsx` | Single-field form for the availability text. | `admin/parametres` | `action`, `initialAvailability` |
+| `FreeCourseForm.tsx` | The free course's single edit form, grouped in fieldsets. **Controlled inputs** (so a rejected save keeps what was typed — React 19 resets uncontrolled forms after an action), character counters, hidden `updatedAt` for the optimistic-concurrency check; remounted by the page (keyed on `updatedAt`) after a successful save. | `admin/cours-gratuit` | `action`, `initial`, `updatedAt`, `published`, `hostName`, `hostRole`, `savedVideo` |
 | `SocialLinksForm.tsx` | Per-platform (Instagram/Facebook/YouTube/TikTok/WhatsApp) list of link configs + an add-form with a Global/Parents/Adolescents multi-select checkbox group; delete via `ConfirmActionForm`. One platform+surface pair can only ever belong to one config (enforced by a DB unique constraint on `SocialLinkAssignment`, plus a friendly pre-check in the action). | `admin/parametres` | `platforms`, `createAction`, `deleteAction` |
 
 ---

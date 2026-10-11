@@ -170,6 +170,60 @@ export type Database = {
           },
         ]
       }
+      FreeCourse: {
+        Row: {
+          bunnyLibraryId: string | null
+          bunnyVideoId: string | null
+          eyebrow: string | null
+          hostIntro: string | null
+          id: string
+          indexable: boolean
+          introduction: string
+          published: boolean
+          publishedAt: string | null
+          seoDescription: string | null
+          seoTitle: string | null
+          showHost: boolean
+          title: string
+          updatedAt: string
+          videoAspect: Database["public"]["Enums"]["VideoAspect"]
+        }
+        Insert: {
+          bunnyLibraryId?: string | null
+          bunnyVideoId?: string | null
+          eyebrow?: string | null
+          hostIntro?: string | null
+          id?: string
+          indexable?: boolean
+          introduction?: string
+          published?: boolean
+          publishedAt?: string | null
+          seoDescription?: string | null
+          seoTitle?: string | null
+          showHost?: boolean
+          title?: string
+          updatedAt?: string
+          videoAspect?: Database["public"]["Enums"]["VideoAspect"]
+        }
+        Update: {
+          bunnyLibraryId?: string | null
+          bunnyVideoId?: string | null
+          eyebrow?: string | null
+          hostIntro?: string | null
+          id?: string
+          indexable?: boolean
+          introduction?: string
+          published?: boolean
+          publishedAt?: string | null
+          seoDescription?: string | null
+          seoTitle?: string | null
+          showHost?: boolean
+          title?: string
+          updatedAt?: string
+          videoAspect?: Database["public"]["Enums"]["VideoAspect"]
+        }
+        Relationships: []
+      }
       Lesson: {
         Row: {
           content: string
@@ -610,6 +664,7 @@ export type Database = {
         | "TIKTOK"
         | "WHATSAPP"
       SocialSurface: "GLOBAL" | "PARENTS" | "ADOLESCENTS"
+      VideoAspect: "LANDSCAPE" | "PORTRAIT" | "SQUARE"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -751,6 +806,7 @@ export const Constants = {
         "WHATSAPP",
       ],
       SocialSurface: ["GLOBAL", "PARENTS", "ADOLESCENTS"],
+      VideoAspect: ["LANDSCAPE", "PORTRAIT", "SQUARE"],
     },
   },
 } as const

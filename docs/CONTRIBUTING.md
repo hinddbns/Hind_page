@@ -104,10 +104,14 @@ Follow the existing split exactly (detailed in `ARCHITECTURE.md`):
 - Any new authentication-adjacent endpoint should consider the login-lockout pattern in
   `src/auth.ts` as precedent if brute-force is a concern.
 
-## Verification workflow (there is no test suite — this replaces it)
+## Verification workflow (mostly manual — there is no app-wide test suite)
 
 Every change in this project has been verified this way; keep doing it:
 
+0. `npm test` — small `node:test` unit tests (run through the existing `tsx` dev dependency, no
+   test framework) for **pure** helpers only: `src/lib/bunny.test.ts`,
+   `src/lib/freeCourseRules.test.ts`. Keep tested modules free of `db`/Next imports so they run
+   without credentials. This is not a UI/integration suite — steps 1–5 still apply.
 1. `npx tsc --noEmit` — must be clean.
 2. `npx eslint .` — must show no new errors (16 pre-existing `no-unused-vars` warnings on
    intentionally-unused `_prev`/`_formData` Server Action params are expected and fine).

@@ -398,3 +398,128 @@ instead of hardcoding the one import. Nothing else in the codebase currently ant
 polls `GET /api/messages/unread-count` every 20s, independently, wherever it's mounted (nav
 links). There are no WebSockets/SSE. This is a deliberate simplicity choice for a low-traffic
 single-coach app — see `PROJECT_CONTEXT.md` § Development Decisions.
+
+## Free course (`/cours-gratuit`) — standalone public page, admin-managed
+
+One free course made of a single Bunny Stream video, on its own public page. It is deliberately
+**not** a `Course` row (Course requires an audience and price, joins enrollments/payments, and is
+read by every catalog) and appears in **no** catalog, audience space, dashboard or admin stat.
+
+### Pieces
+
+| Piece | Path |
+|---|---|
+| Public route (own minimal layout: logo, page, footer — no `Nav`/`Footer`/auth buttons; the root layout's WhatsApp button and toasts stay) | `src/app/cours-gratuit/{layout,page,error}.tsx` |
+| Admin page (sidebar entry "الدورة المجانية") | `src/app/(app)/admin/cours-gratuit/page.tsx` + `src/components/admin/FreeCourseForm.tsx` |
+| Server Actions | `updateFreeCourse`, `setFreeCoursePublished` in `src/app/(app)/admin/actions.ts` |
+| Data access + viewer rule | `src/lib/freeCourse.ts` (`getFreeCourseForViewer` is the single access check) |
+| Pure validation (shared by actions, page, tests) | `src/lib/freeCourseRules.ts` |
+| Bunny reference parsing / embed URL | `src/lib/bunny.ts` |
+| Migration | `prisma/migrations/20261011120000_add_free_course/migration.sql` |
+| Unit tests (`npm test`) | `src/lib/bunny.test.ts`, `src/lib/freeCourseRules.test.ts` |
+
+### Data model — `FreeCourse` (singleton, `id = 'main'`, enforced by a CHECK)
+
+All page content lives here and is edited only through `/admin/cours-gratuit` — never hardcode
+course copy in the page, the dictionary, or `site.ts`. Code-defined on purpose: the route, layout,
+UI labels, and the host's name/role/portrait (`site.name`, `site.tagline`, `site.coachPhoto`).
+Social links come from the existing **Global** social-link surface (`/admin/parametres`); the
+section disappears entirely, heading included, when none are configured.
+
+| Column | Type | Rules |
+|---|---|---|
+| `title` | text, default `''` | ≤ 120; required to publish |
+| `eyebrow` | text, nullable | ≤ 60; hidden when empty |
+| `introduction` | text, default `''` | ≤ 600; required to publish |
+| `bunnyLibraryId` | text, nullable | `^[1-9][0-9]{0,9}$`; required to publish |
+| `bunnyVideoId` | text, nullable | lowercase GUID; required to publish |
+| `videoAspect` | enum `VideoAspect` (`LANDSCAPE`/`PORTRAIT`/`SQUARE`) | default `LANDSCAPE` |
+| `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | subtle byline under the video |
+| `seoTitle` / `seoDescription` | text ≤ 70 / ≤ 160, nullable | fall back to `title` / start of `introduction` |
+| `indexable` | boolean, default **false** | robots meta only — not privacy |
+| `published` / `publishedAt` | boolean (default false) / timestamp | publication state |
+| `updatedAt` | timestamp | **content** version: bumped on every content save (not on publish/unpublish) and used for the edit form's optimistic-concurrency check |
+
+The limits and the publish-completeness rule exist twice on purpose: in `freeCourseRules.ts`
+(friendly Arabic errors) and as CHECK constraints (`FreeCourse_publish_complete` etc.), so the
+database itself refuses a published row without title, introduction and valid Bunny IDs.
+
+### Access rules
+
+- `getFreeCourseForViewer()` returns the row to anyone only if it is published and complete;
+  otherwise only to an admin (live `getAppUser()` role check, server-side), flagged `preview`.
+  Everyone else gets `notFound()`. Both the page and `generateMetadata` go through it, so draft
+  text never reaches HTML, metadata or the RSC payload. Draft previews are always `noindex`.
+- The page is `force-dynamic`: publish/unpublish/edits are visible on the next request.
+- Admin page: protected by `admin/layout.tsx`; both actions call `requireAdmin()` inside
+  `runAction()`. Mutations write `FREE_COURSE_UPDATED` / `FREE_COURSE_PUBLISHED` /
+  `FREE_COURSE_UNPUBLISHED` audit entries (labels in `admin/parametres`).
+- Editing an already-published course updates the live page immediately (no separate draft copy).
+  A save that would empty a required field of a published course is refused — unpublish first.
+- The edit form uses controlled inputs: React 19 resets uncontrolled fields after a form action,
+  which would wipe the admin's input on a rejected save.
+- An unexpected failure on this route (e.g. database unreachable) is caught by the route's own
+  `error.tsx` (branded message, error logged, never displayed).
+
+### Applying the migration (manual — Supabase SQL editor)
+
+Schema changes are applied by hand in Supabase; the SQL file is committed as the record. Apply
+`20261011120000_add_free_course/migration.sql` **before** deploying the code (the page and admin
+page error until the table exists). It is purely additive. Then run these **read-only** checks:
+
+```sql
+-- 1. RLS on (expect relrowsecurity = true)
+SELECT relname, relrowsecurity FROM pg_class WHERE relname = 'FreeCourse';
+-- 2. Grants: expect ONLY service_role with INSERT, SELECT, UPDATE — no anon/authenticated/PUBLIC
+SELECT grantee, privilege_type FROM information_schema.role_table_grants
+WHERE table_name = 'FreeCourse' ORDER BY grantee, privilege_type;
+-- 3. No policies (expect 0 rows)
+SELECT * FROM pg_policies WHERE tablename = 'FreeCourse';
+-- 4. Seeded draft (expect: main | false)
+SELECT id, published, "updatedAt" FROM "FreeCourse";
+-- 5. Constraints present
+SELECT conname FROM pg_constraint WHERE conrelid = '"FreeCourse"'::regclass ORDER BY conname;
+```
+
+Note: `information_schema.role_table_grants` only lists grants visible to the current role; run
+it as `postgres` (the SQL editor's default). Also check the anon-key path — it must **not**
+return rows (expect a permission error such as `42501`, or `[]`):
+
+```bash
+curl "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/FreeCourse?select=*" -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_ANON_KEY"
+```
+
+`database.types.ts` was updated by hand to match (the repo has no type-generation script); if you
+regenerate with the Supabase CLI, the `FreeCourse` / `VideoAspect` entries should come out identical.
+
+### Bunny Stream — public library, no credentials in the app
+
+- Use a **dedicated public Bunny Stream library** for this video: token authentication **off**,
+  allowed domains = the production domain (plus the Vercel domain and `localhost` if wanted).
+  Keep it separate from the future protected lesson library: token auth is a library-wide
+  setting, and the lesson migration (see `ROADMAP.md`) is planned around **signed** URLs.
+- The admin pastes an embed URL (`https://iframe.mediadelivery.net/embed/{library}/{video}`), a
+  play URL (`…/play/{library}/{video}`), the dashboard's `<iframe>` snippet, or a bare video GUID
+  plus the library ID. `player.mediadelivery.net` is also accepted. Anything else (other hosts,
+  ports, credentials, `http:`, other paths) is rejected with an Arabic error.
+- Only the validated library ID and video GUID are stored. The iframe `src` is always rebuilt by
+  `buildBunnyEmbedUrl()` on `iframe.mediadelivery.net` with fixed parameters (no autoplay).
+- V1 makes no Bunny API calls and needs no API key: a well-formed reference is accepted even if
+  the video doesn't exist yet. Playback is confirmed through the preview. Captions, thumbnail and
+  processing are managed in the Bunny dashboard; a missing/processing video shows Bunny's own
+  player message inside the frame (the app cannot detect it cross-origin).
+
+### Workflow
+
+1. `/admin/cours-gratuit` → fill the content, paste the Bunny reference, **حفظ** (drafts may be
+   incomplete; every supplied value is still validated).
+2. **معاينة الصفحة** opens `/cours-gratuit`; admins see the draft with a "معاينة" banner.
+3. **نشر** (confirmation dialog) — only offered once title, introduction and video are saved.
+4. **إلغاء النشر** (confirmation dialog) hides the page immediately (visitors get the 404).
+
+### Metadata / `SITE_URL`
+
+`SITE_URL` (optional, non-secret, e.g. `https://example.com`) sets the root `metadataBase`
+(`src/lib/siteUrl.ts`). When it is set, the page emits a canonical URL and `og:url`; when unset
+they're omitted (no build error, no guessed domain). There is no Open Graph image yet — link
+previews show title and description only.

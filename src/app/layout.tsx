@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
+import { getSiteUrl } from "@/lib/siteUrl";
 import { db } from "@/lib/supabase/db";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import ToastViewport from "@/components/ToastViewport";
@@ -14,6 +15,7 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
+  metadataBase: getSiteUrl() ?? undefined,
   title: `${site.name} — ${site.tagline}`,
   description:
     "مرافقة معتمدة عبر الإنترنت — مساحة خاصة بالمراهقين، ومساحة أخرى للأمهات والأستاذات اللواتي يواكبنهم. دورات مصورة ومتابعة شخصية.",
