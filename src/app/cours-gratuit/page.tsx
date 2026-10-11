@@ -143,13 +143,13 @@ export default async function FreeCoursePage() {
           <p className="mt-1 text-sm text-ink-soft [text-align-last:center] md:text-base">
             {t.freeCourse.ctaSubheading}
           </p>
-          {/* The mothers space's button style, on its darker olive token: cream text on olive-dark
-              passes WCAG AA, while on plain olive (~4.4:1) it falls just short at this size. */}
+          {/* WhatsApp brand green, the same #25D366 as the floating button (owner choice) — the only
+              non-olive element on this page. White on it is ~2:1, below WCAG AA contrast. */}
           <a
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-olive-dark px-7 py-3 text-base font-medium text-cream shadow-lg shadow-olive/20 transition hover:opacity-90"
+            className="mt-4 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-7 py-3 text-base font-medium text-white shadow-lg shadow-black/10 transition hover:bg-[#1DA851]"
           >
             <WhatsAppIcon size={22} />
             {t.freeCourse.ctaButton}
