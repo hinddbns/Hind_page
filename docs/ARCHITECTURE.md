@@ -426,15 +426,27 @@ UI labels, and the host's name/role/portrait (`site.name`, `site.tagline`, `site
 Social links come from the existing **Global** social-link surface (`/admin/parametres`); the
 section disappears entirely, heading included, when none are configured.
 
+**Page order (fixed in code):** logo → `eyebrow` label → introduction paragraphs → video → booking
+CTA → presenter (circular `site.coachPhoto`, `site.name`, `hostIntro`) → social links → © footer.
+`title` is not displayed but is still the page's single `<h1>` (`sr-only`), the iframe's accessible
+title and the metadata fallback — keep it filled. There is no link back to the main site.
+
+**Booking CTA:** heading/subheading/button labels are shared dictionary text
+(`t.freeCourse.cta*`); the link is `https://wa.me/{Settings.whatsappNumber}` built by
+`buildWhatsAppUrl()` (`src/lib/whatsapp.ts`) — the same shared number as the floating button,
+edited at `/admin/parametres`. When the number is missing, malformed, or still the placeholder
+`212600000000`, the CTA is **not rendered** (admins previewing a draft see a notice instead), and
+the admin status card flags it.
+
 | Column | Type | Rules |
 |---|---|---|
 | `title` | text, default `''` | ≤ 120; required to publish |
 | `eyebrow` | text, nullable | ≤ 60; hidden when empty |
-| `introduction` | text, default `''` | ≤ 600; required to publish |
+| `introduction` | text, default `''` | ≤ 1,200 (raised from 600 by `20261012120000_free_course_introduction_1200`); required to publish. Shown above the video; blank lines separate paragraphs (`splitParagraphs()`), single newlines are kept |
 | `bunnyLibraryId` | text, nullable | `^[1-9][0-9]{0,9}$`; required to publish |
 | `bunnyVideoId` | text, nullable | lowercase GUID; required to publish |
 | `videoAspect` | enum `VideoAspect` (`LANDSCAPE`/`PORTRAIT`/`SQUARE`) | default `LANDSCAPE` |
-| `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | subtle byline under the video |
+| `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | presenter block below the booking CTA; `hostIntro` is the presenter's **professional description** (falls back to `site.tagline`; don't repeat the name in it) |
 | `seoTitle` / `seoDescription` | text ≤ 70 / ≤ 160, nullable | fall back to `title` / start of `introduction` |
 | `indexable` | boolean, default **false** | robots meta only — not privacy |
 | `published` / `publishedAt` | boolean (default false) / timestamp | publication state |
@@ -465,7 +477,9 @@ database itself refuses a published row without title, introduction and valid Bu
 
 Schema changes are applied by hand in Supabase; the SQL file is committed as the record. Apply
 `20261011120000_add_free_course/migration.sql` **before** deploying the code (the page and admin
-page error until the table exists). It is purely additive. Then run these **read-only** checks:
+page error until the table exists). It is purely additive. Later forward-only migrations, applied
+the same way and never by editing the original: `20261012120000_free_course_introduction_1200`
+(replaces only the introduction length CHECK). Then run these **read-only** checks:
 
 ```sql
 -- 1. RLS on (expect relrowsecurity = true)
@@ -508,6 +522,24 @@ regenerate with the Supabase CLI, the `FreeCourse` / `VideoAspect` entries shoul
   the video doesn't exist yet. Playback is confirmed through the preview. Captions, thumbnail and
   processing are managed in the Bunny dashboard; a missing/processing video shows Bunny's own
   player message inside the frame (the app cannot detect it cross-origin).
+
+### Editing content from the Supabase SQL Editor
+
+The owner may update content directly (example below; dollar-quoting avoids escaping Arabic).
+SQL edits bypass the app's validation messages and the audit log — the CHECK constraints still
+apply (lengths, Bunny ID formats, publish completeness). Always bump `"updatedAt"`, or an admin
+form opened earlier could overwrite the SQL edit without a conflict warning. Don't toggle
+`published` from SQL; use the admin buttons.
+
+```sql
+UPDATE "FreeCourse"
+SET "introduction" = $$first paragraph…
+
+second paragraph…$$,
+    "hostIntro" = $$professional description…$$,
+    "updatedAt" = (now() AT TIME ZONE 'utc')
+WHERE "id" = 'main';
+```
 
 ### Workflow
 

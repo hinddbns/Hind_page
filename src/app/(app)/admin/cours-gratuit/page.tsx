@@ -5,6 +5,8 @@ import { site } from "@/lib/site";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { FREE_COURSE_PATH, fetchFreeCourse } from "@/lib/freeCourse";
 import { getPublishBlockers, type FreeCoursePublishBlocker } from "@/lib/freeCourseRules";
+import { db } from "@/lib/supabase/db";
+import { buildWhatsAppUrl, normalizeWhatsAppNumber } from "@/lib/whatsapp";
 import { setFreeCoursePublished, updateFreeCourse } from "../actions";
 import ConfirmActionForm from "@/components/admin/ConfirmActionForm";
 import FreeCourseForm from "@/components/admin/FreeCourseForm";
@@ -25,6 +27,13 @@ export default async function AdminFreeCoursePage() {
   const f = t.freeCourseAdmin;
   const course = await fetchFreeCourse();
   const url = await publicUrl();
+  const { data: settings, error: settingsError } = await db
+    .from("Settings")
+    .select("whatsappNumber")
+    .eq("id", "main")
+    .maybeSingle();
+  if (settingsError) throw settingsError;
+  const whatsappReady = buildWhatsAppUrl(settings?.whatsappNumber) !== null;
 
   const content = course ?? {
     title: "",
@@ -121,6 +130,25 @@ export default async function AdminFreeCoursePage() {
         <p className="mt-4 text-xs text-ink-soft">
           {f.previewHint} {!published && blockers.length === 0 && f.publishUsesSaved}
         </p>
+
+        <div
+          role={whatsappReady ? undefined : "note"}
+          className={`mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg px-4 py-3 text-sm ${
+            whatsappReady ? "bg-cream-dark/60 text-ink-soft" : "bg-danger/10 text-danger"
+          }`}
+        >
+          <span className="font-medium">{f.whatsappTitle}:</span>
+          <span>
+            {whatsappReady ? (
+              <bdi dir="ltr">+{normalizeWhatsAppNumber(settings?.whatsappNumber)}</bdi>
+            ) : (
+              f.whatsappMissing
+            )}
+          </span>
+          <Link href="/admin/parametres" className="font-medium underline underline-offset-4">
+            {f.whatsappSettingsLink}
+          </Link>
+        </div>
       </section>
 
       <FreeCourseForm

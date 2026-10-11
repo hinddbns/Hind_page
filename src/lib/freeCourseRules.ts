@@ -11,7 +11,7 @@ export const VIDEO_ASPECTS: readonly VideoAspect[] = ["LANDSCAPE", "PORTRAIT", "
 export const FREE_COURSE_LIMITS = {
   title: 120,
   eyebrow: 60,
-  introduction: 600,
+  introduction: 1200,
   hostIntro: 200,
   seoTitle: 70,
   seoDescription: 160,
@@ -53,17 +53,35 @@ export function isVideoAspect(value: string): value is VideoAspect {
   return (VIDEO_ASPECTS as readonly string[]).includes(value);
 }
 
+/** Browsers submit textarea line breaks as CRLF; store plain `\n` so lengths match what the
+ * admin saw in the counter and paragraph splitting stays simple. */
+export function normalizeNewlines(value: string): string {
+  return value.replace(/\r\n?/g, "\n");
+}
+
+/**
+ * Splits text into paragraphs on blank lines (lines that are empty or whitespace-only). Single
+ * newlines stay inside their paragraph, for rendering with `whitespace-pre-line`. Returns plain
+ * strings — callers render them as text, never as HTML.
+ */
+export function splitParagraphs(text: string): string[] {
+  return normalizeNewlines(text)
+    .split(/\n[^\S\n]*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph !== "");
+}
+
 /** Trims every text field and turns empty optional text into `null`. */
 export function normalizeFreeCourseContent(input: FreeCourseContent): FreeCourseContent {
   const optional = (value: string | null) => {
-    const trimmed = value?.trim() ?? "";
+    const trimmed = normalizeNewlines(value ?? "").trim();
     return trimmed === "" ? null : trimmed;
   };
   return {
     ...input,
     title: input.title.trim(),
     eyebrow: optional(input.eyebrow),
-    introduction: input.introduction.trim(),
+    introduction: normalizeNewlines(input.introduction).trim(),
     hostIntro: optional(input.hostIntro),
     seoTitle: optional(input.seoTitle),
     seoDescription: optional(input.seoDescription),

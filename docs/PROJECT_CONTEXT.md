@@ -140,7 +140,7 @@ Naming conventions for why.
 
 | Route | File | Purpose | Status |
 |---|---|---|---|
-| `/cours-gratuit` | `cours-gratuit/page.tsx` | Public, login-free page for **one free video** (Bunny Stream embed): logo, title, video, introduction, subtle arch-portrait byline, Global social links, minimal footer. No site nav, no audience links, in no catalog. Content comes from the `FreeCourse` table; drafts 404 for everyone except admins (preview banner). Not a `Course` row. See `ARCHITECTURE.md` § Free course. | Built; needs the migration applied, then Bunny setup and real content before publishing. |
+| `/cours-gratuit` | `cours-gratuit/page.tsx` | Public, login-free page for **one free video** (Bunny Stream embed): logo, label, multi-paragraph introduction, video, WhatsApp booking CTA (shared `Settings.whatsappNumber`; hidden while it's the placeholder), circular presenter portrait + description, Global social links, © footer (no main-site link). The title is an `sr-only` `<h1>`. No site nav, no audience links, in no catalog. Content comes from the `FreeCourse` table; drafts 404 for everyone except admins (preview banner). Not a `Course` row. See `ARCHITECTURE.md` § Free course. | Live. |
 
 ### Authenticated app (route group `(app)`)
 

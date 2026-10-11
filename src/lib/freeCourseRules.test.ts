@@ -6,6 +6,7 @@ import {
   getPublishBlockers,
   isPublishable,
   normalizeFreeCourseContent,
+  splitParagraphs,
   summarize,
   type FreeCourseContent,
 } from "@/lib/freeCourseRules";
@@ -109,4 +110,33 @@ test("summarize keeps short text and cuts long text within the limit", () => {
   const result = summarize(long);
   assert.ok(Array.from(result).length <= FREE_COURSE_LIMITS.seoDescription);
   assert.ok(result.endsWith("…"));
+});
+
+test("introduction limit is 1,200 characters", () => {
+  assert.equal(FREE_COURSE_LIMITS.introduction, 1200);
+  assert.deepEqual(getContentProblems({ ...complete, introduction: "ب".repeat(1200) }), []);
+  assert.deepEqual(getContentProblems({ ...complete, introduction: "ب".repeat(1201) }), ["introductionTooLong"]);
+});
+
+test("normalization converts CRLF to LF and keeps inner line breaks", () => {
+  const normalized = normalizeFreeCourseContent({
+    ...complete,
+    introduction: "\r\nسطر أول\r\nسطر ثاني\r\n\r\nفقرة ثانية 🤍\r\n",
+    hostIntro: "وصف\r\nقصير",
+  });
+  assert.equal(normalized.introduction, "سطر أول\nسطر ثاني\n\nفقرة ثانية 🤍");
+  assert.equal(normalized.hostIntro, "وصف\nقصير");
+});
+
+test("splitParagraphs splits on blank lines and keeps single newlines", () => {
+  assert.deepEqual(splitParagraphs("أ\nب\n\nج"), ["أ\nب", "ج"]);
+  assert.deepEqual(splitParagraphs("أ\r\n\r\nب"), ["أ", "ب"]);
+  assert.deepEqual(splitParagraphs("أ\n   \n\n\nب"), ["أ", "ب"]);
+  assert.deepEqual(splitParagraphs("  فقرة واحدة  "), ["فقرة واحدة"]);
+  assert.deepEqual(splitParagraphs(""), []);
+  assert.deepEqual(splitParagraphs("\n\n  \n"), []);
+});
+
+test("splitParagraphs returns plain text, untouched", () => {
+  assert.deepEqual(splitParagraphs("<script>alert(1)</script>\n\n<b>x</b>"), ["<script>alert(1)</script>", "<b>x</b>"]);
 });

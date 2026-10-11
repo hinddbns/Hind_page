@@ -111,9 +111,10 @@ export default function FreeCourseForm({
               value={values.title}
               onChange={(e) => set("title", e.target.value)}
               maxLength={FREE_COURSE_LIMITS.title}
-              aria-describedby={`${uid}-title-count`}
+              aria-describedby={`${uid}-title-hint ${uid}-title-count`}
               className={inputClass}
             />
+            <p id={`${uid}-title-hint`} className="mt-1 text-xs text-ink-soft">{f.titleHint}</p>
             <Counter id={`${uid}-title-count`} value={values.title} max={FREE_COURSE_LIMITS.title} template={f.charCount} />
           </div>
 
@@ -124,17 +125,20 @@ export default function FreeCourseForm({
             <textarea
               id={`${uid}-introduction`}
               name="introduction"
-              rows={5}
+              rows={10}
               value={values.introduction}
               onChange={(e) => set("introduction", e.target.value)}
               maxLength={FREE_COURSE_LIMITS.introduction}
-              aria-describedby={`${uid}-introduction-count`}
-              className={inputClass}
+              aria-describedby={`${uid}-introduction-hint ${uid}-introduction-count`}
+              className={`${inputClass} leading-relaxed`}
             />
+            <p id={`${uid}-introduction-hint`} className="mt-1 text-xs text-ink-soft">{f.introductionHint}</p>
             <Counter
               id={`${uid}-introduction-count`}
               value={values.introduction}
-              max={FREE_COURSE_LIMITS.introduction} template={f.charCount} />
+              max={FREE_COURSE_LIMITS.introduction}
+              template={f.charCount}
+            />
           </div>
         </div>
       </fieldset>

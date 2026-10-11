@@ -622,9 +622,12 @@ const ar = {
     charCount: "{n} / {max}",
 
     sectionInfo: "معلومات الدورة",
-    eyebrowLabel: "عبارة صغيرة فوق العنوان",
-    titleLabel: "عنوان الدورة",
+    eyebrowLabel: "عبارة صغيرة فوق المقدمة",
+    titleLabel: "العنوان الداخلي للدورة",
+    titleHint:
+      "لا يظهر نصًا في الصفحة، لكنه مطلوب للنشر ويُستخدم عنوانًا للبحث والمشاركة (عند غياب عنوان الصفحة) ولوصف الفيديو لقارئات الشاشة.",
     introductionLabel: "مقدمة الدورة",
+    introductionHint: "تظهر فوق الفيديو. اترك سطرًا فارغًا بين الفقرات.",
 
     sectionVideo: "الفيديو (Bunny Stream)",
     videoHelp:
@@ -643,9 +646,15 @@ const ar = {
     aspectSquare: "مربع (1:1)",
 
     sectionHost: "تقديم المدرّبة",
-    showHostLabel: "إظهار تقديم مختصر للمدرّبة أسفل الفيديو",
-    hostIntroLabel: "جملة تعريفية قصيرة",
-    hostHint: "الاسم والصفة والصورة ثابتة من إعدادات الموقع: {name} — {role}.",
+    showHostLabel: "إظهار تقديم المدرّبة أسفل زر الحجز",
+    hostIntroLabel: "الوصف المهني للمدرّبة",
+    hostHint:
+      "الاسم والصورة ثابتان من إعدادات الموقع ({name}). لا تكرر الاسم في الوصف. إذا تُرك الوصف فارغًا تُعرض الصفة الافتراضية: {role}.",
+
+    whatsappTitle: "زر الحجز عبر واتساب",
+    whatsappMissing:
+      "رقم واتساب غير مضبوط أو ما زال الرقم الافتراضي، لذلك لا يظهر زر الحجز في الصفحة. اضبطه من الإعدادات.",
+    whatsappSettingsLink: "تعديل الرقم في الإعدادات ←",
 
     sectionSeo: "المشاركة ومحركات البحث",
     seoTitleLabel: "عنوان الصفحة (البحث والمشاركة)",
@@ -659,7 +668,7 @@ const ar = {
     errorTitleTooLong: "العنوان أطول من {max} حرفًا.",
     errorEyebrowTooLong: "العبارة الصغيرة أطول من {max} حرفًا.",
     errorIntroductionTooLong: "المقدمة أطول من {max} حرفًا.",
-    errorHostIntroTooLong: "الجملة التعريفية أطول من {max} حرفًا.",
+    errorHostIntroTooLong: "الوصف المهني أطول من {max} حرفًا.",
     errorSeoTitleTooLong: "عنوان الصفحة أطول من {max} حرفًا.",
     errorSeoDescriptionTooLong: "وصف الصفحة أطول من {max} حرفًا.",
     errorInvalidVideoAspect: "أبعاد الفيديو غير صالحة.",
@@ -684,7 +693,11 @@ const ar = {
     previewNoVideo: "لم يُضف فيديو بعد. أضِف مرجع فيديو Bunny من لوحة الإدارة.",
     hostSectionLabel: "عن المدرّبة",
     socialTitle: "تابعونا",
-    homeLink: "الموقع الرئيسي",
+    ctaHeading: "احجزي مقعدك معانا في الورشة",
+    ctaSubheading: "بالضغط على زر الواتساب",
+    ctaButton: "تواصلي معنا عبر واتساب",
+    ctaUnavailablePreview:
+      "زر الحجز عبر واتساب مخفي لأن رقم واتساب غير مضبوط أو ما زال الرقم الافتراضي. (يظهر هذا التنبيه للمسؤولين فقط.)",
   },
 
   profil: {
