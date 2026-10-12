@@ -869,6 +869,7 @@ export async function updateFreeCourse(_prev: ActionState, formData: FormData): 
       bunnyLibraryId: reference.libraryId,
       bunnyVideoId: reference.videoId,
       videoAspect,
+      allowSkipping: formData.get("allowSkipping") === "on",
       showHost: formData.get("showHost") === "on",
       hostIntro: readString(formData, "hostIntro"),
       seoTitle: readString(formData, "seoTitle"),
@@ -897,10 +898,17 @@ export async function updateFreeCourse(_prev: ActionState, formData: FormData): 
       if (error) throw error;
     } else {
       if (!expectedUpdatedAt) throw new AdminActionError(t.freeCourseAdmin.errorConflict);
+      // Until 20261012140000_free_course_allow_skipping is applied the row has no allowSkipping
+      // column: keep other edits saving, but refuse to silently drop a request to disable skipping.
+      const { allowSkipping, ...rest } = content;
+      const skippingColumnReady = "allowSkipping" in current;
+      if (!skippingColumnReady && !allowSkipping) {
+        throw new AdminActionError(t.freeCourseAdmin.errorSkippingMigrationMissing);
+      }
       // Optimistic concurrency: the update only applies if nobody saved since this form loaded.
       const { data, error } = await db
         .from("FreeCourse")
-        .update({ ...content, updatedAt })
+        .update({ ...(skippingColumnReady ? content : rest), updatedAt })
         .eq("id", FREE_COURSE_ID)
         .eq("updatedAt", expectedUpdatedAt)
         .select("id");

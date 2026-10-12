@@ -18,6 +18,7 @@ const complete: FreeCourseContent = {
   bunnyLibraryId: "123456",
   bunnyVideoId: "0f8e2a4c-1b3d-4e5f-8a9b-0c1d2e3f4a5b",
   videoAspect: "LANDSCAPE",
+  allowSkipping: true,
   showHost: true,
   hostIntro: null,
   seoTitle: null,
@@ -84,6 +85,11 @@ test("invalid aspect ratio is a content problem", () => {
   assert.deepEqual(getContentProblems({ ...complete, videoAspect: "WIDE" as FreeCourseContent["videoAspect"] }), [
     "invalidVideoAspect",
   ]);
+});
+
+test("normalization keeps the allowSkipping toggle as given", () => {
+  assert.equal(normalizeFreeCourseContent({ ...complete, allowSkipping: false }).allowSkipping, false);
+  assert.equal(normalizeFreeCourseContent({ ...complete, allowSkipping: true }).allowSkipping, true);
 });
 
 test("normalization trims text and nulls empty optional fields", () => {

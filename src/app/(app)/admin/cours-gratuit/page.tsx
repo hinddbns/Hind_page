@@ -42,6 +42,7 @@ export default async function AdminFreeCoursePage() {
     bunnyLibraryId: null,
     bunnyVideoId: null,
     videoAspect: "LANDSCAPE" as const,
+    allowSkipping: true,
     showHost: true,
     hostIntro: null,
     seoTitle: null,
@@ -166,6 +167,8 @@ export default async function AdminFreeCoursePage() {
           bunnyReference: content.bunnyVideoId ?? "",
           bunnyLibraryId: content.bunnyLibraryId ?? "",
           videoAspect: content.videoAspect,
+          // `?? true` keeps the page working if the column migration hasn't been applied yet.
+          allowSkipping: content.allowSkipping ?? true,
           showHost: content.showHost,
           hostIntro: content.hostIntro ?? "",
           seoTitle: content.seoTitle ?? "",

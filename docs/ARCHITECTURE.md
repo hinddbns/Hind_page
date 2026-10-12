@@ -446,6 +446,7 @@ the admin status card flags it.
 | `bunnyLibraryId` | text, nullable | `^[1-9][0-9]{0,9}$`; required to publish |
 | `bunnyVideoId` | text, nullable | lowercase GUID; required to publish |
 | `videoAspect` | enum `VideoAspect` (`LANDSCAPE`/`PORTRAIT`/`SQUARE`) | default `LANDSCAPE` |
+| `allowSkipping` | boolean, default **true** (`20261012140000_free_course_allow_skipping`) | `false` turns on the seek guard (below) |
 | `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | presenter block below the booking CTA; `hostIntro` is the presenter's **professional description** (falls back to `site.tagline`; don't repeat the name in it) |
 | `seoTitle` / `seoDescription` | text ≤ 70 / ≤ 160, nullable | fall back to `title` / start of `introduction` |
 | `indexable` | boolean, default **false** | robots meta only — not privacy |
@@ -479,7 +480,8 @@ Schema changes are applied by hand in Supabase; the SQL file is committed as the
 `20261011120000_add_free_course/migration.sql` **before** deploying the code (the page and admin
 page error until the table exists). It is purely additive. Later forward-only migrations, applied
 the same way and never by editing the original: `20261012120000_free_course_introduction_1200`
-(replaces only the introduction length CHECK). Then run these **read-only** checks:
+(replaces only the introduction length CHECK), `20261012140000_free_course_allow_skipping` (adds
+`allowSkipping`, default true). Then run these **read-only** checks:
 
 ```sql
 -- 1. RLS on (expect relrowsecurity = true)
@@ -540,6 +542,34 @@ second paragraph…$$,
     "updatedAt" = (now() AT TIME ZONE 'utc')
 WHERE "id" = 'main';
 ```
+
+### Skip restriction (`allowSkipping = false`)
+
+When the admin unticks "السماح للمشاهدين بتخطي أجزاء من الفيديو", the page renders
+`BunnySeekGuardPlayer` (client component) instead of the plain iframe; with skipping allowed it
+stays a server-rendered iframe and no player script is loaded.
+
+- Loads Bunny's documented Player.js (`assets.mediadelivery.net/playerjs/playerjs-latest.min.js`)
+  and creates the `playerjs.Player` **before** the iframe loads (the iframe gets its `src` only
+  once the script is ready) — Player.js never completes its `ready` handshake if constructed after
+  the iframe has loaded. If the script fails or takes > 8s, the video is shown unguarded (fails open).
+- `src/lib/seekGuard.ts` (pure, unit-tested) tracks the furthest point **genuinely** watched: only
+  continuous `timeupdate` steps from that frontier, plausible against the wall clock (≤ 2.5× speed),
+  extend it — seeks, jumps and the tick that lands after a correction never do.
+- Bunny cannot cancel a seek, so jumps more than 2s past the frontier are **corrected after the
+  fact** with `setCurrentTime(furthest)`, on `seeking` (emitted by Bunny's player though not in its
+  docs; position read with `getCurrentTime`), `seeked` (`{ seconds }`) or `timeupdate` — whichever
+  sees it first, de-duplicated so the correction doesn't loop. Backward seeking/replay is free.
+- `rememberPosition=false` is added to the embed URL so a reload can't resume past the frontier.
+  Progress is per page load only (not persisted): a refresh starts again from 0.
+- Verified against the live Bunny player (2026-10-12): `timeupdate` ≈ every 250 ms with
+  `{ seconds, duration }`; a jump 60s ahead was snapped back to the watched point; seeking back was
+  allowed. Bunny's adapter does not wire `playbackratechange`/`setPlaybackRate`, so speed is handled
+  only through the wall-clock plausibility check.
+- **Limitations:** a deterrent, not enforcement. The embed URL is public (it can be opened directly
+  without the guard) and dev tools can bypass it; the viewer briefly sees the jump before it's
+  corrected; behavior inside the iOS native full-screen player, AirPlay/Chromecast and keyboard
+  shortcuts depends on Bunny forwarding the same media events and wasn't verifiable here.
 
 ### Workflow
 

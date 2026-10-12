@@ -24,6 +24,8 @@ export type FreeCourseContent = {
   bunnyLibraryId: string | null;
   bunnyVideoId: string | null;
   videoAspect: VideoAspect;
+  /** false → the public player snaps forward seeks back to the furthest watched point. */
+  allowSkipping: boolean;
   showHost: boolean;
   hostIntro: string | null;
   seoTitle: string | null;

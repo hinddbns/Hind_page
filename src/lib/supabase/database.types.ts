@@ -172,6 +172,7 @@ export type Database = {
       }
       FreeCourse: {
         Row: {
+          allowSkipping: boolean
           bunnyLibraryId: string | null
           bunnyVideoId: string | null
           eyebrow: string | null
@@ -189,6 +190,7 @@ export type Database = {
           videoAspect: Database["public"]["Enums"]["VideoAspect"]
         }
         Insert: {
+          allowSkipping?: boolean
           bunnyLibraryId?: string | null
           bunnyVideoId?: string | null
           eyebrow?: string | null
@@ -206,6 +208,7 @@ export type Database = {
           videoAspect?: Database["public"]["Enums"]["VideoAspect"]
         }
         Update: {
+          allowSkipping?: boolean
           bunnyLibraryId?: string | null
           bunnyVideoId?: string | null
           eyebrow?: string | null

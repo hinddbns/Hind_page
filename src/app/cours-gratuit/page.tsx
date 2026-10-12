@@ -14,6 +14,7 @@ import { db } from "@/lib/supabase/db";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import SocialLinks, { hasVisibleSocialLinks } from "@/components/SocialLinks";
 import { WhatsAppIcon } from "@/components/WhatsAppButton";
+import BunnySeekGuardPlayer from "@/components/BunnySeekGuardPlayer";
 
 // Publish/unpublish and content edits must show up on the very next request, and draft access
 // depends on the viewer's session — never serve this page from a static or cached render.
@@ -77,6 +78,10 @@ export default async function FreeCoursePage() {
     isValidBunnyLibraryId(course.bunnyLibraryId) &&
     isValidBunnyVideoId(course.bunnyVideoId);
   const aspect = ASPECT_CLASSES[course.videoAspect];
+  const videoTitle = interpolate(t.freeCourse.videoTitle, { title: course.title });
+  // Only an explicit false restricts; a missing column (migration not yet applied) keeps the
+  // plain embed. The restricted player is a client component, so the default path ships no JS.
+  const restrictSkipping = course.allowSkipping === false;
 
   // Fixed order: label → introduction → video → booking CTA → presenter → social links. All
   // course copy comes from the FreeCourse row; only the CTA labels are shared dictionary text.
@@ -114,15 +119,26 @@ export default async function FreeCoursePage() {
       <div className={`mt-8 ${aspect.width}`}>
         {hasVideo ? (
           <div className={`relative overflow-hidden rounded-2xl bg-black shadow-lg shadow-olive/10 ${aspect.frame}`}>
-            <iframe
-              src={buildBunnyEmbedUrl({ libraryId: course.bunnyLibraryId!, videoId: course.bunnyVideoId! })}
-              title={interpolate(t.freeCourse.videoTitle, { title: course.title })}
-              allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
-              allowFullScreen
-              loading="eager"
-              referrerPolicy="strict-origin-when-cross-origin"
-              className="absolute inset-0 h-full w-full border-0"
-            />
+            {restrictSkipping ? (
+              <BunnySeekGuardPlayer
+                embedUrl={buildBunnyEmbedUrl(
+                  { libraryId: course.bunnyLibraryId!, videoId: course.bunnyVideoId! },
+                  { restrictSeeking: true }
+                )}
+                title={videoTitle}
+                className="absolute inset-0 h-full w-full border-0"
+              />
+            ) : (
+              <iframe
+                src={buildBunnyEmbedUrl({ libraryId: course.bunnyLibraryId!, videoId: course.bunnyVideoId! })}
+                title={videoTitle}
+                allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+                loading="eager"
+                referrerPolicy="strict-origin-when-cross-origin"
+                className="absolute inset-0 h-full w-full border-0"
+              />
+            )}
           </div>
         ) : (
           // Only an admin preview can reach this branch: a published row always has a video

@@ -101,8 +101,13 @@ export function parseBunnyReference(referenceInput: string, libraryIdInput = "")
 }
 
 /** Builds the public (unsigned) embed URL. Throws on invalid input — callers pass stored,
- * already-validated identifiers, so a throw here means corrupted data, not user error. */
-export function buildBunnyEmbedUrl({ libraryId, videoId }: BunnyVideoRef): string {
+ * already-validated identifiers, so a throw here means corrupted data, not user error.
+ * `restrictSeeking` turns off Bunny's resume-from-last-position so a reload can't start the
+ * viewer beyond what the seek guard allows. */
+export function buildBunnyEmbedUrl(
+  { libraryId, videoId }: BunnyVideoRef,
+  { restrictSeeking = false }: { restrictSeeking?: boolean } = {}
+): string {
   if (!isValidBunnyLibraryId(libraryId) || !isValidBunnyVideoId(videoId)) {
     throw new Error("Invalid Bunny Stream identifiers.");
   }
@@ -112,5 +117,6 @@ export function buildBunnyEmbedUrl({ libraryId, videoId }: BunnyVideoRef): strin
   url.searchParams.set("muted", "false");
   url.searchParams.set("preload", "true");
   url.searchParams.set("responsive", "true");
+  if (restrictSeeking) url.searchParams.set("rememberPosition", "false");
   return url.toString();
 }

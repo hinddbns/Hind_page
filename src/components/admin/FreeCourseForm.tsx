@@ -15,6 +15,7 @@ type Values = {
   bunnyReference: string;
   bunnyLibraryId: string;
   videoAspect: VideoAspect;
+  allowSkipping: boolean;
   showHost: boolean;
   hostIntro: string;
   seoTitle: string;
@@ -205,6 +206,23 @@ export default function FreeCourseForm({
               <option key={aspect} value={aspect}>{aspectLabels[aspect]}</option>
             ))}
           </select>
+        </div>
+
+        <div className="mt-4">
+          <label className="flex items-center gap-2 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              name="allowSkipping"
+              checked={values.allowSkipping}
+              onChange={(e) => set("allowSkipping", e.target.checked)}
+              aria-describedby={`${uid}-skipping-hint`}
+              className="h-4 w-4 accent-primary"
+            />
+            {f.allowSkippingLabel}
+          </label>
+          <p id={`${uid}-skipping-hint`} className="mt-1 text-xs text-ink-soft">
+            {values.allowSkipping ? f.allowSkippingOnHint : f.allowSkippingOffHint}
+          </p>
         </div>
       </fieldset>
 

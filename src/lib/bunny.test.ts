@@ -143,3 +143,10 @@ test("embed URL builder refuses invalid identifiers", () => {
   assert.throws(() => buildBunnyEmbedUrl({ libraryId: "abc", videoId: VIDEO_ID }));
   assert.throws(() => buildBunnyEmbedUrl({ libraryId: LIBRARY_ID, videoId: "../../evil" }));
 });
+
+test("restricted seeking also disables Bunny's resume position", () => {
+  assert.equal(
+    buildBunnyEmbedUrl({ libraryId: LIBRARY_ID, videoId: VIDEO_ID }, { restrictSeeking: true }),
+    `https://iframe.mediadelivery.net/embed/${LIBRARY_ID}/${VIDEO_ID}?autoplay=false&loop=false&muted=false&preload=true&responsive=true&rememberPosition=false`
+  );
+});
