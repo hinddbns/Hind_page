@@ -399,7 +399,17 @@ polls `GET /api/messages/unread-count` every 20s, independently, wherever it's m
 links). There are no WebSockets/SSE. This is a deliberate simplicity choice for a low-traffic
 single-coach app — see `PROJECT_CONTEXT.md` § Development Decisions.
 
-## Free course (`/cours-gratuit`) — standalone public page, admin-managed
+## Free course (`/free-course/{code}`) — standalone public page, admin-managed
+
+**Per-group links (2026-10-17, owner decision).** The page lives at `/free-course/{accessCode}`.
+The admin types a name per group (`accessCode`, lowercase latin/digits/hyphens, 3–40) and an
+optional last valid day (`accessExpiresOn`, inclusive, Africa/Casablanca calendar day). Changing
+the name or passing the date makes the previous link 404 immediately — **no redirect, by design**,
+so earlier groups lose access. `/free-course` alone and the old `/cours-gratuit` are 404 too.
+Rules live in `src/lib/freeCourseAccess.ts` (pure, unit-tested); the page is always `noindex`
+(the `indexable` column is no longer used and stays `false`). Limits: anyone in the current group
+can forward the link while it's active, and the Bunny embed URL itself is public unless Bunny
+token authentication is added later.
 
 One free course made of a single Bunny Stream video, on its own public page. It is deliberately
 **not** a `Course` row (Course requires an audience and price, joins enrollments/payments, and is
@@ -409,7 +419,7 @@ read by every catalog) and appears in **no** catalog, audience space, dashboard 
 
 | Piece | Path |
 |---|---|
-| Public route (own minimal layout: logo, page, footer — no `Nav`/`Footer`/auth buttons; the root layout's WhatsApp button and toasts stay) | `src/app/cours-gratuit/{layout,page,error}.tsx` |
+| Public route (own minimal layout: logo, page, footer — no `Nav`/`Footer`/auth buttons; the root layout's WhatsApp button and toasts stay) | `src/app/free-course/{layout,error}.tsx` + `src/app/free-course/[code]/page.tsx` |
 | Admin page (sidebar entry "الدورة المجانية") | `src/app/(app)/admin/cours-gratuit/page.tsx` + `src/components/admin/FreeCourseForm.tsx` |
 | Server Actions | `updateFreeCourse`, `setFreeCoursePublished` in `src/app/(app)/admin/actions.ts` |
 | Data access + viewer rule | `src/lib/freeCourse.ts` (`getFreeCourseForViewer` is the single access check) |
@@ -449,7 +459,9 @@ the admin status card flags it.
 | `allowSkipping` | boolean, default **true** (`20261012140000_free_course_allow_skipping`) | `false` turns on the seek guard (below) |
 | `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | presenter block below the booking CTA; `hostIntro` is the presenter's **professional description** (falls back to `site.tagline`; don't repeat the name in it) |
 | `seoTitle` / `seoDescription` | text ≤ 70 / ≤ 160, nullable | fall back to `title` / start of `introduction` |
-| `indexable` | boolean, default **false** | robots meta only — not privacy |
+| `indexable` | boolean, default false | **unused since group links** — the page is always noindex |
+| `accessCode` | text, nullable, CHECK `^[a-z0-9]+(-[a-z0-9]+)*$`, 3–40 (`20261017120000_free_course_group_link`) | the group link name; required to publish |
+| `accessExpiresOn` | date, nullable | last day the group link works (Morocco time); null = no end |
 | `published` / `publishedAt` | boolean (default false) / timestamp | publication state |
 | `updatedAt` | timestamp | **content** version: bumped on every content save (not on publish/unpublish) and used for the edit form's optimistic-concurrency check |
 
@@ -481,7 +493,8 @@ Schema changes are applied by hand in Supabase; the SQL file is committed as the
 page error until the table exists). It is purely additive. Later forward-only migrations, applied
 the same way and never by editing the original: `20261012120000_free_course_introduction_1200`
 (replaces only the introduction length CHECK), `20261012140000_free_course_allow_skipping` (adds
-`allowSkipping`, default true). Then run these **read-only** checks:
+`allowSkipping`, default true), `20261017120000_free_course_group_link` (adds `accessCode` and
+`accessExpiresOn`). Then run these **read-only** checks:
 
 ```sql
 -- 1. RLS on (expect relrowsecurity = true)
@@ -575,7 +588,8 @@ stays a server-rendered iframe and no player script is loaded.
 
 1. `/admin/cours-gratuit` → fill the content, paste the Bunny reference, **حفظ** (drafts may be
    incomplete; every supplied value is still validated).
-2. **معاينة الصفحة** opens `/cours-gratuit`; admins see the draft with a "معاينة" banner.
+2. **معاينة الصفحة** opens the current group link; admins can open any `/free-course/{code}` and see a
+   "معاينة" banner explaining why visitors can't (draft, no/old name, or expired).
 3. **نشر** (confirmation dialog) — only offered once title, introduction and video are saved.
 4. **إلغاء النشر** (confirmation dialog) hides the page immediately (visitors get the 404).
 

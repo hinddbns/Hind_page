@@ -383,7 +383,7 @@ to object storage, now that serverless (Vercel) deployment is real, not hypothet
   wrapped in `runAction()`.
 - Calling a task "done" without running `npm test`, `tsc --noEmit`, `eslint`, and `npm run build`
   — beyond a few pure-helper unit tests, there is no test suite catching you otherwise.
-- Hardcoding free-course content (`/cours-gratuit`) in code or the dictionary — it lives in the
+- Hardcoding free-course content (`/free-course/{code}`) in code or the dictionary — it lives in the
   `FreeCourse` table and is edited at `/admin/cours-gratuit`; drafts are only ever shown to
   admins via `getFreeCourseForViewer()` (see `docs/ARCHITECTURE.md` § Free course).
 - Leaving throwaway QA accounts, test enrollments, or test uploads in the database after manual

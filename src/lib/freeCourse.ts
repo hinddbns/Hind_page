@@ -3,9 +3,9 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { db } from "@/lib/supabase/db";
 import { getAppUser } from "@/lib/session";
 import { isPublishable } from "@/lib/freeCourseRules";
+import { getAccessLinkStatus, type AccessLinkStatus } from "@/lib/freeCourseAccess";
 
 export const FREE_COURSE_ID = "main";
-export const FREE_COURSE_PATH = "/cours-gratuit";
 
 export type FreeCourseRow = Tables<"FreeCourse">;
 
@@ -19,22 +19,30 @@ export async function fetchFreeCourse(): Promise<FreeCourseRow | null> {
 /** Request-deduplicated read, shared by a page and its generateMetadata. */
 export const getFreeCourse = cache(fetchFreeCourse);
 
+/** Why visitors can't currently see what an admin is previewing (null = they can). */
+export type FreeCoursePreviewNotice = "draft" | Exclude<AccessLinkStatus, "open"> | null;
+
 /**
- * The single authority on who may see the free course page. Anonymous visitors get the row only
- * when it's published (and still complete); anyone else gets `null` → 404, so no draft text can
- * reach HTML, metadata or the RSC payload. An admin additionally gets an unpublished row, flagged
- * as a preview. The admin lookup only runs on the draft path, so normal published visits make no
- * auth call. This uses the service-role client, so this check IS the access control — keep both
- * the page and generateMetadata going through it.
+ * The single authority on who may see /free-course/{code}. Anonymous visitors get the row only
+ * when it's published, complete, `code` is the current group name and its date hasn't passed;
+ * anyone else gets `null` → 404, so neither draft text nor an old group's link reveals anything
+ * (HTML, metadata or RSC payload). An admin gets the row for any code, flagged as a preview with
+ * the reason visitors can't see it. The admin lookup only runs when visitors are refused, so normal
+ * visits make no auth call. This uses the service-role client, so this check IS the access
+ * control — keep both the page and generateMetadata going through it.
  */
 export const getFreeCourseForViewer = cache(
-  async (): Promise<{ course: FreeCourseRow; preview: boolean } | null> => {
+  async (
+    code: string
+  ): Promise<{ course: FreeCourseRow; preview: boolean; notice: FreeCoursePreviewNotice } | null> => {
     const course = await getFreeCourse();
     if (!course) return null;
-    if (course.published && isPublishable(course)) return { course, preview: false };
+    const access = getAccessLinkStatus(course, code, new Date());
+    const live = course.published && isPublishable(course);
+    if (live && access === "open") return { course, preview: false, notice: null };
 
     const user = await getAppUser();
-    if (user?.role === "ADMIN") return { course, preview: true };
-    return null;
+    if (user?.role !== "ADMIN") return null;
+    return { course, preview: true, notice: !live ? "draft" : access === "open" ? null : access };
   }
 );

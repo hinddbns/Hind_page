@@ -6,6 +6,7 @@ import { useLocale } from "@/i18n/LocaleProvider";
 import { interpolate } from "@/i18n/config";
 import { useToastActionState } from "@/lib/useToastActionState";
 import { FREE_COURSE_LIMITS, VIDEO_ASPECTS, textLength, type VideoAspect } from "@/lib/freeCourseRules";
+import { ACCESS_CODE_MAX_LENGTH } from "@/lib/freeCourseAccess";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
 type Values = {
@@ -20,7 +21,8 @@ type Values = {
   hostIntro: string;
   seoTitle: string;
   seoDescription: string;
-  indexable: boolean;
+  accessCode: string;
+  accessExpiresOn: string;
 };
 
 const inputClass =
@@ -82,6 +84,47 @@ export default function FreeCourseForm({
           {f.liveEditWarning}
         </p>
       )}
+
+      <fieldset className={fieldsetClass}>
+        <legend className={legendClass}>{f.sectionAccess}</legend>
+        <p className="mt-2 text-sm text-ink-soft">{f.accessHelp}</p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div>
+            <label htmlFor={`${uid}-access-code`} className="mb-1 block text-sm font-medium text-ink">
+              {f.accessCodeLabel} <span className="font-normal text-ink-soft">({f.requiredToPublish})</span>
+            </label>
+            <input
+              id={`${uid}-access-code`}
+              name="accessCode"
+              dir="ltr"
+              value={values.accessCode}
+              onChange={(e) => set("accessCode", e.target.value)}
+              maxLength={ACCESS_CODE_MAX_LENGTH}
+              placeholder="groupe-octobre"
+              autoComplete="off"
+              spellCheck={false}
+              aria-describedby={`${uid}-access-code-hint`}
+              className={inputClass}
+            />
+            <p id={`${uid}-access-code-hint`} className="mt-1 text-xs text-ink-soft">{f.accessCodeHint}</p>
+          </div>
+          <div>
+            <label htmlFor={`${uid}-access-expires`} className="mb-1 block text-sm font-medium text-ink">
+              {f.accessExpiresLabel}
+            </label>
+            <input
+              id={`${uid}-access-expires`}
+              name="accessExpiresOn"
+              type="date"
+              value={values.accessExpiresOn}
+              onChange={(e) => set("accessExpiresOn", e.target.value)}
+              aria-describedby={`${uid}-access-expires-hint`}
+              className={inputClass}
+            />
+            <p id={`${uid}-access-expires-hint`} className="mt-1 text-xs text-ink-soft">{f.accessExpiresHint}</p>
+          </div>
+        </div>
+      </fieldset>
 
       <fieldset className={fieldsetClass}>
         <legend className={legendClass}>{f.sectionInfo}</legend>
@@ -299,20 +342,7 @@ export default function FreeCourseForm({
               })}
             </p>
           </div>
-          <div>
-            <label className="flex items-center gap-2 text-sm text-ink">
-              <input
-                type="checkbox"
-                name="indexable"
-                checked={values.indexable}
-                onChange={(e) => set("indexable", e.target.checked)}
-                aria-describedby={`${uid}-indexable-hint`}
-                className="h-4 w-4 accent-primary"
-              />
-              {f.indexableLabel}
-            </label>
-            <p id={`${uid}-indexable-hint`} className="mt-1 text-xs text-ink-soft">{f.indexableHint}</p>
-          </div>
+          <p className="text-xs text-ink-soft">{f.noIndexNote}</p>
         </div>
       </fieldset>
 

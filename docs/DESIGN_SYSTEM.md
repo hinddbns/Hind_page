@@ -181,13 +181,13 @@ Real coach photos are in `public/` (`personal.webp`, `me.png`, `coach-work.jpg`)
 via `site.ts`. (An older `CoachPortrait.tsx` placeholder described in earlier docs no longer
 exists.)
 
-**Circular portrait (free course presenter).** `/cours-gratuit` shows the presenter as a circle
+**Circular portrait (free course presenter).** `/free-course/{code}` shows the presenter as a circle
 (`size-24`, `md:size-28` — 96/112 px, `rounded-full`); an inner uniform `scale-[1.8]
 origin-[50%_9%]` wrapper zooms the half-length `personal.webp` onto the face without distortion
 or a separate asset (retune if the photo changes).
 
 **Free course palette.** By owner decision (the free course speaks to mothers and teachers),
-`/cours-gratuit` reuses the mothers & teachers space's palette rather than the neutral one:
+`/free-course/{code}` reuses the mothers & teachers space's palette rather than the neutral one:
 `bg-parents-bg` page, `bg-parents-bg-alt` + `border-olive-light` footer, `bg-olive-dark text-cream`
 label pill (same as that page's hero badge), `shadow-olive/*`, `border-olive-light/*` dividers and
 `text-olive-dark` presenter description. The one exception, by owner choice, is the WhatsApp

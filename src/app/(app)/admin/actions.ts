@@ -27,7 +27,8 @@ import { sendEmail } from "@/lib/email";
 import { enrollmentApprovedEmail, enrollmentRejectedEmail } from "@/lib/emailTemplates";
 import { SUSPEND_BAN_DURATION, RESTORE_BAN_DURATION } from "@/lib/suspension";
 import { parseBunnyReference, type BunnyReferenceError } from "@/lib/bunny";
-import { FREE_COURSE_ID, FREE_COURSE_PATH, fetchFreeCourse } from "@/lib/freeCourse";
+import { FREE_COURSE_ID, fetchFreeCourse } from "@/lib/freeCourse";
+import { FREE_COURSE_BASE_PATH, normalizeAccessCode } from "@/lib/freeCourseAccess";
 import {
   FREE_COURSE_LIMITS,
   getContentProblems,
@@ -838,6 +839,8 @@ function freeCourseContentMessage(problem: FreeCourseContentProblem, t: Dictiona
     invalidLibraryId: t.freeCourseAdmin.errorInvalidLibraryId,
     invalidVideoId: t.freeCourseAdmin.errorInvalidVideoId,
     invalidVideoAspect: t.freeCourseAdmin.errorInvalidVideoAspect,
+    invalidAccessCode: t.freeCourseAdmin.errorInvalidAccessCode,
+    invalidAccessDate: t.freeCourseAdmin.errorInvalidAccessDate,
   };
   return messages[problem];
 }
@@ -848,7 +851,7 @@ const PG_CHECK_VIOLATION = "23514";
 
 function revalidateFreeCourse() {
   revalidatePath("/admin/cours-gratuit");
-  revalidatePath(FREE_COURSE_PATH);
+  revalidatePath(`${FREE_COURSE_BASE_PATH}/[code]`, "page");
 }
 
 export async function updateFreeCourse(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -874,7 +877,10 @@ export async function updateFreeCourse(_prev: ActionState, formData: FormData): 
       hostIntro: readString(formData, "hostIntro"),
       seoTitle: readString(formData, "seoTitle"),
       seoDescription: readString(formData, "seoDescription"),
-      indexable: formData.get("indexable") === "on",
+      // Group links are private: the page is always noindex, so the stored flag stays false.
+      indexable: false,
+      accessCode: normalizeAccessCode(readString(formData, "accessCode")) || null,
+      accessExpiresOn: readString(formData, "accessExpiresOn") || null,
     });
 
     const problems = getContentProblems(content);
@@ -901,6 +907,7 @@ export async function updateFreeCourse(_prev: ActionState, formData: FormData): 
       // Until 20261012140000_free_course_allow_skipping is applied the row has no allowSkipping
       // column: keep other edits saving, but refuse to silently drop a request to disable skipping.
       const { allowSkipping, ...rest } = content;
+      if (!("accessCode" in current)) throw new AdminActionError(t.freeCourseAdmin.errorAccessMigrationMissing);
       const skippingColumnReady = "allowSkipping" in current;
       if (!skippingColumnReady && !allowSkipping) {
         throw new AdminActionError(t.freeCourseAdmin.errorSkippingMigrationMissing);

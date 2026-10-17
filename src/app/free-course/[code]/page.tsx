@@ -7,7 +7,8 @@ import { getT } from "@/i18n/server";
 import { interpolate } from "@/i18n/config";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { buildBunnyEmbedUrl, isValidBunnyLibraryId, isValidBunnyVideoId } from "@/lib/bunny";
-import { FREE_COURSE_PATH, getFreeCourseForViewer, type FreeCourseRow } from "@/lib/freeCourse";
+import { getFreeCourseForViewer, type FreeCoursePreviewNotice, type FreeCourseRow } from "@/lib/freeCourse";
+import { freeCoursePath } from "@/lib/freeCourseAccess";
 import { splitParagraphs, summarize } from "@/lib/freeCourseRules";
 import { getSocialLinksByVariant } from "@/lib/socialLinks";
 import { db } from "@/lib/supabase/db";
@@ -16,27 +17,31 @@ import SocialLinks, { hasVisibleSocialLinks } from "@/components/SocialLinks";
 import { WhatsAppIcon } from "@/components/WhatsAppButton";
 import BunnySeekGuardPlayer from "@/components/BunnySeekGuardPlayer";
 
-// Publish/unpublish and content edits must show up on the very next request, and draft access
-// depends on the viewer's session — never serve this page from a static or cached render.
+// Publish/unpublish, group-link changes and content edits must show up on the very next request,
+// and draft access depends on the viewer's session — never serve this from a static/cached render.
 export const dynamic = "force-dynamic";
 
+// Always noindex: each group gets a private link, so search engines must never list one.
 const NOINDEX = { index: false, follow: false } as const;
 
-export async function generateMetadata(): Promise<Metadata> {
+type Params = { params: Promise<{ code: string }> };
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { code } = await params;
   const { t } = await getT();
-  const view = await getFreeCourseForViewer();
+  const view = await getFreeCourseForViewer(code);
   // No draft text may leak through metadata: a visitor who can't see the page gets the 404 title.
   if (!view) return { title: t.errors.notFoundTitle, robots: NOINDEX };
 
-  const { course, preview } = view;
+  const { course } = view;
   const title = course.seoTitle ?? course.title;
   const description = course.seoDescription ?? summarize(course.introduction);
-  const canonical = getSiteUrl() ? FREE_COURSE_PATH : undefined;
+  const canonical = getSiteUrl() && course.accessCode ? freeCoursePath(course.accessCode) : undefined;
 
   return {
     title,
     description,
-    robots: !preview && course.indexable ? { index: true, follow: true } : NOINDEX,
+    robots: NOINDEX,
     alternates: canonical ? { canonical } : undefined,
     openGraph: {
       title,
@@ -56,12 +61,19 @@ const ASPECT_CLASSES: Record<FreeCourseRow["videoAspect"], { frame: string; widt
   SQUARE: { frame: "aspect-square", width: "mx-auto w-full max-w-md" },
 };
 
-export default async function FreeCoursePage() {
-  const view = await getFreeCourseForViewer();
+export default async function FreeCoursePage({ params }: Params) {
+  const { code } = await params;
+  const view = await getFreeCourseForViewer(code);
   if (!view) notFound();
 
   const { t } = await getT();
-  const { course, preview } = view;
+  const { course, preview, notice } = view;
+  const previewMessages: Record<NonNullable<FreeCoursePreviewNotice>, string> = {
+    draft: t.freeCourse.previewBanner,
+    noCode: t.freeCourse.previewNoCode,
+    wrongCode: t.freeCourse.previewWrongCode,
+    expired: t.freeCourse.previewExpired,
+  };
   const [socialLinksByVariant, settingsResult] = await Promise.all([
     getSocialLinksByVariant(),
     db.from("Settings").select("whatsappNumber").eq("id", "main").maybeSingle(),
@@ -92,7 +104,7 @@ export default async function FreeCoursePage() {
           role="status"
           className="mb-8 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-olive-light bg-olive-light/40 px-4 py-3 text-sm text-olive-dark"
         >
-          <span>{t.freeCourse.previewBanner}</span>
+          <span>{notice ? previewMessages[notice] : t.freeCourse.previewBanner}</span>
           <Link href="/admin/cours-gratuit" className="font-medium underline underline-offset-4">
             {t.freeCourse.previewBackToAdmin}
           </Link>

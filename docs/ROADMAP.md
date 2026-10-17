@@ -58,7 +58,7 @@ These aren't bugs — the app works correctly — but the content/config is stil
   Bunny Stream specifically (signed playback URLs, player stays in-app, local video kept as a
   `bunnyVideoId ? Bunny : local` fallback during migration). Needs: a Bunny Stream library created,
   its Library ID, and a Stream API key with permission to create videos and generate signed
-  playback URLs. **Related, but separate:** the standalone free course (`/cours-gratuit`, see
+  playback URLs. **Related, but separate:** the standalone free course (`/free-course/{code}`, see
   `ARCHITECTURE.md` § Free course) already uses Bunny — public, unsigned embeds from a
   **dedicated public library**, no API key. Keep the lesson library separate (token auth is a
   library-wide setting); reuse `src/lib/bunny.ts` for parsing, adding signing there for lessons.

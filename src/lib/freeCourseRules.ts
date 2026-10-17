@@ -3,6 +3,7 @@
 // CHECK constraints in prisma/migrations/20261011120000_add_free_course mirror these limits.
 import type { Enums } from "@/lib/supabase/database.types";
 import { isValidBunnyLibraryId, isValidBunnyVideoId } from "@/lib/bunny";
+import { isValidAccessCode, isValidAccessDate } from "@/lib/freeCourseAccess";
 
 export type VideoAspect = Enums<"VideoAspect">;
 
@@ -31,6 +32,10 @@ export type FreeCourseContent = {
   seoTitle: string | null;
   seoDescription: string | null;
   indexable: boolean;
+  /** Group link name: the page lives at /free-course/{accessCode}. */
+  accessCode: string | null;
+  /** Last day (YYYY-MM-DD, Morocco) the group link works; null = no end date. */
+  accessExpiresOn: string | null;
 };
 
 export type FreeCourseContentProblem =
@@ -42,9 +47,11 @@ export type FreeCourseContentProblem =
   | "seoDescriptionTooLong"
   | "invalidLibraryId"
   | "invalidVideoId"
-  | "invalidVideoAspect";
+  | "invalidVideoAspect"
+  | "invalidAccessCode"
+  | "invalidAccessDate";
 
-export type FreeCoursePublishBlocker = "titleRequired" | "introductionRequired" | "videoRequired";
+export type FreeCoursePublishBlocker = "titleRequired" | "introductionRequired" | "videoRequired" | "accessCodeRequired";
 
 /** Code-point length, matching Postgres `char_length` (a UTF-16 `.length` would over-count emoji). */
 export function textLength(value: string): number {
@@ -108,6 +115,10 @@ export function getContentProblems(content: FreeCourseContent): FreeCourseConten
     problems.push("invalidVideoId");
   }
   if (!isVideoAspect(content.videoAspect)) problems.push("invalidVideoAspect");
+  if (content.accessCode !== null && !isValidAccessCode(content.accessCode)) problems.push("invalidAccessCode");
+  if (content.accessExpiresOn !== null && !isValidAccessDate(content.accessExpiresOn)) {
+    problems.push("invalidAccessDate");
+  }
   return problems;
 }
 
@@ -124,6 +135,8 @@ export function getPublishBlockers(content: FreeCourseContent): FreeCoursePublis
   ) {
     blockers.push("videoRequired");
   }
+  // Without a group name the page has no address anyone can open.
+  if (content.accessCode === null) blockers.push("accessCodeRequired");
   return blockers;
 }
 

@@ -24,6 +24,8 @@ const complete: FreeCourseContent = {
   seoTitle: null,
   seoDescription: null,
   indexable: false,
+  accessCode: "groupe-octobre",
+  accessExpiresOn: null,
 };
 
 test("complete content with every optional field omitted is publishable", () => {
@@ -145,4 +147,14 @@ test("splitParagraphs splits on blank lines and keeps single newlines", () => {
 
 test("splitParagraphs returns plain text, untouched", () => {
   assert.deepEqual(splitParagraphs("<script>alert(1)</script>\n\n<b>x</b>"), ["<script>alert(1)</script>", "<b>x</b>"]);
+});
+
+test("a missing group name blocks publication", () => {
+  assert.deepEqual(getPublishBlockers({ ...complete, accessCode: null }), ["accessCodeRequired"]);
+});
+
+test("invalid group names and expiry dates are content problems", () => {
+  assert.deepEqual(getContentProblems({ ...complete, accessCode: "Bad Name!" }), ["invalidAccessCode"]);
+  assert.deepEqual(getContentProblems({ ...complete, accessExpiresOn: "2026-02-30" }), ["invalidAccessDate"]);
+  assert.deepEqual(getContentProblems({ ...complete, accessExpiresOn: "2026-10-25" }), []);
 });

@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { getT } from "@/i18n/server";
 import { site } from "@/lib/site";
 import { getSiteUrl } from "@/lib/siteUrl";
-import { FREE_COURSE_PATH, fetchFreeCourse } from "@/lib/freeCourse";
+import { fetchFreeCourse } from "@/lib/freeCourse";
+import { freeCoursePath, getAccessLinkStatus } from "@/lib/freeCourseAccess";
 import { getPublishBlockers, type FreeCoursePublishBlocker } from "@/lib/freeCourseRules";
 import { db } from "@/lib/supabase/db";
 import { buildWhatsAppUrl, normalizeWhatsAppNumber } from "@/lib/whatsapp";
@@ -12,21 +13,20 @@ import ConfirmActionForm from "@/components/admin/ConfirmActionForm";
 import FreeCourseForm from "@/components/admin/FreeCourseForm";
 import CopyButton from "@/components/CopyButton";
 
-async function publicUrl() {
+async function absoluteUrl(path: string) {
   const siteUrl = getSiteUrl();
-  if (siteUrl) return new URL(FREE_COURSE_PATH, siteUrl).href;
+  if (siteUrl) return new URL(path, siteUrl).href;
   const headerList = await headers();
   const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
-  if (!host) return FREE_COURSE_PATH;
+  if (!host) return path;
   const proto = headerList.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}${FREE_COURSE_PATH}`;
+  return `${proto}://${host}${path}`;
 }
 
 export default async function AdminFreeCoursePage() {
   const { t } = await getT();
   const f = t.freeCourseAdmin;
   const course = await fetchFreeCourse();
-  const url = await publicUrl();
   const { data: settings, error: settingsError } = await db
     .from("Settings")
     .select("whatsappNumber")
@@ -48,13 +48,23 @@ export default async function AdminFreeCoursePage() {
     seoTitle: null,
     seoDescription: null,
     indexable: false,
+    accessCode: null,
+    accessExpiresOn: null,
   };
+  // `?? null` keeps the page working if the group-link migration hasn't been applied yet.
+  const accessCode = content.accessCode ?? null;
+  const accessExpiresOn = content.accessExpiresOn ?? null;
+  const linkStatus = getAccessLinkStatus({ accessCode, accessExpiresOn }, accessCode ?? "", new Date());
+  // Admins can preview through any code, so a placeholder segment works before one is set.
+  const previewPath = freeCoursePath(accessCode ?? "apercu");
+  const url = accessCode ? await absoluteUrl(freeCoursePath(accessCode)) : null;
   const published = course?.published ?? false;
   const blockers = getPublishBlockers(content);
   const blockerLabels: Record<FreeCoursePublishBlocker, string> = {
     titleRequired: f.blockerTitleRequired,
     introductionRequired: f.blockerIntroductionRequired,
     videoRequired: f.blockerVideoRequired,
+    accessCodeRequired: f.blockerAccessCodeRequired,
   };
   const savedVideo =
     content.bunnyLibraryId && content.bunnyVideoId
@@ -79,14 +89,31 @@ export default async function AdminFreeCoursePage() {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-          <span className="font-medium text-ink">{f.publicUrlLabel}:</span>
-          <code dir="ltr" className="rounded-md bg-cream-dark/60 px-2 py-0.5 text-xs text-ink-soft">{url}</code>
-          <CopyButton value={url} fieldLabel={f.publicUrlLabel} />
+          <span className="font-medium text-ink">{f.accessLinkLabel}:</span>
+          {url ? (
+            <>
+              <code dir="ltr" className="rounded-md bg-cream-dark/60 px-2 py-0.5 text-xs text-ink-soft">{url}</code>
+              <CopyButton value={url} fieldLabel={f.accessLinkLabel} />
+            </>
+          ) : null}
+          <span
+            className={`rounded-full border px-3 py-0.5 text-xs font-medium ${
+              linkStatus === "open" && published
+                ? "border-success/30 bg-success/10 text-success"
+                : linkStatus === "expired"
+                  ? "border-danger/30 bg-danger/10 text-danger"
+                  : "border-ink/15 bg-ink/5 text-ink-soft"
+            }`}
+          >
+            {linkStatus === "open" ? f.accessStatusOpen : linkStatus === "expired" ? f.accessStatusExpired : f.accessStatusNoCode}
+            {linkStatus === "open" && accessExpiresOn ? <bdi dir="ltr"> · {accessExpiresOn}</bdi> : null}
+          </span>
         </div>
+        {linkStatus === "open" && !published && <p className="mt-2 text-xs text-ink-soft">{f.accessNotPublished}</p>}
 
         <div className="mt-4 flex flex-wrap items-start gap-3">
           <Link
-            href={FREE_COURSE_PATH}
+            href={previewPath}
             target="_blank"
             rel="noopener"
             className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink transition hover:border-primary hover:text-primary"
@@ -173,7 +200,8 @@ export default async function AdminFreeCoursePage() {
           hostIntro: content.hostIntro ?? "",
           seoTitle: content.seoTitle ?? "",
           seoDescription: content.seoDescription ?? "",
-          indexable: content.indexable,
+          accessCode: accessCode ?? "",
+          accessExpiresOn: accessExpiresOn ?? "",
         }}
       />
     </div>

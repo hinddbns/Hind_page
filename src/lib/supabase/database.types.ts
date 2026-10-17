@@ -172,6 +172,8 @@ export type Database = {
       }
       FreeCourse: {
         Row: {
+          accessCode: string | null
+          accessExpiresOn: string | null
           allowSkipping: boolean
           bunnyLibraryId: string | null
           bunnyVideoId: string | null
@@ -190,6 +192,8 @@ export type Database = {
           videoAspect: Database["public"]["Enums"]["VideoAspect"]
         }
         Insert: {
+          accessCode?: string | null
+          accessExpiresOn?: string | null
           allowSkipping?: boolean
           bunnyLibraryId?: string | null
           bunnyVideoId?: string | null
@@ -208,6 +212,8 @@ export type Database = {
           videoAspect?: Database["public"]["Enums"]["VideoAspect"]
         }
         Update: {
+          accessCode?: string | null
+          accessExpiresOn?: string | null
           allowSkipping?: boolean
           bunnyLibraryId?: string | null
           bunnyVideoId?: string | null
