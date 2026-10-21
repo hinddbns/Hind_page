@@ -3,9 +3,11 @@ import { db } from "@/lib/supabase/db";
 
 type SocialPlatform = Enums<"SocialPlatform">;
 import { getT } from "@/i18n/server";
-import { updateSettings, updateWhatsAppNumber, createSocialLink, deleteSocialLink } from "../actions";
+import { updateSettings, updateWhatsAppNumber, updateWorkshopVideo, createSocialLink, deleteSocialLink } from "../actions";
 import SettingsForm from "@/components/admin/SettingsForm";
 import SocialLinksForm from "@/components/admin/SocialLinksForm";
+import WorkshopVideoForm from "@/components/admin/WorkshopVideoForm";
+import { WORKSHOP_PATH } from "@/lib/workshop";
 
 // WhatsApp is deliberately excluded here: it drives the site-wide floating
 // WhatsApp button (via Settings.whatsappNumber, edited below) instead of
@@ -84,6 +86,17 @@ export default async function AdminSettingsPage() {
         fieldLabel={t.admin.whatsappNumberLabel}
         fieldHint={t.admin.whatsappNumberHint}
         initialValue={settings.whatsappNumber}
+      />
+
+      <WorkshopVideoForm
+        action={updateWorkshopVideo}
+        pagePath={WORKSHOP_PATH}
+        initialReference={
+          settings.workshopBunnyLibraryId && settings.workshopBunnyVideoId
+            ? `https://iframe.mediadelivery.net/embed/${settings.workshopBunnyLibraryId}/${settings.workshopBunnyVideoId}`
+            : ""
+        }
+        initialPublished={settings.workshopVideoPublished === true}
       />
 
       <SocialLinksForm

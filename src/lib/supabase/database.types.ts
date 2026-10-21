@@ -511,16 +511,25 @@ export type Database = {
           availability: string
           id: string
           whatsappNumber: string
+          workshopBunnyLibraryId: string | null
+          workshopBunnyVideoId: string | null
+          workshopVideoPublished: boolean
         }
         Insert: {
           availability?: string
           id?: string
           whatsappNumber?: string
+          workshopBunnyLibraryId?: string | null
+          workshopBunnyVideoId?: string | null
+          workshopVideoPublished?: boolean
         }
         Update: {
           availability?: string
           id?: string
           whatsappNumber?: string
+          workshopBunnyLibraryId?: string | null
+          workshopBunnyVideoId?: string | null
+          workshopVideoPublished?: boolean
         }
         Relationships: []
       }

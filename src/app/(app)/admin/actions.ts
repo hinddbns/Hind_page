@@ -27,6 +27,7 @@ import { sendEmail } from "@/lib/email";
 import { enrollmentApprovedEmail, enrollmentRejectedEmail } from "@/lib/emailTemplates";
 import { SUSPEND_BAN_DURATION, RESTORE_BAN_DURATION } from "@/lib/suspension";
 import { parseBunnyReference, type BunnyReferenceError } from "@/lib/bunny";
+import { WORKSHOP_PATH } from "@/lib/workshop";
 import { FREE_COURSE_ID, fetchFreeCourse } from "@/lib/freeCourse";
 import { FREE_COURSE_BASE_PATH, normalizeAccessCode } from "@/lib/freeCourseAccess";
 import {
@@ -475,6 +476,40 @@ export async function updateWhatsAppNumber(_prev: ActionState, formData: FormDat
     // The floating WhatsApp button lives in the root layout, so it applies
     // to every route — revalidate the layout itself rather than one path.
     revalidatePath("/", "layout");
+    return { ok: true };
+  });
+}
+
+// PostgREST "column not found in schema cache" — the workshop video migration isn't applied yet.
+const PGRST_UNKNOWN_COLUMN = "PGRST204";
+
+export async function updateWorkshopVideo(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return runAction(async () => {
+    await requireAdmin();
+    const { t } = await getT();
+
+    const reference = parseBunnyReference(readString(formData, "bunnyReference"));
+    if (!reference.ok) throw new AdminActionError(bunnyReferenceMessage(reference.error, t));
+
+    const workshopVideoPublished = formData.get("published") === "on";
+    if (workshopVideoPublished && !reference.videoId) {
+      throw new AdminActionError(t.admin.workshopVideoErrorPublishWithoutVideo);
+    }
+
+    const { error } = await db.from("Settings").upsert(
+      {
+        id: "main",
+        workshopBunnyLibraryId: reference.videoId ? reference.libraryId : null,
+        workshopBunnyVideoId: reference.videoId,
+        workshopVideoPublished,
+      },
+      { onConflict: "id" }
+    );
+    if (error?.code === PGRST_UNKNOWN_COLUMN) throw new AdminActionError(t.admin.workshopVideoErrorMigrationMissing);
+    if (error) throw error;
+
+    revalidatePath("/admin/parametres");
+    revalidatePath(WORKSHOP_PATH);
     return { ok: true };
   });
 }

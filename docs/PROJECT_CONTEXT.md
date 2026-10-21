@@ -142,6 +142,12 @@ Naming conventions for why.
 |---|---|---|---|
 | `/free-course/{code}` | `free-course/[code]/page.tsx` | Public, login-free page, reachable only through the current per-group link (admin-set name + optional end date; older links 404, always noindex), for **one free video** (Bunny Stream embed): logo, label, multi-paragraph introduction, video, WhatsApp booking CTA (shared `Settings.whatsappNumber`; hidden while it's the placeholder), circular presenter portrait + description, Global social links, © footer (no main-site link). The title is an `sr-only` `<h1>`. No site nav, no audience links, in no catalog. Content comes from the `FreeCourse` table; drafts 404 for everyone except admins (preview banner). Not a `Course` row. See `ARCHITECTURE.md` § Free course. | Live. |
 
+### Standalone workshop landing page (`atelier/`, no shared layout)
+
+| Route | File | Purpose | Status |
+|---|---|---|---|
+| `/atelier` | `atelier/page.tsx` | Public sales page for the recorded 3-day workshop «من الصراع إلى الهدوء» (370 DH first-week offer), shared **by link only**: noindex, no site nav, no links into the app, linked from nowhere in the app. Its own header (brand text), sections and footer; the root layout's floating WhatsApp button and toasts stay. **Copy is hardcoded by owner decision** (dictionary `t.workshop`, not admin-editable) — change price/text there. Only the optional Bunny video is admin-managed (`/admin/parametres` → «فيديو صفحة الورشة»: link + publish switch, stored on `Settings`); unpublished, the hero shows the illustration card instead. The registration CTA is `wa.me/{Settings.whatsappNumber}` with a pre-filled message (hidden while the number is the placeholder). | Live. |
+
 ### Authenticated app (route group `(app)`)
 
 | Route | File | Purpose | Status |
@@ -225,6 +231,7 @@ All in `src/components/` unless noted. Every prop type is inlined at the compone
 | `LessonForm.tsx` | Add/edit lesson: title, order, video (file or URL), content. Same self-managed open/close + `useActionState` pattern as `CourseForm`. | `admin/cours/[id]` | `action`, `mode: "add" \| "edit"`, `initial?`, `defaultOpen?` |
 | `SettingsForm.tsx` | Single-field form for the availability text. | `admin/parametres` | `action`, `initialAvailability` |
 | `FreeCourseForm.tsx` | The free course's single edit form, grouped in fieldsets. **Controlled inputs** (so a rejected save keeps what was typed — React 19 resets uncontrolled forms after an action), character counters, hidden `updatedAt` for the optimistic-concurrency check; remounted by the page (keyed on `updatedAt`) after a successful save. | `admin/cours-gratuit` | `action`, `initial`, `updatedAt`, `published`, `hostName`, `hostRole`, `savedVideo` |
+| `WorkshopVideoForm.tsx` | Bunny reference + publish checkbox for the `/atelier` video; controlled inputs, toast on success. | `admin/parametres` | `action`, `pagePath`, `initialReference`, `initialPublished` |
 | `SocialLinksForm.tsx` | Per-platform (Instagram/Facebook/YouTube/TikTok/WhatsApp) list of link configs + an add-form with a Global/Parents/Adolescents multi-select checkbox group; delete via `ConfirmActionForm`. One platform+surface pair can only ever belong to one config (enforced by a DB unique constraint on `SocialLinkAssignment`, plus a friendly pre-check in the action). | `admin/parametres` | `platforms`, `createAction`, `deleteAction` |
 
 ---

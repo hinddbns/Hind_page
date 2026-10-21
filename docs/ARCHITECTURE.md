@@ -63,7 +63,7 @@ src/
         cours/                   Course + lesson CRUD, questionnaire builder
         utilisateurs/            User list + detail (promote/demote)
         messages/                Admin inbox
-        parametres/              Availability text setting
+        parametres/              Availability text, WhatsApp number, workshop video, social links
 
     cours/                  NOT in a route group — shared by both logged-out and logged-in
       layout.tsx              Picks Nav/Footer vs AppNav/AppFooter based on session
@@ -398,6 +398,24 @@ instead of hardcoding the one import. Nothing else in the codebase currently ant
 polls `GET /api/messages/unread-count` every 20s, independently, wherever it's mounted (nav
 links). There are no WebSockets/SSE. This is a deliberate simplicity choice for a low-traffic
 single-coach app — see `PROJECT_CONTEXT.md` § Development Decisions.
+
+## Workshop landing page (`/atelier`) — standalone, hardcoded copy
+
+`src/app/atelier/page.tsx`, no layout of its own and outside every route group, so it gets no
+`Nav`/`Footer`; it renders its own header and footer and links nowhere else in the app (owner
+request, 2026-10-21). Always `noindex` — it's for links shared in ads/social posts. Not covered by
+`proxy.ts`, so it's public.
+
+- **Copy**: dictionary `t.workshop` (owner chose hardcoded over admin-editable). Price, offer
+  label and texts are edited there.
+- **Video** (optional): `Settings.workshopBunnyLibraryId` / `workshopBunnyVideoId` /
+  `workshopVideoPublished` (migration `20261021120000_settings_workshop_video`, CHECKs on ID
+  formats + "published ⇒ both IDs set"), edited at `/admin/parametres` via `updateWorkshopVideo`,
+  which reuses `parseBunnyReference()`. `getPublishedWorkshopVideo()` (`src/lib/workshop.ts`)
+  decides whether to embed; when not, the hero shows its illustration card. The page selects `*`
+  so it still renders if the migration isn't applied; the admin save then returns a clear error.
+- **CTA**: `buildWhatsAppUrl(Settings.whatsappNumber, t.workshop.whatsappMessage)` — the shared
+  number with a pre-filled `?text=`; the button is hidden while the number is the placeholder.
 
 ## Free course (`/free-course/{code}`) — standalone public page, admin-managed
 

@@ -26,3 +26,8 @@ test("no injection into the URL", () => {
   assert.equal(buildWhatsAppUrl("212612345678?text=hi"), null);
   assert.equal(buildWhatsAppUrl("212612345678/../evil"), null);
 });
+
+test("a pre-filled message is URL-encoded into the text parameter", () => {
+  assert.equal(buildWhatsAppUrl("212612345678", "مرحبا & hi"), `https://wa.me/212612345678?text=${encodeURIComponent("مرحبا & hi")}`);
+  assert.equal(buildWhatsAppUrl(PLACEHOLDER_WHATSAPP_NUMBER, "x"), null);
+});

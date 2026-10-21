@@ -13,9 +13,11 @@ export function normalizeWhatsAppNumber(value: string | null | undefined): strin
 /**
  * A `https://wa.me/` link for a *usable* number, or `null` when the setting is missing, malformed,
  * or still the placeholder — callers should then hide contextual CTAs rather than link nowhere.
+ * `message` pre-fills the chat so the coach knows which offer the visitor came from.
  */
-export function buildWhatsAppUrl(value: string | null | undefined): string | null {
+export function buildWhatsAppUrl(value: string | null | undefined, message?: string): string | null {
   const number = normalizeWhatsAppNumber(value);
   if (!number || number === PLACEHOLDER_WHATSAPP_NUMBER) return null;
-  return `https://wa.me/${number}`;
+  const url = `https://wa.me/${number}`;
+  return message ? `${url}?text=${encodeURIComponent(message)}` : url;
 }
