@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Heart, PencilLine, School, Sprout } from "lucide-react";
+import { Check, Heart, PencilLine, Plus, School, Sprout } from "lucide-react";
 import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import { db } from "@/lib/supabase/db";
@@ -193,12 +193,28 @@ export default async function WorkshopPage() {
         <section className={`${section} bg-cream`}>
           <div className={container}>
             <h2 className={sectionTitle}>{w.faqTitle}</h2>
-            <div className="mt-6 flex flex-col gap-3">
+            <p className={sectionIntro}>{w.faqHint}</p>
+            {/* A chat: her doubt is the bubble she taps, Hind's reply appears beneath it. Native
+                <details> keeps it keyboard/screen-reader operable with zero client JS. */}
+            <div className="mt-8 flex max-w-3xl flex-col gap-4">
               {w.faq.map((item) => (
-                <article key={item.question} className="rounded-2xl border border-olive-light bg-white px-6 py-5">
-                  <h3 className="font-bold text-olive-dark">{item.question}</h3>
-                  <p className="mt-2 text-ink-soft">{item.answer}</p>
-                </article>
+                <details key={item.question} className="group">
+                  <summary className="flex w-fit max-w-[92%] cursor-pointer list-none items-center gap-3 rounded-3xl rounded-ss-md border border-olive-light bg-white px-5 py-4 shadow-sm shadow-olive/5 transition hover:border-olive group-open:border-olive [&::-webkit-details-marker]:hidden">
+                    <h3 className="font-bold text-olive-dark">{item.question}</h3>
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-olive-light/60 text-olive-dark transition group-open:rotate-45 group-open:bg-olive-dark group-open:text-cream motion-reduce:transition-none">
+                      <Plus className="size-4" aria-hidden />
+                    </span>
+                  </summary>
+                  <div className="mt-3 flex animate-shell-arrive items-end justify-end gap-2">
+                    <div className="max-w-[85%] rounded-3xl rounded-ee-md bg-olive-dark px-5 py-4 text-cream">
+                      <p className="text-sm font-bold text-olive-light">{w.hostName}</p>
+                      <p className="mt-1 text-start [text-align-last:start]">{item.answer}</p>
+                    </div>
+                    <div className="relative size-10 shrink-0 overflow-hidden rounded-full ring-2 ring-olive-light">
+                      <Image src={site.coachPhoto} alt="" fill sizes="40px" className="object-cover object-top" />
+                    </div>
+                  </div>
+                </details>
               ))}
             </div>
           </div>
