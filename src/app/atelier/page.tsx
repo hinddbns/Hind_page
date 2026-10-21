@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Heart, PencilLine, Plus, School, Sprout } from "lucide-react";
+import { Check, Heart, PencilLine, Play, Plus, School, Sprout } from "lucide-react";
 import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import { db } from "@/lib/supabase/db";
@@ -92,12 +92,14 @@ export default async function WorkshopPage() {
                 />
               </div>
             ) : (
-              <div className="flex min-h-72 items-center justify-center rounded-3xl bg-gradient-to-br from-olive-light via-parents-bg-alt to-cream p-7 md:min-h-88">
-                <div className="max-w-xs rounded-3xl border border-white/70 bg-white/80 p-7 text-center shadow-lg shadow-olive/10 backdrop-blur">
-                  <Heart className="mx-auto size-12 text-olive-dark" strokeWidth={1.5} aria-hidden />
-                  <p className="mt-2 text-lg font-bold text-olive-dark">{w.heroArtTitle}</p>
-                  <p className="text-ink-soft">{w.heroArtText}</p>
-                </div>
+              // Same 16:9 frame as the player, so publishing the video swaps it in without a layout shift.
+              <div className="relative flex aspect-video flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl bg-gradient-to-br from-olive-light via-parents-bg-alt to-cream p-5 text-center shadow-lg shadow-olive/10">
+                <span className="grid size-14 place-items-center rounded-full bg-white/85 text-olive-dark shadow-lg shadow-olive/15 ring-8 ring-white/40 md:size-16">
+                  <Play className="size-6 translate-x-0.5 fill-current md:size-7" aria-hidden />
+                </span>
+                <p className="mt-1 text-lg font-bold text-olive-dark">{w.heroArtTitle}</p>
+                <p className="hidden text-sm text-ink-soft md:block">{w.heroArtText}</p>
+                <span className="rounded-full bg-olive-dark px-3 py-1 text-xs font-medium text-cream">{w.videoSoon}</span>
               </div>
             )}
           </div>
