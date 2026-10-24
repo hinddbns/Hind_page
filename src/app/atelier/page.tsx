@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Heart, PencilLine, Play, Plus, School, Sprout } from "lucide-react";
+import { Check, Gift, Heart, PencilLine, Play, Plus, School, Sprout } from "lucide-react";
 import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import { db } from "@/lib/supabase/db";
 import { buildBunnyEmbedUrl } from "@/lib/bunny";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
+import { WhatsAppIcon } from "@/components/WhatsAppButton";
 import { getPublishedWorkshopVideo } from "@/lib/workshop";
 
 // Standalone sales page for the "من الصراع إلى الهدوء" workshop, shared by link only: no Nav/Footer,
@@ -38,6 +39,64 @@ const iconTile = "mb-4 grid size-11 place-items-center rounded-xl bg-olive-light
 const pillButton =
   "inline-flex min-h-12 items-center justify-center rounded-full bg-olive-dark px-7 py-3 font-bold text-cream transition hover:bg-ink";
 
+// Signing up happens on WhatsApp, so every sign-up button opens it directly; the in-page anchor is
+// only a fallback while no WhatsApp number is configured.
+function SignupLink({ whatsappUrl, fallbackHref, label }: { whatsappUrl: string | null; fallbackHref: string; label: string }) {
+  if (!whatsappUrl) {
+    return (
+      <a href={fallbackHref} className={pillButton}>
+        {label}
+      </a>
+    );
+  }
+  return (
+    <a
+      href={whatsappUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-7 py-3 font-bold text-white transition hover:bg-[#1ebe5b]"
+    >
+      <WhatsAppIcon size={20} />
+      {label}
+    </a>
+  );
+}
+
+// Repeated between sections so the offer is never more than a scroll away on a phone.
+function PriceStrip({
+  label,
+  price,
+  currency,
+  oldPrice,
+  oldPriceLabel,
+  cta,
+  whatsappUrl,
+}: {
+  label: string;
+  price: string;
+  currency: string;
+  oldPrice: string;
+  oldPriceLabel: string;
+  cta: string;
+  whatsappUrl: string | null;
+}) {
+  return (
+    <div className="mt-10 flex flex-col items-center gap-4 rounded-3xl bg-olive-dark px-6 py-6 text-center text-cream md:flex-row md:justify-between md:px-8 md:text-start">
+      <div>
+        <div className="text-sm font-bold text-olive-light">{label}</div>
+        <div className="flex flex-wrap items-baseline justify-center gap-x-3 md:justify-start">
+          <span className="text-3xl font-bold">
+            {price} <span className="text-base">{currency}</span>
+          </span>
+          <span className="sr-only">{oldPriceLabel}</span>
+          <s className="text-cream/70 decoration-2">{oldPrice}</s>
+        </div>
+      </div>
+      <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={cta} />
+    </div>
+  );
+}
+
 export default async function WorkshopPage() {
   const { t } = await getT();
   const w = t.workshop;
@@ -55,6 +114,16 @@ export default async function WorkshopPage() {
     { Icon: Sprout, title: w.audienceSelfTitle, text: w.audienceSelfText },
   ];
 
+  const priceStrip = {
+    label: w.priceLabel,
+    price: w.price,
+    currency: w.priceCurrency,
+    oldPrice: w.oldPrice,
+    oldPriceLabel: w.priceReference,
+    cta: w.priceCta,
+    whatsappUrl,
+  };
+
   return (
     <div className="flex flex-1 flex-col bg-white leading-loose">
       <header className="border-b border-cream-dark bg-white py-4">
@@ -65,22 +134,20 @@ export default async function WorkshopPage() {
 
       <main className="flex-1 animate-shell-arrive">
         <section className="bg-cream-dark py-12 md:py-16">
-          <div className={`${container} grid items-center gap-12 md:grid-cols-[1.1fr_0.9fr]`}>
-            <div>
+          {/* On phones the video sits between the pitch and the CTA; on desktop it spans both rows
+              beside them, so the text column reads as one block. */}
+          <div className={`${container} grid gap-6 md:grid-cols-[1.1fr_0.9fr] md:gap-x-12 md:gap-y-0`}>
+            <div className="md:col-start-1 md:row-start-1 md:self-end">
               <p className="text-sm font-bold text-olive">{w.heroEyebrow}</p>
               <h1 className="mt-3 font-serif text-4xl leading-snug text-olive-dark md:text-6xl md:leading-tight">
                 {w.heroTitle}
               </h1>
               <p className="mt-5 max-w-2xl text-lg text-ink-soft">{w.heroLead}</p>
               <p className="mt-3 text-ink-soft">{w.heroText}</p>
-              <a href="#register" className={`${pillButton} mt-6`}>
-                {w.heroCta}
-              </a>
-              <p className="mt-3 text-sm text-ink-soft">{w.heroNote}</p>
             </div>
 
             {video ? (
-              <div className="relative aspect-video overflow-hidden rounded-3xl bg-black shadow-lg shadow-olive/10">
+              <div className="relative aspect-video overflow-hidden rounded-3xl bg-black shadow-lg shadow-olive/10 md:col-start-2 md:row-span-2 md:row-start-1 md:self-center">
                 <iframe
                   src={buildBunnyEmbedUrl(video)}
                   title={w.videoTitle}
@@ -93,7 +160,7 @@ export default async function WorkshopPage() {
               </div>
             ) : (
               // Same 16:9 frame as the player, so publishing the video swaps it in without a layout shift.
-              <div className="relative flex aspect-video flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl bg-gradient-to-br from-olive-light via-parents-bg-alt to-cream p-5 text-center shadow-lg shadow-olive/10">
+              <div className="relative flex aspect-video flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl bg-gradient-to-br from-olive-light via-parents-bg-alt to-cream p-5 text-center shadow-lg shadow-olive/10 md:col-start-2 md:row-span-2 md:row-start-1 md:self-center">
                 <span className="grid size-14 place-items-center rounded-full bg-white/85 text-olive-dark shadow-lg shadow-olive/15 ring-8 ring-white/40 md:size-16">
                   <Play className="size-6 translate-x-0.5 fill-current md:size-7" aria-hidden />
                 </span>
@@ -102,6 +169,20 @@ export default async function WorkshopPage() {
                 <span className="rounded-full bg-olive-dark px-3 py-1 text-xs font-medium text-cream">{w.videoSoon}</span>
               </div>
             )}
+
+            <div className="text-center md:col-start-1 md:row-start-2 md:mt-6 md:self-start md:text-start">
+              <div className="mb-4 flex flex-wrap items-baseline justify-center gap-x-3 md:justify-start">
+                <span className="text-3xl font-bold text-olive-dark">
+                  {w.price} <span className="text-base">{w.priceCurrency}</span>
+                </span>
+                <span className="sr-only">{w.priceReference}</span>
+                <s className="text-ink-soft decoration-olive/70 decoration-2">{w.oldPrice}</s>
+              </div>
+              <a href="#register" className={pillButton}>
+                {w.heroCta}
+              </a>
+              <p className="mt-3 text-sm text-ink-soft [text-align-last:center] md:[text-align-last:start]">{w.heroNote}</p>
+            </div>
           </div>
         </section>
 
@@ -147,7 +228,32 @@ export default async function WorkshopPage() {
           </div>
         </section>
 
+        {/* Trust before the program: she meets Hind before reading what she'll learn from her. */}
         <section className={`${section} bg-cream`}>
+          <div className={container}>
+            <h2 className={sectionTitle}>{w.hostTitle}</h2>
+            <div className="mt-8 grid items-start gap-6 md:grid-cols-[10rem_1fr]">
+              <div className="relative h-36 w-32 overflow-hidden rounded-3xl bg-parents-bg-alt md:h-44 md:w-40">
+                <Image
+                  src={site.coachPhoto}
+                  alt={w.hostPhotoAlt}
+                  fill
+                  sizes="(min-width: 768px) 160px, 128px"
+                  className="object-cover object-top"
+                />
+              </div>
+              <div className="space-y-3 text-ink-soft">
+                <h3 className="text-xl font-bold text-olive-dark">{w.hostName}</h3>
+                <p>{w.hostBio1}</p>
+                <p>{w.hostBio2}</p>
+                <p className="font-bold text-ink">{w.hostMotto}</p>
+              </div>
+            </div>
+            <PriceStrip {...priceStrip} />
+          </div>
+        </section>
+
+        <section className={section}>
           <div className={container}>
             <h2 className={sectionTitle}>{w.daysTitle}</h2>
             <p className={sectionIntro}>{w.daysIntro}</p>
@@ -176,7 +282,7 @@ export default async function WorkshopPage() {
           </div>
         </section>
 
-        <section className={section}>
+        <section className={`${section} bg-cream`}>
           <div className={container}>
             <h2 className={sectionTitle}>{w.goalsTitle}</h2>
             <p className={sectionIntro}>{w.goalsIntro}</p>
@@ -189,9 +295,54 @@ export default async function WorkshopPage() {
               ))}
             </div>
             <p className="mt-6 text-sm text-ink-soft">{w.goalsNote}</p>
+            <PriceStrip {...priceStrip} />
           </div>
         </section>
 
+        <section id="register" className={`${section} scroll-mt-4 bg-cream-dark`}>
+          <div className={container}>
+            <div className="text-center">
+              <h2 className={sectionTitle}>{w.priceTitle}</h2>
+              <p className={`${sectionIntro} mx-auto [text-align-last:center]`}>{w.priceIntro}</p>
+            </div>
+            <div className="mx-auto mt-8 max-w-2xl rounded-3xl bg-white p-6 text-center shadow-lg shadow-olive/10 md:p-9">
+              <p className="font-bold text-olive">{w.priceLabel}</p>
+              <h3 className="text-xl font-bold text-olive-dark">{w.priceCardTitle}</h3>
+              <p className="my-2 text-5xl font-bold leading-snug text-olive-dark [text-align-last:center]">
+                {w.price} <span className="text-2xl">{w.priceCurrency}</span>
+              </p>
+              <p className="text-ink-soft">
+                {w.priceReference} <s className="decoration-olive/70 decoration-2">{w.oldPrice}</s>
+              </p>
+              <ul className="mx-auto my-5 max-w-md space-y-1 text-start">
+                {w.priceFeatures.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2">
+                    <Check className="mt-1.5 size-4 shrink-0 text-olive" strokeWidth={3} aria-hidden />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+              <div className="mx-auto mb-6 max-w-md rounded-2xl bg-cream p-5 text-start">
+                <h4 className="font-bold text-olive-dark">{w.includesTitle}</h4>
+                <ul className="mt-3 space-y-2">
+                  <li className="flex items-start gap-2 font-bold text-olive-dark">
+                    <Gift className="mt-1.5 size-4 shrink-0 text-olive" aria-hidden />
+                    {w.includesBonus}
+                  </li>
+                  {w.includes.map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <Check className="mt-1.5 size-4 shrink-0 text-olive" strokeWidth={3} aria-hidden />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#contact" label={w.priceCta} />
+            </div>
+          </div>
+        </section>
+
+        {/* Doubts answered right after she has seen the price, when they actually come up. */}
         <section className={`${section} bg-cream`}>
           <div className={container}>
             <h2 className={sectionTitle}>{w.faqTitle}</h2>
@@ -219,55 +370,7 @@ export default async function WorkshopPage() {
                 </details>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section className={section}>
-          <div className={container}>
-            <h2 className={sectionTitle}>{w.hostTitle}</h2>
-            <div className="mt-8 grid items-start gap-6 md:grid-cols-[10rem_1fr]">
-              <div className="relative h-36 w-32 overflow-hidden rounded-3xl bg-parents-bg-alt md:h-44 md:w-40">
-                <Image
-                  src={site.coachPhoto}
-                  alt={w.hostPhotoAlt}
-                  fill
-                  sizes="(min-width: 768px) 160px, 128px"
-                  className="object-cover object-top"
-                />
-              </div>
-              <div className="space-y-3 text-ink-soft">
-                <h3 className="text-xl font-bold text-olive-dark">{w.hostName}</h3>
-                <p>{w.hostBio1}</p>
-                <p>{w.hostBio2}</p>
-                <p className="font-bold text-ink">{w.hostMotto}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="register" className={`${section} scroll-mt-4 bg-cream-dark`}>
-          <div className={container}>
-            <div className="text-center">
-              <h2 className={sectionTitle}>{w.priceTitle}</h2>
-              <p className={`${sectionIntro} mx-auto [text-align-last:center]`}>{w.priceIntro}</p>
-            </div>
-            <div className="mx-auto mt-8 max-w-2xl rounded-3xl bg-white p-6 text-center shadow-lg shadow-olive/10 md:p-9">
-              <p className="font-bold text-olive">{w.priceLabel}</p>
-              <h3 className="text-xl font-bold text-olive-dark">{w.priceCardTitle}</h3>
-              <p className="my-2 text-5xl font-bold leading-snug text-olive-dark">{w.price}</p>
-              <p className="text-ink-soft">{w.priceReference}</p>
-              <ul className="mx-auto my-5 max-w-md space-y-1 text-start">
-                {w.priceFeatures.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2">
-                    <Check className="mt-1.5 size-4 shrink-0 text-olive" strokeWidth={3} aria-hidden />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              <a href="#contact" className={pillButton}>
-                {w.priceCta}
-              </a>
-            </div>
+            <PriceStrip {...priceStrip} />
           </div>
         </section>
 
