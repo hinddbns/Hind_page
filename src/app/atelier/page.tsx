@@ -54,7 +54,7 @@ function SignupLink({ whatsappUrl, fallbackHref, label }: { whatsappUrl: string 
       href={whatsappUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-7 py-3 font-bold text-white transition hover:bg-[#1ebe5b]"
+      className={`${pillButton} gap-2`}
     >
       <WhatsAppIcon size={20} />
       {label}
@@ -81,15 +81,15 @@ function PriceStrip({
   whatsappUrl: string | null;
 }) {
   return (
-    <div className="mt-10 flex flex-col items-center gap-4 rounded-3xl bg-olive-dark px-6 py-6 text-center text-cream md:flex-row md:justify-between md:px-8 md:text-start">
+    <div className="mt-10 flex flex-col items-center gap-4 rounded-3xl border border-olive-light bg-white px-6 py-6 text-center text-olive-dark shadow-lg shadow-olive/10 md:flex-row md:justify-between md:px-8 md:text-start">
       <div>
-        <div className="text-sm font-bold text-olive-light">{label}</div>
+        <div className="text-sm font-bold text-olive">{label}</div>
         <div className="flex flex-wrap items-baseline justify-center gap-x-3 md:justify-start">
           <span className="text-3xl font-bold">
             {price} <span className="text-base">{currency}</span>
           </span>
           <span className="sr-only">{oldPriceLabel}</span>
-          <s className="text-cream/70 decoration-2">{oldPrice}</s>
+          <s className="text-ink-soft decoration-olive/70 decoration-2">{oldPrice}</s>
         </div>
       </div>
       <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={cta} />
@@ -178,9 +178,7 @@ export default async function WorkshopPage() {
                 <span className="sr-only">{w.priceReference}</span>
                 <s className="text-ink-soft decoration-olive/70 decoration-2">{w.oldPrice}</s>
               </div>
-              <a href="#register" className={pillButton}>
-                {w.heroCta}
-              </a>
+              <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={w.heroCta} />
               <p className="mt-3 text-sm text-ink-soft [text-align-last:center] md:[text-align-last:start]">{w.heroNote}</p>
             </div>
           </div>
