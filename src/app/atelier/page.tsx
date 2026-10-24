@@ -178,9 +178,7 @@ export default async function WorkshopPage() {
                 <span className="sr-only">{w.priceReference}</span>
                 <s className="text-ink-soft decoration-olive/70 decoration-2">{w.oldPrice}</s>
               </div>
-              <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={w.heroCta} />
-              <p className="mt-3 text-sm text-ink-soft [text-align-last:center] md:[text-align-last:start]">{w.heroNote}</p>
-            </div>
+              <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={w.heroCta} />            </div>
           </div>
         </section>
 
