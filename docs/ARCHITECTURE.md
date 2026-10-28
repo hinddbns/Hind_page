@@ -414,8 +414,12 @@ request, 2026-10-21). Always `noindex` — it's for links shared in ads/social p
   which reuses `parseBunnyReference()`. `getPublishedWorkshopVideo()` (`src/lib/workshop.ts`)
   decides whether to embed; when not, the hero shows its illustration card. The page selects `*`
   so it still renders if the migration isn't applied; the admin save then returns a clear error.
+  Always played through `BunnySeekGuardPlayer` (same forward-seek restriction as the free course,
+  but unconditional — no admin toggle).
 - **CTA**: `buildWhatsAppUrl(Settings.whatsappNumber, t.workshop.whatsappMessage)` — the shared
-  number with a pre-filled `?text=`; the button is hidden while the number is the placeholder.
+  number with a pre-filled `?text=`. Every sign-up button (hero, repeated price strips, price card)
+  opens it directly; while the number is the placeholder they fall back to in-page anchors and the
+  final WhatsApp button is hidden.
 
 ## Free course (`/free-course/{code}`) — standalone public page, admin-managed
 

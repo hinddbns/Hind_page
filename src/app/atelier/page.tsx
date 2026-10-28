@@ -7,6 +7,7 @@ import { db } from "@/lib/supabase/db";
 import { buildBunnyEmbedUrl } from "@/lib/bunny";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/WhatsAppButton";
+import BunnySeekGuardPlayer from "@/components/BunnySeekGuardPlayer";
 import { getPublishedWorkshopVideo } from "@/lib/workshop";
 
 // Standalone sales page for the "من الصراع إلى الهدوء" workshop, shared by link only: no Nav/Footer,
@@ -148,13 +149,9 @@ export default async function WorkshopPage() {
 
             {video ? (
               <div className="relative aspect-video overflow-hidden rounded-3xl bg-black shadow-lg shadow-olive/10 md:col-start-2 md:row-span-2 md:row-start-1 md:self-center">
-                <iframe
-                  src={buildBunnyEmbedUrl(video)}
+                <BunnySeekGuardPlayer
+                  embedUrl={buildBunnyEmbedUrl(video, { restrictSeeking: true })}
                   title={w.videoTitle}
-                  allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="strict-origin-when-cross-origin"
                   className="absolute inset-0 h-full w-full border-0"
                 />
               </div>
