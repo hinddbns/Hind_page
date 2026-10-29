@@ -168,6 +168,7 @@ export default async function WorkshopPage() {
             )}
 
             <div className="text-center md:col-start-1 md:row-start-2 md:mt-6 md:self-start md:text-start">
+              <div className="text-sm font-bold text-olive">{w.priceLabel}</div>
               <div className="mb-4 flex flex-wrap items-baseline justify-center gap-x-3 md:justify-start">
                 <span className="text-3xl font-bold text-olive-dark">
                   {w.price} <span className="text-base">{w.priceCurrency}</span>
@@ -175,7 +176,8 @@ export default async function WorkshopPage() {
                 <span className="sr-only">{w.priceReference}</span>
                 <s className="text-ink-soft decoration-olive/70 decoration-2">{w.oldPrice}</s>
               </div>
-              <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={w.heroCta} />            </div>
+              <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={w.heroCta} />
+            </div>
           </div>
         </section>
 
