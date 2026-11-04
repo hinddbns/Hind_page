@@ -65,7 +65,6 @@ function SignupLink({ whatsappUrl, fallbackHref, label }: { whatsappUrl: string 
 
 // Repeated between sections so the offer is never more than a scroll away on a phone.
 function PriceStrip({
-  label,
   price,
   currency,
   oldPrice,
@@ -73,7 +72,6 @@ function PriceStrip({
   cta,
   whatsappUrl,
 }: {
-  label: string;
   price: string;
   currency: string;
   oldPrice: string;
@@ -83,15 +81,12 @@ function PriceStrip({
 }) {
   return (
     <div className="mt-10 flex flex-col items-center gap-4 rounded-3xl border border-olive-light bg-white px-6 py-6 text-center text-olive-dark shadow-lg shadow-olive/10 md:flex-row md:justify-between md:px-8 md:text-start">
-      <div>
-        <div className="text-sm font-bold text-olive">{label}</div>
-        <div className="flex flex-wrap items-baseline justify-center gap-x-3 md:justify-start">
-          <span className="text-3xl font-bold">
-            {price} <span className="text-base">{currency}</span>
-          </span>
-          <span className="sr-only">{oldPriceLabel}</span>
-          <s className="text-ink-soft decoration-olive/70 decoration-2">{oldPrice}</s>
-        </div>
+      <div className="flex flex-wrap items-baseline justify-center gap-x-3 md:justify-start">
+        <span className="text-3xl font-bold">
+          {price} <span className="text-base">{currency}</span>
+        </span>
+        <span className="sr-only">{oldPriceLabel}</span>
+        <s className="text-ink-soft decoration-olive/70 decoration-2">{oldPrice}</s>
       </div>
       <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={cta} />
     </div>
@@ -116,7 +111,6 @@ export default async function WorkshopPage() {
   ];
 
   const priceStrip = {
-    label: w.priceLabel,
     price: w.price,
     currency: w.priceCurrency,
     oldPrice: w.oldPrice,
@@ -168,7 +162,6 @@ export default async function WorkshopPage() {
             )}
 
             <div className="text-center md:col-start-1 md:row-start-2 md:mt-6 md:self-start md:text-start">
-              <div className="text-sm font-bold text-olive">{w.priceLabel}</div>
               <div className="mb-4 flex flex-wrap items-baseline justify-center gap-x-3 md:justify-start">
                 <span className="text-3xl font-bold text-olive-dark">
                   {w.price} <span className="text-base">{w.priceCurrency}</span>
@@ -301,7 +294,6 @@ export default async function WorkshopPage() {
               <p className={`${sectionIntro} mx-auto [text-align-last:center]`}>{w.priceIntro}</p>
             </div>
             <div className="mx-auto mt-8 max-w-2xl rounded-3xl bg-white p-6 text-center shadow-lg shadow-olive/10 md:p-9">
-              <p className="font-bold text-olive">{w.priceLabel}</p>
               <h3 className="text-xl font-bold text-olive-dark">{w.priceCardTitle}</h3>
               <p className="my-2 text-5xl font-bold leading-snug text-olive-dark [text-align-last:center]">
                 {w.price} <span className="text-2xl">{w.priceCurrency}</span>

@@ -867,7 +867,6 @@ const ar = {
     hostPhotoAlt: "صورة هند بنياس",
     priceTitle: "ابدئي رحلتك من الصراع إلى الهدوء",
     priceIntro: "ورشة مسجلة لمدة ثلاثة أيام، يمكنك مشاهدتها في الوقت الذي يناسبك.",
-    priceLabel: "عرض الأسبوع الأول",
     priceCardTitle: "الاشتراك في الورشة",
     price: "370",
     priceCurrency: "درهمًا",
