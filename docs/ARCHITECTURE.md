@@ -433,7 +433,8 @@ Rules live in `src/lib/freeCourseAccess.ts` (pure, unit-tested); the page is alw
 can forward the link while it's active, and the Bunny embed URL itself is public unless Bunny
 token authentication is added later.
 
-One free course made of a single Bunny Stream video, on its own public page. It is deliberately
+One free course made of a single video — Bunny Stream or YouTube (since 2026-11-08) — on its own
+public page. It is deliberately
 **not** a `Course` row (Course requires an audience and price, joins enrollments/payments, and is
 read by every catalog) and appears in **no** catalog, audience space, dashboard or admin stat.
 
@@ -447,8 +448,10 @@ read by every catalog) and appears in **no** catalog, audience space, dashboard 
 | Data access + viewer rule | `src/lib/freeCourse.ts` (`getFreeCourseForViewer` is the single access check) |
 | Pure validation (shared by actions, page, tests) | `src/lib/freeCourseRules.ts` |
 | Bunny reference parsing / embed URL | `src/lib/bunny.ts` |
+| YouTube reference parsing / embed URL | `src/lib/youtube.ts` |
+| Seek-guarded players | `src/components/BunnySeekGuardPlayer.tsx`, `src/components/YouTubeSeekGuardPlayer.tsx` |
 | Migration | `prisma/migrations/20261011120000_add_free_course/migration.sql` |
-| Unit tests (`npm test`) | `src/lib/bunny.test.ts`, `src/lib/freeCourseRules.test.ts` |
+| Unit tests (`npm test`) | `src/lib/bunny.test.ts`, `src/lib/youtube.test.ts`, `src/lib/freeCourseRules.test.ts` |
 
 ### Data model — `FreeCourse` (singleton, `id = 'main'`, enforced by a CHECK)
 
@@ -475,8 +478,9 @@ the admin status card flags it.
 | `title` | text, default `''` | ≤ 120; required to publish |
 | `eyebrow` | text, nullable | ≤ 60; hidden when empty |
 | `introduction` | text, default `''` | ≤ 1,200 (raised from 600 by `20261012120000_free_course_introduction_1200`); required to publish. Shown above the video; blank lines separate paragraphs (`splitParagraphs()`), single newlines are kept |
-| `bunnyLibraryId` | text, nullable | `^[1-9][0-9]{0,9}$`; required to publish |
-| `bunnyVideoId` | text, nullable | lowercase GUID; required to publish |
+| `bunnyLibraryId` | text, nullable | `^[1-9][0-9]{0,9}$`; Bunny source (with `bunnyVideoId`) |
+| `bunnyVideoId` | text, nullable | lowercase GUID; Bunny source |
+| `youtubeVideoId` | text, nullable, CHECK `^[A-Za-z0-9_-]{11}$` (`20261108120000_free_course_youtube_video`) | YouTube source; CHECK `FreeCourse_single_video_source` forbids it alongside the Bunny IDs. Publishing needs **either** both Bunny IDs **or** this |
 | `videoAspect` | enum `VideoAspect` (`LANDSCAPE`/`PORTRAIT`/`SQUARE`) | default `LANDSCAPE` |
 | `allowSkipping` | boolean, default **true** (`20261012140000_free_course_allow_skipping`) | `false` turns on the seek guard (below) |
 | `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | presenter block below the booking CTA; `hostIntro` is the presenter's **professional description** (falls back to `site.tagline`; don't repeat the name in it) |
@@ -489,7 +493,8 @@ the admin status card flags it.
 
 The limits and the publish-completeness rule exist twice on purpose: in `freeCourseRules.ts`
 (friendly Arabic errors) and as CHECK constraints (`FreeCourse_publish_complete` etc.), so the
-database itself refuses a published row without title, introduction and valid Bunny IDs.
+database itself refuses a published row without title, introduction and a valid video (both Bunny
+IDs, or a YouTube ID). `getFreeCourseVideo()` is the one place that decides which source plays.
 
 ### Access rules
 
@@ -516,7 +521,9 @@ page error until the table exists). It is purely additive. Later forward-only mi
 the same way and never by editing the original: `20261012120000_free_course_introduction_1200`
 (replaces only the introduction length CHECK), `20261012140000_free_course_allow_skipping` (adds
 `allowSkipping`, default true), `20261017120000_free_course_group_link` (adds `accessCode` and
-`accessExpiresOn`). Then run these **read-only** checks:
+`accessExpiresOn`), `20261108120000_free_course_youtube_video` (adds `youtubeVideoId` and re-creates
+`FreeCourse_publish_complete`; until it's applied, saving a YouTube link is refused with a clear
+message and Bunny keeps working). Then run these **read-only** checks:
 
 ```sql
 -- 1. RLS on (expect relrowsecurity = true)
@@ -559,6 +566,18 @@ regenerate with the Supabase CLI, the `FreeCourse` / `VideoAspect` entries shoul
   the video doesn't exist yet. Playback is confirmed through the preview. Captions, thumbnail and
   processing are managed in the Bunny dashboard; a missing/processing video shows Bunny's own
   player message inside the frame (the app cannot detect it cross-origin).
+
+### YouTube — alternative source (free course only)
+
+- The same admin field accepts a YouTube link: watch (`youtube.com/watch?v=`), share (`youtu.be/`),
+  Shorts, live, embed URLs (incl. `youtube-nocookie.com`), a scheme-less paste, or the embed
+  `<iframe>` snippet. A YouTube link that carries no valid 11-character ID (channel, playlist) is
+  rejected rather than treated as Bunny. Saving a YouTube video clears the Bunny IDs, and vice versa.
+- Only the video ID is stored; the iframe is rebuilt by `buildYouTubeEmbedUrl()` on
+  `www.youtube-nocookie.com` (privacy-enhanced: no cookies until play) with `rel=0&playsinline=1`.
+  The iframe keeps `referrerPolicy="strict-origin-when-cross-origin"` — YouTube refuses embeds that
+  send no referrer. The video must be **Public or Unlisted** with embedding allowed on YouTube.
+- `/atelier` stays Bunny-only (owner request).
 
 ### Editing content from the Supabase SQL Editor
 
@@ -605,10 +624,18 @@ stays a server-rendered iframe and no player script is loaded.
   without the guard) and dev tools can bypass it; the viewer briefly sees the jump before it's
   corrected; behavior inside the iOS native full-screen player, AirPlay/Chromecast and keyboard
   shortcuts depends on Bunny forwarding the same media events and wasn't verifiable here.
+- **YouTube** uses `YouTubeSeekGuardPlayer` with the same `seekGuard.ts` rule. The IFrame Player
+  API (`youtube.com/iframe_api`) has no seek events, so the position is sampled every 250 ms and
+  fed to `onTimeUpdate()`; corrections use `seekTo(furthest, true)`. The `YT.Player` must be given
+  `host: https://www.youtube-nocookie.com` — without it the API handshakes with `www.youtube.com`
+  and never becomes ready (observed). The guarded embed adds `enablejsapi=1&origin=…&disablekb=1`
+  (no arrow-key jumps). Same 8s fail-open as Bunny; `player.destroy()` is never called (it would
+  remove the iframe React owns). Verified 2026-11-08 against a real YouTube embed: a jump to 2:00
+  was snapped back to ~0:07, seeking back was allowed.
 
 ### Workflow
 
-1. `/admin/cours-gratuit` → fill the content, paste the Bunny reference, **حفظ** (drafts may be
+1. `/admin/cours-gratuit` → fill the content, paste the YouTube link or Bunny reference, **حفظ** (drafts may be
    incomplete; every supplied value is still validated).
 2. **معاينة الصفحة** opens the current group link; admins can open any `/free-course/{code}` and see a
    "معاينة" banner explaining why visitors can't (draft, no/old name, or expired).

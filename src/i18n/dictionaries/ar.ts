@@ -620,7 +620,7 @@ const ar = {
     publishBlockedTitle: "لا يمكن النشر قبل:",
     blockerTitleRequired: "إضافة عنوان الدورة",
     blockerIntroductionRequired: "إضافة مقدمة الدورة",
-    blockerVideoRequired: "إضافة مرجع فيديو Bunny صالح (رقم المكتبة ومعرّف الفيديو)",
+    blockerVideoRequired: "إضافة فيديو صالح (رابط YouTube أو مرجع Bunny)",
     publishUsesSaved: "النشر يعتمد آخر نسخة محفوظة — احفظ تعديلاتك أولًا.",
     confirmPublish: "نشر الدورة المجانية سيجعل صفحتها متاحة لأي شخص لديه الرابط. متابعة؟",
     confirmUnpublish: "إلغاء النشر سيخفي الصفحة فورًا، وسيرى الزوار صفحة «غير موجودة». متابعة؟",
@@ -639,16 +639,17 @@ const ar = {
     introductionLabel: "مقدمة الدورة",
     introductionHint: "تظهر فوق الفيديو. اترك سطرًا فارغًا بين الفقرات.",
 
-    sectionVideo: "الفيديو (Bunny Stream)",
+    sectionVideo: "الفيديو (YouTube أو Bunny Stream)",
     videoHelp:
-      "يُرفع الفيديو ويُعدّ في Bunny Stream أولًا (مكتبة عامة، بدون مصادقة بالرموز، مع ضبط النطاقات المسموح بها). ثم الصق هنا رابط التضمين أو رابط التشغيل أو كود iframe، أو معرّف الفيديو وحده مع رقم المكتبة.",
-    referenceLabel: "رابط فيديو Bunny أو معرّفه",
-    libraryIdLabel: "رقم المكتبة (Library ID)",
-    libraryIdHint: "مطلوب فقط عند إدخال معرّف الفيديو وحده.",
-    savedVideo: "الفيديو المحفوظ حاليًا: المكتبة {library} — الفيديو {video}",
+      "YouTube: الصق رابط الفيديو (رابط المشاهدة أو المشاركة أو Shorts أو كود التضمين). يجب أن يكون الفيديو «عامًا» أو «غير مدرج» وأن يسمح بالتضمين. Bunny Stream: يُرفع الفيديو في مكتبة عامة أولًا، ثم الصق رابط التضمين أو التشغيل أو كود iframe، أو معرّف الفيديو وحده مع رقم المكتبة.",
+    referenceLabel: "رابط الفيديو (YouTube أو Bunny)",
+    libraryIdLabel: "رقم مكتبة Bunny (Library ID)",
+    libraryIdHint: "لـ Bunny فقط، ومطلوب فقط عند إدخال معرّف الفيديو وحده.",
+    savedVideo: "الفيديو المحفوظ حاليًا: Bunny — المكتبة {library} — الفيديو {video}",
+    savedYouTubeVideo: "الفيديو المحفوظ حاليًا: YouTube — {video}",
     noSavedVideo: "لم يُحفظ أي فيديو بعد.",
     videoCaveat:
-      "التحقق هنا يخص صيغة المرجع فقط، ولا يضمن أن الفيديو موجود أو جاهز للتشغيل في Bunny. تأكد من التشغيل عبر معاينة الصفحة.",
+      "التحقق هنا يخص صيغة الرابط فقط، ولا يضمن أن الفيديو موجود أو قابل للتشغيل. تأكد من التشغيل عبر معاينة الصفحة.",
     clearVideoHint: "لإزالة الفيديو من المسودة، أفرغ الحقلين ثم احفظ.",
     aspectLabel: "أبعاد الفيديو",
     aspectLandscape: "أفقي (16:9)",
@@ -707,7 +708,12 @@ const ar = {
     errorInvalidLibraryId: "رقم المكتبة غير صالح: أرقام فقط (حتى 10 أرقام).",
     errorInvalidVideoId: "معرّف الفيديو غير صالح. يجب أن يكون بصيغة GUID كما يظهر في Bunny Stream.",
     errorUnsupportedUrl:
-      "المرجع غير مدعوم. الصق رابط التضمين أو رابط التشغيل من Bunny Stream (iframe.mediadelivery.net)، أو كود iframe، أو معرّف الفيديو.",
+      "الرابط غير مدعوم. الصق رابط فيديو YouTube، أو رابط التضمين أو التشغيل من Bunny Stream (iframe.mediadelivery.net)، أو كود iframe، أو معرّف فيديو Bunny.",
+    errorInvalidYouTubeUrl:
+      "رابط YouTube هذا لا يحتوي على معرّف فيديو صالح. انسخ رابط الفيديو نفسه، لا رابط القناة أو قائمة التشغيل.",
+    errorMultipleVideoSources: "لا يمكن حفظ فيديو YouTube وفيديو Bunny معًا. اختر مصدرًا واحدًا.",
+    errorYouTubeMigrationMissing:
+      "لا يمكن حفظ فيديو YouTube بعد: يجب تطبيق تحديث قاعدة البيانات الخاص به (youtubeVideoId) أولًا. فيديوهات Bunny تُحفظ عادة.",
     errorLibraryIdMismatch: "رقم المكتبة في الرابط لا يطابق الرقم المُدخل في حقل المكتبة.",
     errorConflict:
       "تم تعديل الدورة من مكان آخر منذ فتحك لهذه الصفحة. انسخ تعديلاتك، ثم أعد تحميل الصفحة وأعد إدخالها.",

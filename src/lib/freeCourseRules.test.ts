@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   FREE_COURSE_LIMITS,
   getContentProblems,
+  getFreeCourseVideo,
   getPublishBlockers,
   isPublishable,
   normalizeFreeCourseContent,
@@ -52,6 +53,31 @@ test("invalid stored identifiers block publication and are content problems", ()
   assert.deepEqual(getPublishBlockers(bad), ["videoRequired"]);
   assert.deepEqual(getContentProblems(bad), ["invalidLibraryId", "invalidVideoId"]);
   assert.equal(isPublishable(bad), false);
+});
+
+const youtubeOnly = { ...complete, bunnyLibraryId: null, bunnyVideoId: null, youtubeVideoId: "dQw4w9WgXcQ" };
+
+test("a YouTube video alone satisfies the video requirement", () => {
+  assert.deepEqual(getContentProblems(youtubeOnly), []);
+  assert.deepEqual(getPublishBlockers(youtubeOnly), []);
+  assert.deepEqual(getFreeCourseVideo(youtubeOnly), { provider: "youtube", videoId: "dQw4w9WgXcQ" });
+});
+
+test("Bunny stays the source when no YouTube ID is stored (incl. rows read before the migration)", () => {
+  const video = { provider: "bunny", libraryId: complete.bunnyLibraryId, videoId: complete.bunnyVideoId };
+  assert.deepEqual(getFreeCourseVideo(complete), video);
+  assert.deepEqual(getFreeCourseVideo({ ...complete, youtubeVideoId: null }), video);
+});
+
+test("an invalid YouTube ID blocks publication and is a content problem", () => {
+  const bad = { ...youtubeOnly, youtubeVideoId: "nope" };
+  assert.deepEqual(getContentProblems(bad), ["invalidVideoId"]);
+  assert.deepEqual(getPublishBlockers(bad), ["videoRequired"]);
+  assert.equal(getFreeCourseVideo(bad), null);
+});
+
+test("Bunny and YouTube together are refused", () => {
+  assert.deepEqual(getContentProblems({ ...complete, youtubeVideoId: "dQw4w9WgXcQ" }), ["multipleVideoSources"]);
 });
 
 test("an empty draft is savable but not publishable", () => {

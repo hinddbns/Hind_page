@@ -27,6 +27,7 @@ import { sendEmail } from "@/lib/email";
 import { enrollmentApprovedEmail, enrollmentRejectedEmail } from "@/lib/emailTemplates";
 import { SUSPEND_BAN_DURATION, RESTORE_BAN_DURATION } from "@/lib/suspension";
 import { parseBunnyReference, type BunnyReferenceError } from "@/lib/bunny";
+import { parseYouTubeReference } from "@/lib/youtube";
 import { WORKSHOP_PATH } from "@/lib/workshop";
 import { FREE_COURSE_ID, fetchFreeCourse } from "@/lib/freeCourse";
 import { FREE_COURSE_BASE_PATH, normalizeAccessCode } from "@/lib/freeCourseAccess";
@@ -873,6 +874,7 @@ function freeCourseContentMessage(problem: FreeCourseContentProblem, t: Dictiona
     seoDescriptionTooLong: tooLong(t.freeCourseAdmin.errorSeoDescriptionTooLong, FREE_COURSE_LIMITS.seoDescription),
     invalidLibraryId: t.freeCourseAdmin.errorInvalidLibraryId,
     invalidVideoId: t.freeCourseAdmin.errorInvalidVideoId,
+    multipleVideoSources: t.freeCourseAdmin.errorMultipleVideoSources,
     invalidVideoAspect: t.freeCourseAdmin.errorInvalidVideoAspect,
     invalidAccessCode: t.freeCourseAdmin.errorInvalidAccessCode,
     invalidAccessDate: t.freeCourseAdmin.errorInvalidAccessDate,
@@ -894,8 +896,19 @@ export async function updateFreeCourse(_prev: ActionState, formData: FormData): 
     const session = await requireAdmin();
     const { t } = await getT();
 
-    const reference = parseBunnyReference(readString(formData, "bunnyReference"), readString(formData, "bunnyLibraryId"));
-    if (!reference.ok) throw new AdminActionError(bunnyReferenceMessage(reference.error, t));
+    // One field takes either source: a YouTube link wins (and clears Bunny), anything else is
+    // parsed as a Bunny reference exactly as before.
+    const videoReference = readString(formData, "videoReference");
+    const youtube = parseYouTubeReference(videoReference);
+    if (youtube && !youtube.ok) throw new AdminActionError(t.freeCourseAdmin.errorInvalidYouTubeUrl);
+    let video: { bunnyLibraryId: string | null; bunnyVideoId: string | null; youtubeVideoId: string | null };
+    if (youtube) {
+      video = { bunnyLibraryId: null, bunnyVideoId: null, youtubeVideoId: youtube.videoId };
+    } else {
+      const reference = parseBunnyReference(videoReference, readString(formData, "bunnyLibraryId"));
+      if (!reference.ok) throw new AdminActionError(bunnyReferenceMessage(reference.error, t));
+      video = { bunnyLibraryId: reference.libraryId, bunnyVideoId: reference.videoId, youtubeVideoId: null };
+    }
 
     const videoAspect = readString(formData, "videoAspect");
     if (!isVideoAspect(videoAspect)) throw new AdminActionError(t.freeCourseAdmin.errorInvalidVideoAspect);
@@ -904,8 +917,7 @@ export async function updateFreeCourse(_prev: ActionState, formData: FormData): 
       title: readString(formData, "title"),
       eyebrow: readString(formData, "eyebrow"),
       introduction: String(formData.get("introduction") ?? ""),
-      bunnyLibraryId: reference.libraryId,
-      bunnyVideoId: reference.videoId,
+      ...video,
       videoAspect,
       allowSkipping: formData.get("allowSkipping") === "on",
       showHost: formData.get("showHost") === "on",
@@ -939,18 +951,27 @@ export async function updateFreeCourse(_prev: ActionState, formData: FormData): 
       if (error) throw error;
     } else {
       if (!expectedUpdatedAt) throw new AdminActionError(t.freeCourseAdmin.errorConflict);
-      // Until 20261012140000_free_course_allow_skipping is applied the row has no allowSkipping
-      // column: keep other edits saving, but refuse to silently drop a request to disable skipping.
-      const { allowSkipping, ...rest } = content;
+      // Until a column's migration is applied the row lacks it: keep other edits saving, but refuse
+      // to silently drop a request that needs it (disabling skipping, a YouTube video).
+      const { allowSkipping, youtubeVideoId, ...rest } = content;
       if (!("accessCode" in current)) throw new AdminActionError(t.freeCourseAdmin.errorAccessMigrationMissing);
       const skippingColumnReady = "allowSkipping" in current;
       if (!skippingColumnReady && !allowSkipping) {
         throw new AdminActionError(t.freeCourseAdmin.errorSkippingMigrationMissing);
       }
+      const youtubeColumnReady = "youtubeVideoId" in current;
+      if (!youtubeColumnReady && youtubeVideoId) {
+        throw new AdminActionError(t.freeCourseAdmin.errorYouTubeMigrationMissing);
+      }
       // Optimistic concurrency: the update only applies if nobody saved since this form loaded.
       const { data, error } = await db
         .from("FreeCourse")
-        .update({ ...(skippingColumnReady ? content : rest), updatedAt })
+        .update({
+          ...rest,
+          ...(skippingColumnReady ? { allowSkipping } : {}),
+          ...(youtubeColumnReady ? { youtubeVideoId } : {}),
+          updatedAt,
+        })
         .eq("id", FREE_COURSE_ID)
         .eq("updatedAt", expectedUpdatedAt)
         .select("id");

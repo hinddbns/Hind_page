@@ -3,6 +3,7 @@
 // CHECK constraints in prisma/migrations/20261011120000_add_free_course mirror these limits.
 import type { Enums } from "@/lib/supabase/database.types";
 import { isValidBunnyLibraryId, isValidBunnyVideoId } from "@/lib/bunny";
+import { isValidYouTubeVideoId } from "@/lib/youtube";
 import { isValidAccessCode, isValidAccessDate } from "@/lib/freeCourseAccess";
 
 export type VideoAspect = Enums<"VideoAspect">;
@@ -24,6 +25,9 @@ export type FreeCourseContent = {
   introduction: string;
   bunnyLibraryId: string | null;
   bunnyVideoId: string | null;
+  /** Alternative to the Bunny pair; at most one source is ever set. Undefined on a row read
+   * before 20261108120000_free_course_youtube_video is applied. */
+  youtubeVideoId?: string | null;
   videoAspect: VideoAspect;
   /** false → the public player snaps forward seeks back to the furthest watched point. */
   allowSkipping: boolean;
@@ -47,6 +51,7 @@ export type FreeCourseContentProblem =
   | "seoDescriptionTooLong"
   | "invalidLibraryId"
   | "invalidVideoId"
+  | "multipleVideoSources"
   | "invalidVideoAspect"
   | "invalidAccessCode"
   | "invalidAccessDate";
@@ -114,6 +119,11 @@ export function getContentProblems(content: FreeCourseContent): FreeCourseConten
   if (content.bunnyVideoId !== null && !isValidBunnyVideoId(content.bunnyVideoId)) {
     problems.push("invalidVideoId");
   }
+  const youtubeVideoId = content.youtubeVideoId ?? null;
+  if (youtubeVideoId !== null) {
+    if (!isValidYouTubeVideoId(youtubeVideoId)) problems.push("invalidVideoId");
+    if (content.bunnyLibraryId !== null || content.bunnyVideoId !== null) problems.push("multipleVideoSources");
+  }
   if (!isVideoAspect(content.videoAspect)) problems.push("invalidVideoAspect");
   if (content.accessCode !== null && !isValidAccessCode(content.accessCode)) problems.push("invalidAccessCode");
   if (content.accessExpiresOn !== null && !isValidAccessDate(content.accessExpiresOn)) {
@@ -127,17 +137,28 @@ export function getPublishBlockers(content: FreeCourseContent): FreeCoursePublis
   const blockers: FreeCoursePublishBlocker[] = [];
   if (content.title.trim() === "") blockers.push("titleRequired");
   if (content.introduction.trim() === "") blockers.push("introductionRequired");
-  if (
-    content.bunnyLibraryId === null ||
-    content.bunnyVideoId === null ||
-    !isValidBunnyLibraryId(content.bunnyLibraryId) ||
-    !isValidBunnyVideoId(content.bunnyVideoId)
-  ) {
-    blockers.push("videoRequired");
-  }
+  if (getFreeCourseVideo(content) === null) blockers.push("videoRequired");
   // Without a group name the page has no address anyone can open.
   if (content.accessCode === null) blockers.push("accessCodeRequired");
   return blockers;
+}
+
+export type FreeCourseVideo =
+  | { provider: "bunny"; libraryId: string; videoId: string }
+  | { provider: "youtube"; videoId: string };
+
+/** The one playable video source, or null when none is set (or the stored IDs are invalid). */
+export function getFreeCourseVideo(
+  content: Pick<FreeCourseContent, "bunnyLibraryId" | "bunnyVideoId" | "youtubeVideoId">
+): FreeCourseVideo | null {
+  const youtubeVideoId = content.youtubeVideoId ?? null;
+  if (youtubeVideoId !== null) {
+    return isValidYouTubeVideoId(youtubeVideoId) ? { provider: "youtube", videoId: youtubeVideoId } : null;
+  }
+  const { bunnyLibraryId, bunnyVideoId } = content;
+  if (bunnyLibraryId === null || bunnyVideoId === null) return null;
+  if (!isValidBunnyLibraryId(bunnyLibraryId) || !isValidBunnyVideoId(bunnyVideoId)) return null;
+  return { provider: "bunny", libraryId: bunnyLibraryId, videoId: bunnyVideoId };
 }
 
 export function isPublishable(content: FreeCourseContent): boolean {

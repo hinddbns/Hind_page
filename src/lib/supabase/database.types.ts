@@ -190,6 +190,7 @@ export type Database = {
           title: string
           updatedAt: string
           videoAspect: Database["public"]["Enums"]["VideoAspect"]
+          youtubeVideoId: string | null
         }
         Insert: {
           accessCode?: string | null
@@ -210,6 +211,7 @@ export type Database = {
           title?: string
           updatedAt?: string
           videoAspect?: Database["public"]["Enums"]["VideoAspect"]
+          youtubeVideoId?: string | null
         }
         Update: {
           accessCode?: string | null
@@ -230,6 +232,7 @@ export type Database = {
           title?: string
           updatedAt?: string
           videoAspect?: Database["public"]["Enums"]["VideoAspect"]
+          youtubeVideoId?: string | null
         }
         Relationships: []
       }

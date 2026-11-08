@@ -5,7 +5,13 @@ import type { ActionState } from "@/app/(app)/admin/actions";
 import { useLocale } from "@/i18n/LocaleProvider";
 import { interpolate } from "@/i18n/config";
 import { useToastActionState } from "@/lib/useToastActionState";
-import { FREE_COURSE_LIMITS, VIDEO_ASPECTS, textLength, type VideoAspect } from "@/lib/freeCourseRules";
+import {
+  FREE_COURSE_LIMITS,
+  VIDEO_ASPECTS,
+  textLength,
+  type FreeCourseVideo,
+  type VideoAspect,
+} from "@/lib/freeCourseRules";
 import { ACCESS_CODE_MAX_LENGTH } from "@/lib/freeCourseAccess";
 import FormSubmitButton from "@/components/admin/FormSubmitButton";
 
@@ -13,7 +19,7 @@ type Values = {
   title: string;
   eyebrow: string;
   introduction: string;
-  bunnyReference: string;
+  videoReference: string;
   bunnyLibraryId: string;
   videoAspect: VideoAspect;
   allowSkipping: boolean;
@@ -57,7 +63,7 @@ export default function FreeCourseForm({
   published: boolean;
   hostName: string;
   hostRole: string;
-  savedVideo: { libraryId: string; videoId: string } | null;
+  savedVideo: FreeCourseVideo | null;
 }) {
   const { t } = useLocale();
   const f = t.freeCourseAdmin;
@@ -197,11 +203,11 @@ export default function FreeCourseForm({
             </label>
             <input
               id={`${uid}-reference`}
-              name="bunnyReference"
+              name="videoReference"
               dir="ltr"
-              value={values.bunnyReference}
-              onChange={(e) => set("bunnyReference", e.target.value)}
-              placeholder="https://iframe.mediadelivery.net/embed/…"
+              value={values.videoReference}
+              onChange={(e) => set("videoReference", e.target.value)}
+              placeholder="https://youtu.be/… · https://iframe.mediadelivery.net/embed/…"
               autoComplete="off"
               spellCheck={false}
               className={inputClass}
@@ -228,7 +234,9 @@ export default function FreeCourseForm({
         <p className="mt-3 text-xs text-ink-soft">
           {savedVideo ? (
             <span dir="auto">
-              {interpolate(f.savedVideo, { library: savedVideo.libraryId, video: savedVideo.videoId })}
+              {savedVideo.provider === "youtube"
+                ? interpolate(f.savedYouTubeVideo, { video: savedVideo.videoId })
+                : interpolate(f.savedVideo, { library: savedVideo.libraryId, video: savedVideo.videoId })}
             </span>
           ) : (
             f.noSavedVideo

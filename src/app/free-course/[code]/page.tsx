@@ -6,16 +6,18 @@ import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import { interpolate } from "@/i18n/config";
 import { getSiteUrl } from "@/lib/siteUrl";
-import { buildBunnyEmbedUrl, isValidBunnyLibraryId, isValidBunnyVideoId } from "@/lib/bunny";
+import { buildBunnyEmbedUrl } from "@/lib/bunny";
+import { buildYouTubeEmbedUrl } from "@/lib/youtube";
 import { getFreeCourseForViewer, type FreeCoursePreviewNotice, type FreeCourseRow } from "@/lib/freeCourse";
 import { freeCoursePath } from "@/lib/freeCourseAccess";
-import { splitParagraphs, summarize } from "@/lib/freeCourseRules";
+import { getFreeCourseVideo, splitParagraphs, summarize } from "@/lib/freeCourseRules";
 import { getSocialLinksByVariant } from "@/lib/socialLinks";
 import { db } from "@/lib/supabase/db";
 import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import SocialLinks, { hasVisibleSocialLinks } from "@/components/SocialLinks";
 import { WhatsAppIcon } from "@/components/WhatsAppButton";
 import BunnySeekGuardPlayer from "@/components/BunnySeekGuardPlayer";
+import YouTubeSeekGuardPlayer from "@/components/YouTubeSeekGuardPlayer";
 
 // Publish/unpublish, group-link changes and content edits must show up on the very next request,
 // and draft access depends on the viewer's session — never serve this from a static/cached render.
@@ -84,11 +86,7 @@ export default async function FreeCoursePage({ params }: Params) {
   // case the booking CTA is hidden rather than pointing visitors at a fake number.
   const whatsappUrl = buildWhatsAppUrl(settingsResult.data?.whatsappNumber);
   const paragraphs = splitParagraphs(course.introduction);
-  const hasVideo =
-    course.bunnyLibraryId !== null &&
-    course.bunnyVideoId !== null &&
-    isValidBunnyLibraryId(course.bunnyLibraryId) &&
-    isValidBunnyVideoId(course.bunnyVideoId);
+  const video = getFreeCourseVideo(course);
   const aspect = ASPECT_CLASSES[course.videoAspect];
   const videoTitle = interpolate(t.freeCourse.videoTitle, { title: course.title });
   // Only an explicit false restricts; a missing column (migration not yet applied) keeps the
@@ -129,20 +127,36 @@ export default async function FreeCoursePage({ params }: Params) {
       </header>
 
       <div className={`mt-8 ${aspect.width}`}>
-        {hasVideo ? (
+        {video ? (
           <div className={`relative overflow-hidden rounded-2xl bg-black shadow-lg shadow-olive/10 ${aspect.frame}`}>
-            {restrictSkipping ? (
+            {video.provider === "youtube" ? (
+              restrictSkipping ? (
+                <YouTubeSeekGuardPlayer
+                  videoId={video.videoId}
+                  title={videoTitle}
+                  className="absolute inset-0 h-full w-full border-0"
+                />
+              ) : (
+                // YouTube refuses to play embeds that send no referrer, hence the explicit policy.
+                <iframe
+                  src={buildYouTubeEmbedUrl(video.videoId)}
+                  title={videoTitle}
+                  allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                  allowFullScreen
+                  loading="eager"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="absolute inset-0 h-full w-full border-0"
+                />
+              )
+            ) : restrictSkipping ? (
               <BunnySeekGuardPlayer
-                embedUrl={buildBunnyEmbedUrl(
-                  { libraryId: course.bunnyLibraryId!, videoId: course.bunnyVideoId! },
-                  { restrictSeeking: true }
-                )}
+                embedUrl={buildBunnyEmbedUrl(video, { restrictSeeking: true })}
                 title={videoTitle}
                 className="absolute inset-0 h-full w-full border-0"
               />
             ) : (
               <iframe
-                src={buildBunnyEmbedUrl({ libraryId: course.bunnyLibraryId!, videoId: course.bunnyVideoId! })}
+                src={buildBunnyEmbedUrl(video)}
                 title={videoTitle}
                 allow="accelerometer; gyroscope; encrypted-media; picture-in-picture; fullscreen"
                 allowFullScreen

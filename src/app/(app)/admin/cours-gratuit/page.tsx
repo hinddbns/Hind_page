@@ -5,7 +5,8 @@ import { site } from "@/lib/site";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { fetchFreeCourse } from "@/lib/freeCourse";
 import { freeCoursePath, getAccessLinkStatus } from "@/lib/freeCourseAccess";
-import { getPublishBlockers, type FreeCoursePublishBlocker } from "@/lib/freeCourseRules";
+import { getFreeCourseVideo, getPublishBlockers, type FreeCoursePublishBlocker } from "@/lib/freeCourseRules";
+import { buildYouTubeWatchUrl } from "@/lib/youtube";
 import { db } from "@/lib/supabase/db";
 import { buildWhatsAppUrl, normalizeWhatsAppNumber } from "@/lib/whatsapp";
 import { setFreeCoursePublished, updateFreeCourse } from "../actions";
@@ -41,6 +42,7 @@ export default async function AdminFreeCoursePage() {
     introduction: "",
     bunnyLibraryId: null,
     bunnyVideoId: null,
+    youtubeVideoId: null,
     videoAspect: "LANDSCAPE" as const,
     allowSkipping: true,
     showHost: true,
@@ -66,10 +68,7 @@ export default async function AdminFreeCoursePage() {
     videoRequired: f.blockerVideoRequired,
     accessCodeRequired: f.blockerAccessCodeRequired,
   };
-  const savedVideo =
-    content.bunnyLibraryId && content.bunnyVideoId
-      ? { libraryId: content.bunnyLibraryId, videoId: content.bunnyVideoId }
-      : null;
+  const savedVideo = getFreeCourseVideo(content);
 
   return (
     <div>
@@ -191,7 +190,9 @@ export default async function AdminFreeCoursePage() {
           title: content.title,
           eyebrow: content.eyebrow ?? "",
           introduction: content.introduction,
-          bunnyReference: content.bunnyVideoId ?? "",
+          // A saved YouTube video is shown as its watch URL, which re-saves to the same ID.
+          videoReference:
+            savedVideo?.provider === "youtube" ? buildYouTubeWatchUrl(savedVideo.videoId) : (content.bunnyVideoId ?? ""),
           bunnyLibraryId: content.bunnyLibraryId ?? "",
           videoAspect: content.videoAspect,
           // `?? true` keeps the page working if the column migration hasn't been applied yet.
