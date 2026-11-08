@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Tajawal } from "next/font/google";
 import "./globals.css";
-import { site } from "@/lib/site";
+import { site, shareImage } from "@/lib/site";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { db } from "@/lib/supabase/db";
 import WhatsAppButton from "@/components/WhatsAppButton";
@@ -19,6 +19,13 @@ export const metadata: Metadata = {
   title: `${site.name} — ${site.tagline}`,
   description:
     "مرافقة معتمدة عبر الإنترنت — مساحة خاصة بالمراهقين، ومساحة أخرى للأمهات والأستاذات اللواتي يواكبنهم. دورات مصورة ومتابعة شخصية.",
+  openGraph: {
+    type: "website",
+    locale: "ar_MA",
+    siteName: site.name,
+    images: [shareImage],
+  },
+  twitter: { card: "summary_large_image", images: [shareImage] },
 };
 
 export default async function RootLayout({

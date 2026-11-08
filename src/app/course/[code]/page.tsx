@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { site } from "@/lib/site";
+import { site, shareImage } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import { interpolate } from "@/i18n/config";
 import { getSiteUrl } from "@/lib/siteUrl";
@@ -49,8 +49,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
       locale: "ar_MA",
       siteName: site.name,
       url: canonical,
+      images: [shareImage],
     },
-    twitter: { card: "summary", title, description },
+    twitter: { card: "summary_large_image", title, description, images: [shareImage] },
   };
 }
 

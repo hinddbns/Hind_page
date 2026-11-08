@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { Check, Gift, Heart, PencilLine, Play, Plus } from "lucide-react";
-import { site } from "@/lib/site";
+import { site, shareImage } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import { db } from "@/lib/supabase/db";
 import { buildBunnyEmbedUrl } from "@/lib/bunny";
@@ -26,6 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: "website",
       locale: "ar_MA",
       siteName: site.name,
+      images: [shareImage],
     },
   };
 }

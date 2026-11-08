@@ -646,5 +646,14 @@ stays a server-rendered iframe and no player script is loaded.
 
 `SITE_URL` (optional, non-secret, e.g. `https://example.com`) sets the root `metadataBase`
 (`src/lib/siteUrl.ts`). When it is set, the page emits a canonical URL and `og:url`; when unset
-they're omitted (no build error, no guessed domain). There is no Open Graph image yet — link
-previews show title and description only.
+they're omitted (no build error, no guessed domain).
+
+**Share image (site-wide, 2026-11-08, owner decision):** every page previews with the logo —
+`shareImage` in `src/lib/site.ts` (`/logo.jpg`, 922×1152), never Hind's portrait. The root layout
+sets `openGraph.images` + `twitter.images` (`summary_large_image`); because Next.js merges metadata
+**shallowly**, any page that defines its own `openGraph` or `twitter` (today `/atelier` and
+`/course/[code]`) must list `shareImage` again or it loses the image. The image URL is resolved
+against `metadataBase`, so `SITE_URL` must be set for builds too (it is in production; without it
+Next falls back to `http://localhost:3000` locally). Platforms crop the portrait-shaped logo in
+large-image cards, and WhatsApp/Facebook cache previews per URL — re-share with a new query string
+(e.g. `?v=2`) or use Facebook's Sharing Debugger to refresh.
