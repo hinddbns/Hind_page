@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, Gift, Heart, PencilLine, Play, Plus, School, Sprout } from "lucide-react";
+import { Check, Gift, Heart, PencilLine, Play, Plus } from "lucide-react";
 import { site } from "@/lib/site";
 import { getT } from "@/i18n/server";
 import { db } from "@/lib/supabase/db";
@@ -104,12 +104,6 @@ export default async function WorkshopPage() {
   const video = getPublishedWorkshopVideo(settings);
   const whatsappUrl = buildWhatsAppUrl(settings?.whatsappNumber, w.whatsappMessage);
 
-  const audience = [
-    { Icon: Heart, title: w.audienceMotherTitle, text: w.audienceMotherText },
-    { Icon: School, title: w.audienceTeacherTitle, text: w.audienceTeacherText },
-    { Icon: Sprout, title: w.audienceSelfTitle, text: w.audienceSelfText },
-  ];
-
   const priceStrip = {
     price: w.price,
     currency: w.priceCurrency,
@@ -129,10 +123,8 @@ export default async function WorkshopPage() {
 
       <main className="flex-1 animate-shell-arrive">
         <section className="bg-cream-dark py-12 md:py-16">
-          {/* On phones the video sits between the pitch and the CTA; on desktop it spans both rows
-              beside them, so the text column reads as one block. */}
-          <div className={`${container} grid gap-6 md:grid-cols-[1.1fr_0.9fr] md:gap-x-12 md:gap-y-0`}>
-            <div className="md:col-start-1 md:row-start-1 md:self-end">
+          <div className={`${container} grid items-center gap-6 md:grid-cols-[1.1fr_0.9fr] md:gap-12`}>
+            <div>
               <p className="text-sm font-bold text-olive">{w.heroEyebrow}</p>
               <h1 className="mt-3 font-serif text-4xl leading-snug text-olive-dark md:text-6xl md:leading-tight">
                 {w.heroTitle}
@@ -142,7 +134,7 @@ export default async function WorkshopPage() {
             </div>
 
             {video ? (
-              <div className="relative aspect-video overflow-hidden rounded-3xl bg-black shadow-lg shadow-olive/10 md:col-start-2 md:row-span-2 md:row-start-1 md:self-center">
+              <div className="relative aspect-video overflow-hidden rounded-3xl bg-black shadow-lg shadow-olive/10">
                 <BunnySeekGuardPlayer
                   embedUrl={buildBunnyEmbedUrl(video, { restrictSeeking: true })}
                   title={w.videoTitle}
@@ -151,7 +143,7 @@ export default async function WorkshopPage() {
               </div>
             ) : (
               // Same 16:9 frame as the player, so publishing the video swaps it in without a layout shift.
-              <div className="relative flex aspect-video flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl bg-gradient-to-br from-olive-light via-parents-bg-alt to-cream p-5 text-center shadow-lg shadow-olive/10 md:col-start-2 md:row-span-2 md:row-start-1 md:self-center">
+              <div className="relative flex aspect-video flex-col items-center justify-center gap-2 overflow-hidden rounded-3xl bg-gradient-to-br from-olive-light via-parents-bg-alt to-cream p-5 text-center shadow-lg shadow-olive/10">
                 <span className="grid size-14 place-items-center rounded-full bg-white/85 text-olive-dark shadow-lg shadow-olive/15 ring-8 ring-white/40 md:size-16">
                   <Play className="size-6 translate-x-0.5 fill-current md:size-7" aria-hidden />
                 </span>
@@ -160,17 +152,6 @@ export default async function WorkshopPage() {
                 <span className="rounded-full bg-olive-dark px-3 py-1 text-xs font-medium text-cream">{w.videoSoon}</span>
               </div>
             )}
-
-            <div className="text-center md:col-start-1 md:row-start-2 md:mt-6 md:self-start md:text-start">
-              <div className="mb-4 flex flex-wrap items-baseline justify-center gap-x-3 md:justify-start">
-                <span className="text-3xl font-bold text-olive-dark">
-                  {w.price} <span className="text-base">{w.priceCurrency}</span>
-                </span>
-                <span className="sr-only">{w.priceReference}</span>
-                <s className="text-ink-soft decoration-olive/70 decoration-2">{w.oldPrice}</s>
-              </div>
-              <SignupLink whatsappUrl={whatsappUrl} fallbackHref="#register" label={w.heroCta} />
-            </div>
           </div>
         </section>
 
@@ -198,26 +179,8 @@ export default async function WorkshopPage() {
           </div>
         </section>
 
-        <section className={section}>
-          <div className={container}>
-            <h2 className={sectionTitle}>{w.audienceTitle}</h2>
-            <p className={sectionIntro}>{w.audienceIntro}</p>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
-              {audience.map(({ Icon, title, text }) => (
-                <article key={title} className={card}>
-                  <div className={iconTile}>
-                    <Icon className="size-5" aria-hidden />
-                  </div>
-                  <h3 className={cardTitle}>{title}</h3>
-                  <p className="mt-2 text-ink-soft">{text}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Trust before the program: she meets Hind before reading what she'll learn from her. */}
-        <section className={`${section} bg-cream`}>
+        <section className={section}>
           <div className={container}>
             <h2 className={sectionTitle}>{w.hostTitle}</h2>
             <div className="mt-8 grid items-start gap-6 md:grid-cols-[10rem_1fr]">
@@ -241,7 +204,7 @@ export default async function WorkshopPage() {
           </div>
         </section>
 
-        <section className={section}>
+        <section className={`${section} bg-cream`}>
           <div className={container}>
             <h2 className={sectionTitle}>{w.daysTitle}</h2>
             <p className={sectionIntro}>{w.daysIntro}</p>
@@ -270,7 +233,7 @@ export default async function WorkshopPage() {
           </div>
         </section>
 
-        <section className={`${section} bg-cream`}>
+        <section className={section}>
           <div className={container}>
             <h2 className={sectionTitle}>{w.goalsTitle}</h2>
             <p className={sectionIntro}>{w.goalsIntro}</p>

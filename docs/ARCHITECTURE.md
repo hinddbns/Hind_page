@@ -417,7 +417,7 @@ request, 2026-10-21). Always `noindex` — it's for links shared in ads/social p
   Always played through `BunnySeekGuardPlayer` (same forward-seek restriction as the free course,
   but unconditional — no admin toggle).
 - **CTA**: `buildWhatsAppUrl(Settings.whatsappNumber, t.workshop.whatsappMessage)` — the shared
-  number with a pre-filled `?text=`. Every sign-up button (hero, repeated price strips, price card)
+  number with a pre-filled `?text=`. Every sign-up button (repeated price strips, price card)
   opens it directly; while the number is the placeholder they fall back to in-page anchors and the
   final WhatsApp button is hidden.
 
