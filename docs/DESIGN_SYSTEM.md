@@ -190,8 +190,6 @@ or a separate asset (retune if the photo changes).
 `/course/{code}` reuses the mothers & teachers space's palette rather than the neutral one:
 `bg-parents-bg` page, `bg-parents-bg-alt` + `border-olive-light` footer, `bg-olive-dark text-cream`
 label pill (same as that page's hero badge), `shadow-olive/*`, `border-olive-light/*` dividers and
-`text-olive-dark` presenter description. The one exception, by owner choice, is the WhatsApp
-booking CTA button: WhatsApp brand green `#25D366` (hover `#1DA851`) with white text, matching the
-floating button — note white on `#25D366` is ~2:1, below WCAG AA. It never uses `accent` (ados).
+`text-olive-dark` presenter description. It never uses `accent` (ados).
 The shared `SocialLinks` icons and the global floating WhatsApp button keep their own styling,
 exactly as on `/parents-enseignants`.

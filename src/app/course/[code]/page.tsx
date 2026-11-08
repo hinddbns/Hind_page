@@ -12,10 +12,7 @@ import { getFreeCourseForViewer, type FreeCoursePreviewNotice, type FreeCourseRo
 import { freeCoursePath } from "@/lib/freeCourseAccess";
 import { getFreeCourseVideo, splitParagraphs, summarize } from "@/lib/freeCourseRules";
 import { getSocialLinksByVariant } from "@/lib/socialLinks";
-import { db } from "@/lib/supabase/db";
-import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import SocialLinks, { hasVisibleSocialLinks } from "@/components/SocialLinks";
-import { WhatsAppIcon } from "@/components/WhatsAppButton";
 import BunnySeekGuardPlayer from "@/components/BunnySeekGuardPlayer";
 import YouTubeSeekGuardPlayer from "@/components/YouTubeSeekGuardPlayer";
 
@@ -76,15 +73,7 @@ export default async function FreeCoursePage({ params }: Params) {
     wrongCode: t.freeCourse.previewWrongCode,
     expired: t.freeCourse.previewExpired,
   };
-  const [socialLinksByVariant, settingsResult] = await Promise.all([
-    getSocialLinksByVariant(),
-    db.from("Settings").select("whatsappNumber").eq("id", "main").maybeSingle(),
-  ]);
-  if (settingsResult.error) throw settingsResult.error;
-  const socialLinks = socialLinksByVariant.global;
-  // Same shared number as the floating button; null when unset or still the placeholder, in which
-  // case the booking CTA is hidden rather than pointing visitors at a fake number.
-  const whatsappUrl = buildWhatsAppUrl(settingsResult.data?.whatsappNumber);
+  const socialLinks = (await getSocialLinksByVariant()).global;
   const paragraphs = splitParagraphs(course.introduction);
   const video = getFreeCourseVideo(course);
   const aspect = ASPECT_CLASSES[course.videoAspect];
@@ -93,8 +82,8 @@ export default async function FreeCoursePage({ params }: Params) {
   // plain embed. The restricted player is a client component, so the default path ships no JS.
   const restrictSkipping = course.allowSkipping === false;
 
-  // Fixed order: label → introduction → video → booking CTA → presenter → social links. All
-  // course copy comes from the FreeCourse row; only the CTA labels are shared dictionary text.
+  // Fixed order: label → introduction → video → presenter → social links. All course copy comes
+  // from the FreeCourse row.
   return (
     <article className="mx-auto max-w-3xl px-6 pt-8 md:pt-10">
       {preview && (
@@ -176,34 +165,6 @@ export default async function FreeCoursePage({ params }: Params) {
           </div>
         )}
       </div>
-
-      {whatsappUrl ? (
-        <section aria-labelledby="free-course-cta" className="mt-8 flex flex-col items-center text-center">
-          <h2 id="free-course-cta" className="font-serif text-xl text-ink md:text-2xl">
-            {t.freeCourse.ctaHeading}
-          </h2>
-          <p className="mt-1 text-sm text-ink-soft [text-align-last:center] md:text-base">
-            {t.freeCourse.ctaSubheading}
-          </p>
-          {/* WhatsApp brand green, the same #25D366 as the floating button (owner choice) — the only
-              non-olive element on this page. White on it is ~2:1, below WCAG AA contrast. */}
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[#25D366] px-7 py-3 text-base font-medium text-white shadow-lg shadow-black/10 transition hover:bg-[#1DA851]"
-          >
-            <WhatsAppIcon size={22} />
-            {t.freeCourse.ctaButton}
-          </a>
-        </section>
-      ) : (
-        preview && (
-          <p role="note" className="mt-8 rounded-2xl border border-dashed border-olive-light p-4 text-center text-sm text-olive-dark">
-            {t.freeCourse.ctaUnavailablePreview}
-          </p>
-        )
-      )}
 
       {course.showHost && (
         <section

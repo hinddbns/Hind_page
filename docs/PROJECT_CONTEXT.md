@@ -140,7 +140,7 @@ Naming conventions for why.
 
 | Route | File | Purpose | Status |
 |---|---|---|---|
-| `/course/{code}` | `course/[code]/page.tsx` | Public, login-free page, reachable only through the current per-group link (admin-set name + optional end date; older links 404, always noindex; old `/free-course/{code}` links redirect here), for **one free video** (YouTube or Bunny Stream embed): logo, label, multi-paragraph introduction, video, WhatsApp booking CTA (shared `Settings.whatsappNumber`; hidden while it's the placeholder), circular presenter portrait + description, Global social links, © footer (no main-site link). The title is an `sr-only` `<h1>`. No site nav, no audience links, in no catalog. Content comes from the `FreeCourse` table; drafts 404 for everyone except admins (preview banner). Not a `Course` row. See `ARCHITECTURE.md` § Free course. | Live. |
+| `/course/{code}` | `course/[code]/page.tsx` | Public, login-free page, reachable only through the current per-group link (admin-set name + optional end date; older links 404, always noindex; old `/free-course/{code}` links redirect here), for **one free video** (YouTube or Bunny Stream embed): logo, label, multi-paragraph introduction, video, circular presenter portrait + description, Global social links, © footer (no main-site link). The title is an `sr-only` `<h1>`. No site nav, no audience links, in no catalog. Content comes from the `FreeCourse` table; drafts 404 for everyone except admins (preview banner). Not a `Course` row. See `ARCHITECTURE.md` § Free course. | Live. |
 
 ### Standalone workshop landing page (`atelier/`, no shared layout)
 

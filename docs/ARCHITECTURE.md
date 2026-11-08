@@ -464,17 +464,14 @@ UI labels, and the host's name/role/portrait (`site.name`, `site.tagline`, `site
 Social links come from the existing **Global** social-link surface (`/admin/parametres`); the
 section disappears entirely, heading included, when none are configured.
 
-**Page order (fixed in code):** logo → `eyebrow` label → introduction paragraphs → video → booking
-CTA → presenter (circular `site.coachPhoto`, `site.name`, `hostIntro`) → social links → © footer.
+**Page order (fixed in code):** logo → `eyebrow` label → introduction paragraphs → video →
+presenter (circular `site.coachPhoto`, `site.name`, `hostIntro`) → social links → © footer.
 `title` is not displayed but is still the page's single `<h1>` (`sr-only`), the iframe's accessible
 title and the metadata fallback — keep it filled. There is no link back to the main site.
 
-**Booking CTA:** heading/subheading/button labels are shared dictionary text
-(`t.freeCourse.cta*`); the link is `https://wa.me/{Settings.whatsappNumber}` built by
-`buildWhatsAppUrl()` (`src/lib/whatsapp.ts`) — the same shared number as the floating button,
-edited at `/admin/parametres`. When the number is missing, malformed, or still the placeholder
-`212600000000`, the CTA is **not rendered** (admins previewing a draft see a notice instead), and
-the admin status card flags it.
+**No booking CTA (removed 2026-11-08, owner request):** the in-page "احجزي مقعدك… / تواصلي معنا
+عبر واتساب" section and its admin WhatsApp status line are gone. The root layout's floating
+WhatsApp button still appears on this page, as on every page.
 
 | Column | Type | Rules |
 |---|---|---|
@@ -486,7 +483,7 @@ the admin status card flags it.
 | `youtubeVideoId` | text, nullable, CHECK `^[A-Za-z0-9_-]{11}$` (`20261108120000_free_course_youtube_video`) | YouTube source; CHECK `FreeCourse_single_video_source` forbids it alongside the Bunny IDs. Publishing needs **either** both Bunny IDs **or** this |
 | `videoAspect` | enum `VideoAspect` (`LANDSCAPE`/`PORTRAIT`/`SQUARE`) | default `LANDSCAPE` |
 | `allowSkipping` | boolean, default **true** (`20261012140000_free_course_allow_skipping`) | `false` turns on the seek guard (below) |
-| `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | presenter block below the booking CTA; `hostIntro` is the presenter's **professional description** (falls back to `site.tagline`; don't repeat the name in it) |
+| `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | presenter block below the video; `hostIntro` is the presenter's **professional description** (falls back to `site.tagline`; don't repeat the name in it) |
 | `seoTitle` / `seoDescription` | text ≤ 70 / ≤ 160, nullable | fall back to `title` / start of `introduction` |
 | `indexable` | boolean, default false | **unused since group links** — the page is always noindex |
 | `accessCode` | text, nullable, CHECK `^[a-z0-9]+(-[a-z0-9]+)*$`, 3–40 (`20261017120000_free_course_group_link`) | the group link name; required to publish |
