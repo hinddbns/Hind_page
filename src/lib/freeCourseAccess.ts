@@ -1,8 +1,10 @@
-// Pure rules for the free course's per-group link (/free-course/{accessCode}) — no database or
+// Pure rules for the free course's per-group link (/course/{accessCode}) — no database or
 // Next.js imports, so the page, admin action and unit tests share one definition. Mirrored by the
 // FreeCourse_accessCode_format CHECK in prisma/migrations/20261017120000_free_course_group_link.
 
-export const FREE_COURSE_BASE_PATH = "/free-course";
+export const FREE_COURSE_BASE_PATH = "/course";
+/** Where group links lived until 2026-11-08; next.config.ts redirects it to FREE_COURSE_BASE_PATH. */
+export const LEGACY_FREE_COURSE_BASE_PATH = "/free-course";
 
 export const ACCESS_CODE_MIN_LENGTH = 3;
 export const ACCESS_CODE_MAX_LENGTH = 40;

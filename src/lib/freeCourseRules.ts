@@ -36,7 +36,7 @@ export type FreeCourseContent = {
   seoTitle: string | null;
   seoDescription: string | null;
   indexable: boolean;
-  /** Group link name: the page lives at /free-course/{accessCode}. */
+  /** Group link name: the page lives at /course/{accessCode}. */
   accessCode: string | null;
   /** Last day (YYYY-MM-DD, Morocco) the group link works; null = no end date. */
   accessExpiresOn: string | null;

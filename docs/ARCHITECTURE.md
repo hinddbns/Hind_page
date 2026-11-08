@@ -421,13 +421,16 @@ request, 2026-10-21). Always `noindex` — it's for links shared in ads/social p
   opens it directly; while the number is the placeholder they fall back to in-page anchors and the
   final WhatsApp button is hidden.
 
-## Free course (`/free-course/{code}`) — standalone public page, admin-managed
+## Free course (`/course/{code}`) — standalone public page, admin-managed
 
-**Per-group links (2026-10-17, owner decision).** The page lives at `/free-course/{accessCode}`.
+**Per-group links (2026-10-17, owner decision).** The page lives at `/course/{accessCode}` (moved
+from `/free-course/{accessCode}` on 2026-11-08, owner request; `next.config.ts` permanently
+redirects `/free-course/:code` → `/course/:code`, so links already shared keep working and the
+code/date check still applies after the redirect).
 The admin types a name per group (`accessCode`, lowercase latin/digits/hyphens, 3–40) and an
 optional last valid day (`accessExpiresOn`, inclusive, Africa/Casablanca calendar day). Changing
 the name or passing the date makes the previous link 404 immediately — **no redirect, by design**,
-so earlier groups lose access. `/free-course` alone and the old `/cours-gratuit` are 404 too.
+so earlier groups lose access. `/course` alone and the old `/cours-gratuit` are 404 too.
 Rules live in `src/lib/freeCourseAccess.ts` (pure, unit-tested); the page is always `noindex`
 (the `indexable` column is no longer used and stays `false`). Limits: anyone in the current group
 can forward the link while it's active, and the Bunny embed URL itself is public unless Bunny
@@ -442,7 +445,7 @@ read by every catalog) and appears in **no** catalog, audience space, dashboard 
 
 | Piece | Path |
 |---|---|
-| Public route (own minimal layout: logo, page, footer — no `Nav`/`Footer`/auth buttons; the root layout's WhatsApp button and toasts stay) | `src/app/free-course/{layout,error}.tsx` + `src/app/free-course/[code]/page.tsx` |
+| Public route (own minimal layout: logo, page, footer — no `Nav`/`Footer`/auth buttons; the root layout's WhatsApp button and toasts stay) | `src/app/course/{layout,error}.tsx` + `src/app/course/[code]/page.tsx` |
 | Admin page (sidebar entry "الدورة المجانية") | `src/app/(app)/admin/cours-gratuit/page.tsx` + `src/components/admin/FreeCourseForm.tsx` |
 | Server Actions | `updateFreeCourse`, `setFreeCoursePublished` in `src/app/(app)/admin/actions.ts` |
 | Data access + viewer rule | `src/lib/freeCourse.ts` (`getFreeCourseForViewer` is the single access check) |
@@ -637,7 +640,7 @@ stays a server-rendered iframe and no player script is loaded.
 
 1. `/admin/cours-gratuit` → fill the content, paste the YouTube link or Bunny reference, **حفظ** (drafts may be
    incomplete; every supplied value is still validated).
-2. **معاينة الصفحة** opens the current group link; admins can open any `/free-course/{code}` and see a
+2. **معاينة الصفحة** opens the current group link; admins can open any `/course/{code}` and see a
    "معاينة" banner explaining why visitors can't (draft, no/old name, or expired).
 3. **نشر** (confirmation dialog) — only offered once title, introduction and video are saved.
 4. **إلغاء النشر** (confirmation dialog) hides the page immediately (visitors get the 404).

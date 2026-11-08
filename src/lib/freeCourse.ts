@@ -23,7 +23,7 @@ export const getFreeCourse = cache(fetchFreeCourse);
 export type FreeCoursePreviewNotice = "draft" | Exclude<AccessLinkStatus, "open"> | null;
 
 /**
- * The single authority on who may see /free-course/{code}. Anonymous visitors get the row only
+ * The single authority on who may see /course/{code}. Anonymous visitors get the row only
  * when it's published, complete, `code` is the current group name and its date hasn't passed;
  * anyone else gets `null` → 404, so neither draft text nor an old group's link reveals anything
  * (HTML, metadata or RSC payload). An admin gets the row for any code, flagged as a preview with

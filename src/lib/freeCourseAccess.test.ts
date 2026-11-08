@@ -60,5 +60,5 @@ test("no expiry date means no end; no code means closed", () => {
 });
 
 test("paths are built from the base and an encoded code", () => {
-  assert.equal(freeCoursePath("groupe-octobre"), "/free-course/groupe-octobre");
+  assert.equal(freeCoursePath("groupe-octobre"), "/course/groupe-octobre");
 });
