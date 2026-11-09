@@ -61,3 +61,10 @@ export function getAccessLinkStatus(
 export function freeCoursePath(code: string): string {
   return `${FREE_COURSE_BASE_PATH}/${encodeURIComponent(code)}`;
 }
+
+export const FREE_COURSE_ADMIN_PATH = "/admin/cours-gratuit";
+
+/** Where an admin edits one page — its id, never its public code. */
+export function freeCourseAdminPath(id: string): string {
+  return `${FREE_COURSE_ADMIN_PATH}/${encodeURIComponent(id)}`;
+}

@@ -177,6 +177,7 @@ export type Database = {
           allowSkipping: boolean
           bunnyLibraryId: string | null
           bunnyVideoId: string | null
+          createdAt: string
           eyebrow: string | null
           hostIntro: string | null
           id: string
@@ -198,9 +199,10 @@ export type Database = {
           allowSkipping?: boolean
           bunnyLibraryId?: string | null
           bunnyVideoId?: string | null
+          createdAt?: string
           eyebrow?: string | null
           hostIntro?: string | null
-          id?: string
+          id: string
           indexable?: boolean
           introduction?: string
           published?: boolean
@@ -219,6 +221,7 @@ export type Database = {
           allowSkipping?: boolean
           bunnyLibraryId?: string | null
           bunnyVideoId?: string | null
+          createdAt?: string
           eyebrow?: string | null
           hostIntro?: string | null
           id?: string

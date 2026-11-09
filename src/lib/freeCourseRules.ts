@@ -4,7 +4,7 @@
 import type { Enums } from "@/lib/supabase/database.types";
 import { isValidBunnyLibraryId, isValidBunnyVideoId } from "@/lib/bunny";
 import { isValidYouTubeVideoId } from "@/lib/youtube";
-import { isValidAccessCode, isValidAccessDate } from "@/lib/freeCourseAccess";
+import { getAccessLinkStatus, isValidAccessCode, isValidAccessDate } from "@/lib/freeCourseAccess";
 
 export type VideoAspect = Enums<"VideoAspect">;
 
@@ -40,6 +40,25 @@ export type FreeCourseContent = {
   accessCode: string | null;
   /** Last day (YYYY-MM-DD, Morocco) the group link works; null = no end date. */
   accessExpiresOn: string | null;
+};
+
+/** A new page's content before anything is filled in — the FreeCourse column defaults. */
+export const EMPTY_FREE_COURSE_CONTENT: FreeCourseContent = {
+  title: "",
+  eyebrow: null,
+  introduction: "",
+  bunnyLibraryId: null,
+  bunnyVideoId: null,
+  youtubeVideoId: null,
+  videoAspect: "LANDSCAPE",
+  allowSkipping: true,
+  showHost: true,
+  hostIntro: null,
+  seoTitle: null,
+  seoDescription: null,
+  indexable: false,
+  accessCode: null,
+  accessExpiresOn: null,
 };
 
 export type FreeCourseContentProblem =
@@ -163,6 +182,33 @@ export function getFreeCourseVideo(
 
 export function isPublishable(content: FreeCourseContent): boolean {
   return getContentProblems(content).length === 0 && getPublishBlockers(content).length === 0;
+}
+
+/** Why visitors can't currently see what an admin is previewing. */
+export type FreeCoursePreviewNotice = "draft" | "expired";
+
+export type FreeCourseView<T> = { course: T; preview: boolean; notice: FreeCoursePreviewNotice | null };
+
+/**
+ * Who may see `course` at /course/{requestedCode}. The row must carry exactly that code — so a
+ * page can never be opened through its id or another page's code, not even by an admin. Visitors
+ * get it only when it is published, complete and not expired; an admin also gets drafts and
+ * expired pages, flagged as a preview.
+ */
+export function resolveFreeCourseView<T extends FreeCourseContent & { published: boolean }>(
+  course: T | null,
+  requestedCode: string,
+  isAdmin: boolean,
+  now: Date
+): FreeCourseView<T> | null {
+  if (!course) return null;
+  const access = getAccessLinkStatus(course, requestedCode, now);
+  if (access === "noCode" || access === "wrongCode") return null;
+
+  const live = course.published && isPublishable(course);
+  if (live && access === "open") return { course, preview: false, notice: null };
+  if (!isAdmin) return null;
+  return { course, preview: true, notice: live ? "expired" : "draft" };
 }
 
 /** Description fallback for metadata: the introduction, cut at a word boundary. */

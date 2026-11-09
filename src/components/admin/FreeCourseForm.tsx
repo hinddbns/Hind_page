@@ -97,11 +97,12 @@ export default function FreeCourseForm({
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div>
             <label htmlFor={`${uid}-access-code`} className="mb-1 block text-sm font-medium text-ink">
-              {f.accessCodeLabel} <span className="font-normal text-ink-soft">({f.requiredToPublish})</span>
+              {f.accessCodeLabel} <span className="font-normal text-ink-soft">({f.required})</span>
             </label>
             <input
               id={`${uid}-access-code`}
               name="accessCode"
+              required
               dir="ltr"
               value={values.accessCode}
               onChange={(e) => set("accessCode", e.target.value)}

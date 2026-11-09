@@ -8,9 +8,14 @@ import { interpolate } from "@/i18n/config";
 import { getSiteUrl } from "@/lib/siteUrl";
 import { buildBunnyEmbedUrl } from "@/lib/bunny";
 import { buildYouTubeEmbedUrl } from "@/lib/youtube";
-import { getFreeCourseForViewer, type FreeCoursePreviewNotice, type FreeCourseRow } from "@/lib/freeCourse";
-import { freeCoursePath } from "@/lib/freeCourseAccess";
-import { getFreeCourseVideo, splitParagraphs, summarize } from "@/lib/freeCourseRules";
+import { getFreeCourseForViewer, type FreeCourseRow } from "@/lib/freeCourse";
+import { freeCourseAdminPath, freeCoursePath } from "@/lib/freeCourseAccess";
+import {
+  getFreeCourseVideo,
+  splitParagraphs,
+  summarize,
+  type FreeCoursePreviewNotice,
+} from "@/lib/freeCourseRules";
 import { getSocialLinksByVariant } from "@/lib/socialLinks";
 import SocialLinks, { hasVisibleSocialLinks } from "@/components/SocialLinks";
 import BunnySeekGuardPlayer from "@/components/BunnySeekGuardPlayer";
@@ -68,10 +73,8 @@ export default async function FreeCoursePage({ params }: Params) {
 
   const { t } = await getT();
   const { course, preview, notice } = view;
-  const previewMessages: Record<NonNullable<FreeCoursePreviewNotice>, string> = {
+  const previewMessages: Record<FreeCoursePreviewNotice, string> = {
     draft: t.freeCourse.previewBanner,
-    noCode: t.freeCourse.previewNoCode,
-    wrongCode: t.freeCourse.previewWrongCode,
     expired: t.freeCourse.previewExpired,
   };
   const socialLinks = (await getSocialLinksByVariant()).global;
@@ -93,7 +96,7 @@ export default async function FreeCoursePage({ params }: Params) {
           className="mb-8 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-olive-light bg-olive-light/40 px-4 py-3 text-sm text-olive-dark"
         >
           <span>{notice ? previewMessages[notice] : t.freeCourse.previewBanner}</span>
-          <Link href="/admin/cours-gratuit" className="font-medium underline underline-offset-4">
+          <Link href={freeCourseAdminPath(course.id)} className="font-medium underline underline-offset-4">
             {t.freeCourse.previewBackToAdmin}
           </Link>
         </div>

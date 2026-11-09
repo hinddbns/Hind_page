@@ -7,6 +7,7 @@ import {
   getPublishBlockers,
   isPublishable,
   normalizeFreeCourseContent,
+  resolveFreeCourseView,
   splitParagraphs,
   summarize,
   type FreeCourseContent,
@@ -183,4 +184,58 @@ test("invalid group names and expiry dates are content problems", () => {
   assert.deepEqual(getContentProblems({ ...complete, accessCode: "Bad Name!" }), ["invalidAccessCode"]);
   assert.deepEqual(getContentProblems({ ...complete, accessExpiresOn: "2026-02-30" }), ["invalidAccessDate"]);
   assert.deepEqual(getContentProblems({ ...complete, accessExpiresOn: "2026-10-25" }), []);
+});
+
+// Noon in Morocco on 2026-11-09.
+const NOW = new Date("2026-11-09T11:00:00Z");
+const live = { ...complete, id: "main", published: true, accessCode: "999" };
+const draft = { ...complete, id: "3f2b6c1e-8d4a-4b7e-9c2d-1a5e6f7b8c9d", published: false, accessCode: "day2" };
+
+test("a published page opens for anyone with its code", () => {
+  assert.deepEqual(resolveFreeCourseView(live, "999", false, NOW), { course: live, preview: false, notice: null });
+  assert.deepEqual(resolveFreeCourseView(live, "999", true, NOW), { course: live, preview: false, notice: null });
+});
+
+test("a draft is hidden from visitors and previewed by admins", () => {
+  assert.equal(resolveFreeCourseView(draft, "day2", false, NOW), null);
+  assert.deepEqual(resolveFreeCourseView(draft, "day2", true, NOW), { course: draft, preview: true, notice: "draft" });
+});
+
+test("a published but incomplete page counts as a draft", () => {
+  const incomplete = { ...live, introduction: "" };
+  assert.equal(resolveFreeCourseView(incomplete, "999", false, NOW), null);
+  assert.equal(resolveFreeCourseView(incomplete, "999", true, NOW)?.notice, "draft");
+});
+
+test("an expired page is hidden from visitors and previewed by admins with a notice", () => {
+  const expired = { ...live, accessExpiresOn: "2026-11-08" };
+  assert.equal(resolveFreeCourseView(expired, "999", false, NOW), null);
+  assert.deepEqual(resolveFreeCourseView(expired, "999", true, NOW), { course: expired, preview: true, notice: "expired" });
+  // The end date itself is still valid.
+  assert.equal(resolveFreeCourseView({ ...live, accessExpiresOn: "2026-11-09" }, "999", false, NOW)?.preview, false);
+});
+
+test("no page found means not found, for admins too", () => {
+  assert.equal(resolveFreeCourseView(null, "unknown", false, NOW), null);
+  assert.equal(resolveFreeCourseView(null, "unknown", true, NOW), null);
+});
+
+test("a page opens only through its own code, never its id or another page's code", () => {
+  for (const isAdmin of [false, true]) {
+    assert.equal(resolveFreeCourseView(live, "main", isAdmin, NOW), null);
+    assert.equal(resolveFreeCourseView(live, "day2", isAdmin, NOW), null);
+    assert.equal(resolveFreeCourseView(draft, draft.id, isAdmin, NOW), null);
+    assert.equal(resolveFreeCourseView(draft, "999", isAdmin, NOW), null);
+  }
+});
+
+test("a page without a code opens for nobody", () => {
+  const noCode = { ...draft, accessCode: null };
+  assert.equal(resolveFreeCourseView(noCode, "day2", true, NOW), null);
+  assert.equal(resolveFreeCourseView(noCode, "", true, NOW), null);
+});
+
+test("the requested code is matched after normalization", () => {
+  assert.equal(resolveFreeCourseView(draft, " DAY2 ", true, NOW)?.course, draft);
+  assert.equal(resolveFreeCourseView(live, "999", false, NOW)?.course.id, "main");
 });

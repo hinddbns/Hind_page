@@ -421,7 +421,15 @@ request, 2026-10-21). Always `noindex` — it's for links shared in ads/social p
   opens it directly; while the number is the placeholder they fall back to in-page anchors and the
   final WhatsApp button is hidden.
 
-## Free course (`/course/{code}`) — standalone public page, admin-managed
+## Free course (`/course/{code}`) — standalone public pages, admin-managed
+
+**Several pages (2026-11-09).** Each `FreeCourse` row is its own page (e.g. «اليوم الأول» at
+`/course/999`, «اليوم الثاني» at `/course/day2`), all rendered by the one route and template. The
+host creates them at `/admin/cours-gratuit` — no code or SQL per page. A page is found **only by
+its `accessCode`**, which is unique (`FreeCourse_accessCode_key`) and required; the row id (`main`
+for the original page, a server-generated UUID for every later one) only appears in admin URLs
+and is never a way in, not even for admins. Pages can't be deleted from the app (no `DELETE`
+grant) — unpublish instead.
 
 **Per-group links (2026-10-17, owner decision).** The page lives at `/course/{accessCode}` (moved
 from `/free-course/{accessCode}` on 2026-11-08, owner request; `next.config.ts` permanently
@@ -446,19 +454,22 @@ read by every catalog) and appears in **no** catalog, audience space, dashboard 
 | Piece | Path |
 |---|---|
 | Public route (own minimal layout: logo, page, footer — no `Nav`/`Footer`/auth buttons; the root layout's WhatsApp button and toasts stay) | `src/app/course/{layout,error}.tsx` + `src/app/course/[code]/page.tsx` |
-| Admin page (sidebar entry "الدورة المجانية") | `src/app/(app)/admin/cours-gratuit/page.tsx` + `src/components/admin/FreeCourseForm.tsx` |
-| Server Actions | `updateFreeCourse`, `setFreeCoursePublished` in `src/app/(app)/admin/actions.ts` |
-| Data access + viewer rule | `src/lib/freeCourse.ts` (`getFreeCourseForViewer` is the single access check) |
-| Pure validation (shared by actions, page, tests) | `src/lib/freeCourseRules.ts` |
+| Admin list + create (sidebar entry "الصفحات المجانية") | `src/app/(app)/admin/cours-gratuit/page.tsx` + `src/components/admin/FreeCourseCreateForm.tsx` |
+| Admin edit page, one per row | `src/app/(app)/admin/cours-gratuit/[id]/page.tsx` + `src/components/admin/FreeCourseForm.tsx` |
+| Server Actions | `createFreeCourse`, `updateFreeCourse(id)`, `setFreeCoursePublished(id, published)` in `src/app/(app)/admin/actions.ts` |
+| Data access | `src/lib/freeCourse.ts` (`getFreeCourseForViewer` is the single access check; `fetchFreeCourse(id)` / `listFreeCourses()` are admin-only reads) |
+| Pure validation + viewer rule (shared by actions, page, tests) | `src/lib/freeCourseRules.ts` (`resolveFreeCourseView`) |
 | Bunny reference parsing / embed URL | `src/lib/bunny.ts` |
 | YouTube reference parsing / embed URL | `src/lib/youtube.ts` |
 | Seek-guarded players | `src/components/BunnySeekGuardPlayer.tsx`, `src/components/YouTubeSeekGuardPlayer.tsx` |
 | Migration | `prisma/migrations/20261011120000_add_free_course/migration.sql` |
 | Unit tests (`npm test`) | `src/lib/bunny.test.ts`, `src/lib/youtube.test.ts`, `src/lib/freeCourseRules.test.ts` |
 
-### Data model — `FreeCourse` (singleton, `id = 'main'`, enforced by a CHECK)
+### Data model — `FreeCourse` (one row per page)
 
-All page content lives here and is edited only through `/admin/cours-gratuit` — never hardcode
+Until `20261109120000_free_course_multiple_pages` the table was a singleton (CHECK `id = 'main'`).
+That migration dropped the CHECK and the `'main'` id default, added `createdAt` (orders the admin
+list) and the unique index on `accessCode`; it changed no row. All page content lives here and is edited only through `/admin/cours-gratuit` — never hardcode
 course copy in the page, the dictionary, or `site.ts`. Code-defined on purpose: the route, layout,
 UI labels, and the host's name/role/portrait (`site.name`, `site.tagline`, `site.coachPhoto`).
 Social links come from the existing **Global** social-link surface (`/admin/parametres`); the
@@ -486,7 +497,8 @@ WhatsApp button still appears on this page, as on every page.
 | `showHost` / `hostIntro` | boolean (default true) / text ≤ 200, nullable | presenter block below the video; `hostIntro` is the presenter's **professional description** (falls back to `site.tagline`; don't repeat the name in it) |
 | `seoTitle` / `seoDescription` | text ≤ 70 / ≤ 160, nullable | fall back to `title` / start of `introduction` |
 | `indexable` | boolean, default false | **unused since group links** — the page is always noindex |
-| `accessCode` | text, nullable, CHECK `^[a-z0-9]+(-[a-z0-9]+)*$`, 3–40 (`20261017120000_free_course_group_link`) | the group link name; required to publish |
+| `accessCode` | text, nullable, CHECK `^[a-z0-9]+(-[a-z0-9]+)*$`, 3–40 (`20261017120000_free_course_group_link`), **unique** | the page's address and group link name; the admin actions require it on every create and save (nullable only for rows from before) |
+| `id` / `createdAt` | text PK, no default / timestamp | `main` for the original page, `randomUUID()` for new ones; `createdAt` orders the admin list |
 | `accessExpiresOn` | date, nullable | last day the group link works (Morocco time); null = no end |
 | `published` / `publishedAt` | boolean (default false) / timestamp | publication state |
 | `updatedAt` | timestamp | **content** version: bumped on every content save (not on publish/unpublish) and used for the edit form's optimistic-concurrency check |
@@ -498,14 +510,20 @@ IDs, or a YouTube ID). `getFreeCourseVideo()` is the one place that decides whic
 
 ### Access rules
 
-- `getFreeCourseForViewer()` returns the row to anyone only if it is published and complete;
-  otherwise only to an admin (live `getAppUser()` role check, server-side), flagged `preview`.
-  Everyone else gets `notFound()`. Both the page and `generateMetadata` go through it, so draft
+- `getFreeCourseForViewer(code)` normalizes and validates the code (a malformed one never reaches
+  the database), loads the row with that `accessCode`, and lets `resolveFreeCourseView()` decide:
+  anyone sees it only if it is published, complete and not expired; an admin (live
+  `getAppUser()` role check, server-side, only run when a visitor would be refused) also sees
+  drafts and expired pages, flagged `preview`. There is no lookup by id and no fallback to
+  another row. Everyone else gets `notFound()`. Both the page and `generateMetadata` go through it, so draft
   text never reaches HTML, metadata or the RSC payload. Draft previews are always `noindex`.
 - The page is `force-dynamic`: publish/unpublish/edits are visible on the next request.
-- Admin page: protected by `admin/layout.tsx`; both actions call `requireAdmin()` inside
-  `runAction()`. Mutations write `FREE_COURSE_UPDATED` / `FREE_COURSE_PUBLISHED` /
-  `FREE_COURSE_UNPUBLISHED` audit entries (labels in `admin/parametres`).
+- Admin pages: protected by `admin/layout.tsx`; every action calls `requireAdmin()` inside
+  `runAction()`, and `updateFreeCourse`/`setFreeCoursePublished` re-load the row by its bound id
+  (refusing unknown ids) and write only that row. A code already used by another page is refused
+  with a friendly error (pre-check, plus `23505` from the unique index for races). Mutations
+  write `FREE_COURSE_CREATED` / `FREE_COURSE_UPDATED` / `FREE_COURSE_PUBLISHED` /
+  `FREE_COURSE_UNPUBLISHED` audit entries with the row id as target.
 - Editing an already-published course updates the live page immediately (no separate draft copy).
   A save that would empty a required field of a published course is refused — unpublish first.
 - The edit form uses controlled inputs: React 19 resets uncontrolled fields after a form action,
@@ -523,7 +541,9 @@ the same way and never by editing the original: `20261012120000_free_course_intr
 `allowSkipping`, default true), `20261017120000_free_course_group_link` (adds `accessCode` and
 `accessExpiresOn`), `20261108120000_free_course_youtube_video` (adds `youtubeVideoId` and re-creates
 `FreeCourse_publish_complete`; until it's applied, saving a YouTube link is refused with a clear
-message and Bunny keeps working). Then run these **read-only** checks:
+message and Bunny keeps working), `20261109120000_free_course_multiple_pages` (several pages — see
+above; **must be applied before** the code that lists/creates pages is deployed, since the list
+orders by `createdAt`; the code before it only touches `main`, so applying it early is safe). Then run these **read-only** checks:
 
 ```sql
 -- 1. RLS on (expect relrowsecurity = true)
@@ -533,8 +553,8 @@ SELECT grantee, privilege_type FROM information_schema.role_table_grants
 WHERE table_name = 'FreeCourse' ORDER BY grantee, privilege_type;
 -- 3. No policies (expect 0 rows)
 SELECT * FROM pg_policies WHERE tablename = 'FreeCourse';
--- 4. Seeded draft (expect: main | false)
-SELECT id, published, "updatedAt" FROM "FreeCourse";
+-- 4. Rows (the original page is id = main)
+SELECT id, "accessCode", published, "updatedAt" FROM "FreeCourse";
 -- 5. Constraints present
 SELECT conname FROM pg_constraint WHERE conrelid = '"FreeCourse"'::regclass ORDER BY conname;
 ```
@@ -635,12 +655,15 @@ stays a server-rendered iframe and no player script is loaded.
 
 ### Workflow
 
-1. `/admin/cours-gratuit` → fill the content, paste the YouTube link or Bunny reference, **حفظ** (drafts may be
-   incomplete; every supplied value is still validated).
-2. **معاينة الصفحة** opens the current group link; admins can open any `/course/{code}` and see a
-   "معاينة" banner explaining why visitors can't (draft, no/old name, or expired).
-3. **نشر** (confirmation dialog) — only offered once title, introduction and video are saved.
-4. **إلغاء النشر** (confirmation dialog) hides the page immediately (visitors get the 404).
+1. `/admin/cours-gratuit` lists every page (title, label, link + copy, draft/published, end date).
+   **إنشاء صفحة مجانية جديدة** asks only for a title and a link name, creates an unpublished
+   draft and opens its edit page (`/admin/cours-gratuit/{id}`).
+2. On the edit page, fill the content, paste the YouTube link or Bunny reference, **حفظ** (drafts
+   may be incomplete; every supplied value is still validated).
+3. **معاينة الصفحة** opens the page's own `/course/{code}`; an admin sees drafts and expired pages
+   there with a "معاينة" banner explaining why visitors can't.
+4. **نشر** (confirmation dialog) — only offered once title, introduction and video are saved.
+5. **إلغاء النشر** (confirmation dialog) hides the page immediately (visitors get the 404).
 
 ### Metadata / `SITE_URL`
 

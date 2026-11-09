@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
@@ -29,9 +30,15 @@ import { SUSPEND_BAN_DURATION, RESTORE_BAN_DURATION } from "@/lib/suspension";
 import { parseBunnyReference, type BunnyReferenceError } from "@/lib/bunny";
 import { parseYouTubeReference } from "@/lib/youtube";
 import { WORKSHOP_PATH } from "@/lib/workshop";
-import { FREE_COURSE_ID, fetchFreeCourse } from "@/lib/freeCourse";
-import { FREE_COURSE_BASE_PATH, normalizeAccessCode } from "@/lib/freeCourseAccess";
+import { fetchFreeCourse } from "@/lib/freeCourse";
 import {
+  FREE_COURSE_ADMIN_PATH,
+  FREE_COURSE_BASE_PATH,
+  freeCourseAdminPath,
+  normalizeAccessCode,
+} from "@/lib/freeCourseAccess";
+import {
+  EMPTY_FREE_COURSE_CONTENT,
   FREE_COURSE_LIMITS,
   getContentProblems,
   getPublishBlockers,
@@ -885,13 +892,75 @@ function freeCourseContentMessage(problem: FreeCourseContentProblem, t: Dictiona
 // Postgres check_violation — the FreeCourse CHECK constraints (lengths, ID formats, publish
 // completeness) backing up the application-level validation above them.
 const PG_CHECK_VIOLATION = "23514";
+// Postgres unique_violation — FreeCourse_accessCode_key, for a race the pre-check can't see.
+const PG_UNIQUE_VIOLATION = "23505";
 
-function revalidateFreeCourse() {
-  revalidatePath("/admin/cours-gratuit");
+function revalidateFreeCourse(id: string) {
+  revalidatePath(FREE_COURSE_ADMIN_PATH);
+  revalidatePath(freeCourseAdminPath(id));
   revalidatePath(`${FREE_COURSE_BASE_PATH}/[code]`, "page");
 }
 
-export async function updateFreeCourse(_prev: ActionState, formData: FormData): Promise<ActionState> {
+// The id arrives bound from the client, so it is only trusted once it names a real row.
+async function requireFreeCourse(id: string, t: Dictionary) {
+  const course = await fetchFreeCourse(id);
+  if (!course) throw new AdminActionError(t.freeCourseAdmin.errorMissingRecord);
+  return course;
+}
+
+/** Every page needs its own code: it is the page's only public address. */
+async function assertAccessCodeAvailable(accessCode: string | null, exceptId: string | null, t: Dictionary) {
+  if (!accessCode) throw new AdminActionError(t.freeCourseAdmin.errorAccessCodeRequired);
+  let query = db.from("FreeCourse").select("id").eq("accessCode", accessCode);
+  if (exceptId) query = query.neq("id", exceptId);
+  const { data, error } = await query.limit(1);
+  if (error) throw error;
+  if (data.length > 0) throw new AdminActionError(t.freeCourseAdmin.errorAccessCodeTaken);
+}
+
+export async function createFreeCourse(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  return runAction(async () => {
+    const session = await requireAdmin();
+    const { t } = await getT();
+
+    const content = normalizeFreeCourseContent({
+      ...EMPTY_FREE_COURSE_CONTENT,
+      title: readString(formData, "title"),
+      accessCode: normalizeAccessCode(readString(formData, "accessCode")) || null,
+    });
+    if (!content.title) throw new AdminActionError(t.freeCourseAdmin.errorTitleRequired);
+    const problems = getContentProblems(content);
+    if (problems.length > 0) throw new AdminActionError(freeCourseContentMessage(problems[0], t));
+    await assertAccessCodeAvailable(content.accessCode, null, t);
+
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const { error } = await db.from("FreeCourse").insert({
+      id,
+      title: content.title,
+      accessCode: content.accessCode,
+      published: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    if (error?.code === PG_UNIQUE_VIOLATION) throw new AdminActionError(t.freeCourseAdmin.errorAccessCodeTaken);
+    if (error?.code === PG_CHECK_VIOLATION) throw new AdminActionError(t.admin.genericError);
+    if (error) throw error;
+
+    await recordAuditLog({
+      actorId: session.user.id,
+      action: "FREE_COURSE_CREATED",
+      targetType: "FreeCourse",
+      targetId: id,
+    });
+    revalidateFreeCourse(id);
+    // The new page's edit screen is the confirmation. redirect() works by throwing, which
+    // runAction passes through untouched.
+    redirect(freeCourseAdminPath(id));
+  });
+}
+
+export async function updateFreeCourse(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   return runAction(async () => {
     const session = await requireAdmin();
     const { t } = await getT();
@@ -933,65 +1002,55 @@ export async function updateFreeCourse(_prev: ActionState, formData: FormData): 
     const problems = getContentProblems(content);
     if (problems.length > 0) throw new AdminActionError(freeCourseContentMessage(problems[0], t));
 
-    const current = await fetchFreeCourse();
-    if (current?.published && getPublishBlockers(content).length > 0) {
+    const current = await requireFreeCourse(id, t);
+    if (current.published && getPublishBlockers(content).length > 0) {
       throw new AdminActionError(t.freeCourseAdmin.errorPublishedIncomplete);
     }
+    await assertAccessCodeAvailable(content.accessCode, id, t);
 
-    const updatedAt = new Date().toISOString();
     const expectedUpdatedAt = readString(formData, "updatedAt");
-
-    if (!current) {
-      // Only reachable if the migration's seed row was removed — recreate it as a draft.
-      const { error } = await db
-        .from("FreeCourse")
-        .insert({ id: FREE_COURSE_ID, ...content, published: false, updatedAt });
-      if (error?.code === "23505") throw new AdminActionError(t.freeCourseAdmin.errorConflict);
-      if (error?.code === PG_CHECK_VIOLATION) throw new AdminActionError(t.admin.genericError);
-      if (error) throw error;
-    } else {
-      if (!expectedUpdatedAt) throw new AdminActionError(t.freeCourseAdmin.errorConflict);
-      // Until a column's migration is applied the row lacks it: keep other edits saving, but refuse
-      // to silently drop a request that needs it (disabling skipping, a YouTube video).
-      const { allowSkipping, youtubeVideoId, ...rest } = content;
-      if (!("accessCode" in current)) throw new AdminActionError(t.freeCourseAdmin.errorAccessMigrationMissing);
-      const skippingColumnReady = "allowSkipping" in current;
-      if (!skippingColumnReady && !allowSkipping) {
-        throw new AdminActionError(t.freeCourseAdmin.errorSkippingMigrationMissing);
-      }
-      const youtubeColumnReady = "youtubeVideoId" in current;
-      if (!youtubeColumnReady && youtubeVideoId) {
-        throw new AdminActionError(t.freeCourseAdmin.errorYouTubeMigrationMissing);
-      }
-      // Optimistic concurrency: the update only applies if nobody saved since this form loaded.
-      const { data, error } = await db
-        .from("FreeCourse")
-        .update({
-          ...rest,
-          ...(skippingColumnReady ? { allowSkipping } : {}),
-          ...(youtubeColumnReady ? { youtubeVideoId } : {}),
-          updatedAt,
-        })
-        .eq("id", FREE_COURSE_ID)
-        .eq("updatedAt", expectedUpdatedAt)
-        .select("id");
-      if (error?.code === PG_CHECK_VIOLATION) throw new AdminActionError(t.freeCourseAdmin.errorPublishedIncomplete);
-      if (error) throw error;
-      if (data.length === 0) throw new AdminActionError(t.freeCourseAdmin.errorConflict);
+    if (!expectedUpdatedAt) throw new AdminActionError(t.freeCourseAdmin.errorConflict);
+    // Until a column's migration is applied the row lacks it: keep other edits saving, but refuse
+    // to silently drop a request that needs it (disabling skipping, a YouTube video).
+    const { allowSkipping, youtubeVideoId, ...rest } = content;
+    const skippingColumnReady = "allowSkipping" in current;
+    if (!skippingColumnReady && !allowSkipping) {
+      throw new AdminActionError(t.freeCourseAdmin.errorSkippingMigrationMissing);
     }
+    const youtubeColumnReady = "youtubeVideoId" in current;
+    if (!youtubeColumnReady && youtubeVideoId) {
+      throw new AdminActionError(t.freeCourseAdmin.errorYouTubeMigrationMissing);
+    }
+    // Optimistic concurrency: the update only applies if nobody saved this page since its form loaded.
+    const { data, error } = await db
+      .from("FreeCourse")
+      .update({
+        ...rest,
+        ...(skippingColumnReady ? { allowSkipping } : {}),
+        ...(youtubeColumnReady ? { youtubeVideoId } : {}),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq("id", id)
+      .eq("updatedAt", expectedUpdatedAt)
+      .select("id");
+    if (error?.code === PG_UNIQUE_VIOLATION) throw new AdminActionError(t.freeCourseAdmin.errorAccessCodeTaken);
+    if (error?.code === PG_CHECK_VIOLATION) throw new AdminActionError(t.freeCourseAdmin.errorPublishedIncomplete);
+    if (error) throw error;
+    if (data.length === 0) throw new AdminActionError(t.freeCourseAdmin.errorConflict);
 
     await recordAuditLog({
       actorId: session.user.id,
       action: "FREE_COURSE_UPDATED",
       targetType: "FreeCourse",
-      targetId: FREE_COURSE_ID,
+      targetId: id,
     });
-    revalidateFreeCourse();
+    revalidateFreeCourse(id);
     return { ok: true };
   });
 }
 
 export async function setFreeCoursePublished(
+  id: string,
   published: boolean,
   _prev: ActionState,
   _formData: FormData
@@ -1000,8 +1059,7 @@ export async function setFreeCoursePublished(
     const session = await requireAdmin();
     const { t } = await getT();
 
-    const current = await fetchFreeCourse();
-    if (!current) throw new AdminActionError(t.freeCourseAdmin.errorMissingRecord);
+    const current = await requireFreeCourse(id, t);
     if (published && getPublishBlockers(current).length > 0) {
       throw new AdminActionError(t.freeCourseAdmin.errorPublishIncomplete);
     }
@@ -1012,7 +1070,7 @@ export async function setFreeCoursePublished(
       const { error } = await db
         .from("FreeCourse")
         .update({ published, publishedAt: published ? new Date().toISOString() : null })
-        .eq("id", FREE_COURSE_ID);
+        .eq("id", id);
       if (error?.code === PG_CHECK_VIOLATION) throw new AdminActionError(t.freeCourseAdmin.errorPublishIncomplete);
       if (error) throw error;
 
@@ -1020,11 +1078,11 @@ export async function setFreeCoursePublished(
         actorId: session.user.id,
         action: published ? "FREE_COURSE_PUBLISHED" : "FREE_COURSE_UNPUBLISHED",
         targetType: "FreeCourse",
-        targetId: FREE_COURSE_ID,
+        targetId: id,
       });
     }
 
-    revalidateFreeCourse();
+    revalidateFreeCourse(id);
     return { ok: true };
   });
 }
